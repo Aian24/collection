@@ -173,6 +173,9 @@ $conn->close();
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.6/css/responsive.bootstrap4.min.css">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -587,15 +590,21 @@ $conn->close();
             <div class="date-bar mb-4">
                 <div style="flex:1">
                     <label>Collection Date</label>
-                    <input type="date" id="collected_date_part"
-                        value="<?php echo date('Y-m-d'); ?>"
-                        onchange="updateDateTime()">
+                    <div style="position:relative; display:flex; align-items:center;">
+                        <input type="text" id="collected_date_part"
+                            value="<?php echo date('Y-m-d'); ?>"
+                            onchange="updateDateTime()" style="padding-right:30px; cursor:pointer;" readonly>
+                        <i class="far fa-calendar" style="position:absolute; right:10px; color:#fff; pointer-events:none;"></i>
+                    </div>
                 </div>
                 <div style="flex:1">
                     <label>Time</label>
-                    <input type="time" id="collected_time_part"
-                        value="<?php echo date('H:i'); ?>" step="1"
-                        onchange="updateDateTime()">
+                    <div style="position:relative; display:flex; align-items:center;">
+                        <input type="text" id="collected_time_part"
+                            value="<?php echo date('H:i:s'); ?>" step="1"
+                            onchange="updateDateTime()" style="padding-right:30px; cursor:pointer;" readonly>
+                        <i class="far fa-clock" style="position:absolute; right:10px; color:#fff; pointer-events:none;"></i>
+                    </div>
                 </div>
                 <input type="hidden" id="collected_date" name="collected_date"
                     value="<?php echo date('Y-m-d\TH:i:s'); ?>">
@@ -1678,7 +1687,36 @@ $conn->close();
             document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
         });
     </script>
+    
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr("#collected_date_part", {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "m/d/Y",
+                disableMobile: true,
+                onChange: function(selectedDates, dateStr, instance) {
+                    updateDateTime();
+                }
+            });
+            flatpickr("#collected_time_part", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i:S",
+                altInput: true,
+                altFormat: "h:i:S K",
+                disableMobile: true,
+                enableSeconds: true,
+                onChange: function(selectedDates, dateStr, instance) {
+                    updateDateTime();
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
+
 
