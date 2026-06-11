@@ -1,0 +1,38 @@
+name: Deploy to Bluehost FTP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2 # Fetches the current and previous commit to calculate changes
+
+    - name: FTP Deploy
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        # Do not delete files on the server that are missing locally
+        protocol: ftp
+        # List of files/folders to completely ignore during the FTP transfer
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/.github/**
+          node_modules/**
+          vendor/**
+          error_log
+          config.php
+          imall/config.php
+          images/**
+          imall/images/**
+          *.log
