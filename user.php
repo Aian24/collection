@@ -1644,6 +1644,25 @@ $conn->close();
             const menu = wrapper.querySelector('.dropdown-menu');
             
             optionsContainer.innerHTML = '';
+            
+            // Add a Clear Option at the very top
+            const clearDiv = document.createElement('div');
+            clearDiv.className = 'px-3 py-2 cursor-pointer hover:bg-red-50 text-red-500 font-bold text-sm border-b border-gray-100 transition-colors flex justify-between items-center';
+            clearDiv.innerHTML = '<span><i class="fas fa-times-circle mr-1"></i> Clear Selection</span>';
+            clearDiv.onclick = (e) => {
+                e.stopPropagation();
+                input.value = '';
+                hidden.value = '';
+                menu.classList.add('hidden');
+                
+                // Clear the adjacent amount input as well
+                const amountInput = wrapper.parentElement.nextElementSibling?.querySelector('input[name="otheramount[]"]');
+                if (amountInput) amountInput.value = '';
+                
+                if(typeof calculateNewBalance === 'function') calculateNewBalance();
+            };
+            optionsContainer.appendChild(clearDiv);
+            
             const filtered = CHARGE_OPTIONS.filter(opt => opt.toLowerCase().includes(filterText.toLowerCase()));
             
             filtered.forEach(opt => {
@@ -1670,6 +1689,19 @@ $conn->close();
             if (e.target.matches('.dropdown-menu input')) {
                 const wrapper = e.target.closest('.custom-select');
                 window.renderCustomSelectOptions(wrapper, e.target.value);
+            }
+        });
+
+        // Allow backspace/delete to clear the custom select
+        document.addEventListener('keydown', function(e) {
+            if (e.target.matches('.custom-select input[readonly]')) {
+                if (e.key === 'Backspace' || e.key === 'Delete') {
+                    e.preventDefault();
+                    e.target.value = '';
+                    const hidden = e.target.closest('.custom-select').querySelector('input[type="hidden"]');
+                    if (hidden) hidden.value = '';
+                    if (typeof calculateNewBalance === 'function') calculateNewBalance();
+                }
             }
         });
 
