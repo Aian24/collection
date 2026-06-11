@@ -450,6 +450,7 @@ ob_end_flush(); // End output buffering and flush output
         .animate-fadeIn { animation: fadeIn .35s ease; }
 
     </style>
+<link rel="stylesheet" href="modern-bottom-nav.css">
 </head>
 <body>
     <!-- TOP BAR -->
@@ -516,29 +517,7 @@ ob_end_flush(); // End output buffering and flush output
     </div>
 
     <!-- BOTTOM NAV -->
-    <nav class="bottom-nav">
-        <a href="transactions.php" class="bot-btn">
-            <i class="fas fa-list-ul"></i>
-            Transactions
-        </a>
-        <a href="monitoring.php" class="bot-btn">
-            <i class="fas fa-chart-line"></i>
-            <span id="notificationBadge" class="badge" style="display:none"></span>
-            Monitoring
-        </a>
-        <a href="void_transaction.php" class="bot-btn active warn">
-            <i class="fas fa-ban"></i>
-            Void
-        </a>
-        <a href="user.php" class="bot-btn success-btn">
-            <i class="fas fa-plus-circle"></i>
-            New
-        </a>
-        <a href="index.php" class="bot-btn danger">
-            <i class="fas fa-sign-out-alt"></i>
-            Logout
-        </a>
-    </nav>
+    <?php include 'modern_bottom_nav.php'; ?>
             </div>
         </div>
     </div>
@@ -657,42 +636,7 @@ ob_end_flush(); // End output buffering and flush output
         </div>
     </div>
 
-    <nav class="bottom-nav">
-        <a href="transactions.php" class="bot-btn tx-btn">
-            <i class="fas fa-list-ul"></i>
-            TXS
-        </a>
-        <a href="printsummary.php" class="bot-btn sum-btn">
-            <i class="fas fa-database"></i>
-            Summ
-        </a>
-        <a href="#" onclick="openDupModal(event)" id="notificationButton" class="bot-btn dup-btn">
-            <i class="fas fa-exclamation-circle"></i>
-            <span id="notificationCountBadge" class="badge" style="display:none">0</span>
-            Dups
-        </a>
-        <a href="user.php" class="bot-btn new-btn">
-            <i class="fas fa-plus-circle"></i>
-            New
-        </a>
-        <a href="monitoring.php" class="bot-btn mon-btn">
-            <i class="fas fa-chart-line"></i>
-            <span id="notificationBadge" class="badge" style="display:none"></span>
-            Mon
-        </a>
-        <a href="void_transaction.php" class="bot-btn void-btn active">
-            <i class="fas fa-ban"></i>
-            Void
-        </a>
-        <a href="reprint.php" class="bot-btn print-btn">
-            <i class="fas fa-print"></i>
-            Print
-        </a>
-        <button type="button" onclick="showLogoutModal()" class="bot-btn stop-btn">
-            <i class="fas fa-sign-out-alt"></i>
-            Exit
-        </button>
-    </nav>
+    <?php include 'modern_bottom_nav.php'; ?>
 
     <!-- Logout Modern Modal -->
     <div id="logoutConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] animate-fadeIn">
@@ -802,3 +746,4 @@ ob_end_flush(); // End output buffering and flush output
     </script>
 </body>
 </html>
+

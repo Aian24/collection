@@ -1,0 +1,190 @@
+:root {
+    --nav-bg: #ffffff;
+    --nav-color: #94a3b8; /* Muted gray */
+    --nav-active: #2563eb; /* Modern Blue */
+    --fab-bg: #3b82f6; /* Soft blue */
+    --fab-color: #ffffff;
+}
+
+body {
+    padding-bottom: 95px !important;
+}
+
+.bottom-nav {
+    display: none !important;
+}
+
+.modern-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background-color: var(--nav-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.06);
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    z-index: 1000;
+    padding: 0 10px;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--nav-color);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 500;
+    gap: 5px;
+    transition: all 0.3s ease;
+    flex: 1;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.nav-item i {
+    font-size: 22px;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.nav-item:hover, .nav-item.active {
+    color: var(--nav-active);
+}
+
+.nav-item.active i {
+    transform: translateY(-2px) scale(1.1);
+}
+
+.nav-item-center {
+    flex: 1.2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    top: -22px;
+}
+
+.fab-button {
+    width: 65px;
+    height: 65px;
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--fab-color);
+    font-size: 28px;
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-decoration: none;
+    border: 6px solid #f1f5f9; 
+    z-index: 5; /* Lower than overlay (10) so it blurs when menu is open */
+}
+
+.fab-button:active {
+    transform: scale(0.9);
+}
+
+.fab-button.active {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 8px 20px rgba(29, 78, 216, 0.5);
+}
+
+/* ── MORE BUTTON CONTAINER ── */
+.nav-item-more-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20; /* Keep above overlay */
+}
+
+/* ── VERTICAL POPOUT MENU ── */
+.more-popout-menu {
+    position: absolute;
+    bottom: 60px; /* Above the more button */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column-reverse; /* Bottom to top */
+    gap: 15px;
+    z-index: 21;
+    pointer-events: none;
+}
+
+.more-popout-menu.active {
+    pointer-events: auto;
+}
+
+.more-pop-item {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #3b82f6;
+    font-size: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0;
+    transform: translateY(20px) scale(0.5);
+    text-decoration: none;
+}
+
+.more-pop-item:hover {
+    background: #eff6ff;
+    transform: scale(1.1) !important; /* overrides active transform */
+}
+
+/* Positions when active */
+.more-popout-menu.active .more-pop-item {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: var(--delay);
+}
+
+
+.pop-label {
+    position: absolute;
+    right: 58px; /* Position to the left of the circle */
+    white-space: nowrap;
+    background: #ffffff;
+    color: #475569;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+
+/* ── OVERLAY ── */
+.more-menu-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: transparent;
+    z-index: 10; /* Below the more container, but above the rest of the nav */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.more-menu-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modern-bottom-nav a {
+    text-decoration: none !important;
+}

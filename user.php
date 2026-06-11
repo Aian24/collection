@@ -369,11 +369,11 @@ $conn->close();
         }
         .section-divider::before, .section-divider::after {
             content: ''; flex: 1;
-            border-bottom: 1.5px solid var(--border);
+            border-bottom: 2px solid #60a5fa; /* More visible blue line */
         }
         .section-divider-label {
-            padding: 0 12px;
-            font-size: 11px; font-weight: 800;
+            padding: 0 14px;
+            font-size: 12px; font-weight: 800;
             color: var(--primary);
             text-transform: uppercase; letter-spacing: 1px;
         }
@@ -508,6 +508,7 @@ $conn->close();
         .collection-date-center { display:block; }
     </style>
 
+<link rel="stylesheet" href="modern-bottom-nav.css">
 </head>
 <body>
 
@@ -576,42 +577,7 @@ $conn->close();
     </div>
 
     <div class="px-3 pt-3">
-    <nav class="bottom-nav">
-        <a href="transactions.php" class="bot-btn tx-btn">
-            <i class="fas fa-list-ul"></i>
-            TXS
-        </a>
-        <a href="printsummary.php" class="bot-btn sum-btn">
-            <i class="fas fa-database"></i>
-            Summ
-        </a>
-        <a href="transactions.php?showDuplicates=1" id="notificationButton" class="bot-btn dup-btn">
-            <i class="fas fa-exclamation-circle"></i>
-            <span id="notificationCountBadge" class="badge" style="display:none">0</span>
-            Dups
-        </a>
-        <a href="user.php" class="bot-btn new-btn active">
-            <i class="fas fa-plus-circle"></i>
-            New
-        </a>
-        <a href="monitoring.php" class="bot-btn mon-btn">
-            <i class="fas fa-chart-line"></i>
-            <span id="notificationBadge" class="badge" style="display:none"></span>
-            Mon
-        </a>
-        <a href="void_transaction.php" class="bot-btn void-btn">
-            <i class="fas fa-ban"></i>
-            Void
-        </a>
-        <a href="reprint.php" class="bot-btn print-btn">
-            <i class="fas fa-print"></i>
-            Print
-        </a>
-        <button type="button" onclick="showLogoutModal()" class="bot-btn stop-btn">
-            <i class="fas fa-sign-out-alt"></i>
-            Exit
-        </button>
-    </nav>
+    <?php include 'modern_bottom_nav.php'; ?>
 
         <form id="collectionForm" method="post" action="user.php" class="mx-auto animate-fadeIn" style="max-width:520px">
             <input readonly hidden type="text" name="collector" id="collector" value="<?php echo htmlspecialchars($lname); ?>">
@@ -708,14 +674,14 @@ $conn->close();
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <div>
                     <label class="pos-label" for="paidrent">
-                        <i class="fas fa-money-bill-wave"></i>Paid (Rent)
+                        <i class="fas fa-money-bill-wave"></i>Payment (Rent)
                     </label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                         class="pos-input w-full" id="paidrent" type="text" name="paidrent" placeholder="0.00" inputmode="decimal">
                 </div>
                 <div>
                     <label class="pos-label" for="paidbal">
-                        <i class="fas fa-money-check-alt"></i>Paid (Arrear)
+                        <i class="fas fa-money-check-alt"></i>Payment (Arrear)
                     </label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                         class="pos-input w-full" id="paidbal" type="text" name="paidbal" placeholder="0.00" inputmode="decimal">
@@ -752,39 +718,26 @@ $conn->close();
                 <div class="grid grid-cols-2 gap-3 items-end">
                     <div>
                         <label class="pos-label" for="chargeothers"><i class="fas fa-plus-circle"></i>Others</label>
-                        <select id="chargeothers" name="chargeothers[]" class="pos-input w-full">
-                            <option value="" selected>Select a type</option>
-                            <option value="Table Tennis">Table Tennis</option>
-                            <option value="Pay Toilet">Pay Toilet</option>
-                            <option value="Pay Parking">Pay Parking</option>
-                            <option value="Ice &amp; Water">Ice &amp; Water</option>
-                            <option value="Ulam Vendor">Ulam Vendor</option>
-                            <option value="Gas">Gas</option>
-                            <option value="Famylihan">Famylihan</option>
-                            <option value="Garbage Haul">Garbage Haul</option>
-                            <option value="Photocopy">Photocopy</option>
-                            <option value="Tenant ID">Tenant ID</option>
-                            <option value="Function Room">Function Room</option>
-                            <option value="Tables &amp; Chairs">Tables &amp; Chairs</option>
-                            <option value="Overnight Works">Overnight Works</option>
-                            <option value="Vendo Sale">Vendo Sale</option>
-                            <option value="Zumba">Zumba</option>
-                            <option value="Sec Dep">Sec Dep</option>
-                            <option value="Meter Dep">Meter Dep</option>
-                            <option value="Utility Dep">Utility Dep</option>
-                            <option value="Miscellaneous">Miscellaneous</option>
-                            <option value="Forfeited Items">Forfeited Items</option>
-                        </select>
+                    <div class="relative custom-select" id="initialChargeSelect">
+                        <input type="text" class="pos-input w-full cursor-pointer bg-white border-blue-200 focus:border-blue-500" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
+                        <input type="hidden" id="chargeothers" name="chargeothers[]">
+                        <div class="absolute z-50 w-full bg-white border border-blue-200 rounded-lg shadow-xl mt-1 hidden dropdown-menu flex-col overflow-hidden">
+                            <div class="p-2 border-b border-blue-100 bg-blue-50">
+                                <input type="text" class="w-full bg-white border border-blue-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" placeholder="Search charges...">
+                            </div>
+                            <div class="max-h-48 overflow-y-auto dropdown-options"></div>
+                        </div>
                     </div>
-                    <div>
+                </div>
+                <div>
                         <label class="pos-label" for="otheramount"><i class="fas fa-money-bill-alt"></i>Amount</label>
                         <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full" id="otheramount" type="text" name="otheramount[]" placeholder="0.00" inputmode="decimal">
                     </div>
                 </div>
                 <div id="additionalChargesContainer" class="flex flex-col gap-2"></div>
                 <div class="flex justify-center">
-                    <button type="button" id="addChargeButton" class="pos-button bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-5 border border-gray-300">
-                        <i class="fas fa-plus mr-2"></i>Add More Charges
+                    <button type="button" id="addChargeButton" class="pos-button bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-4 text-sm font-semibold border-none shadow transition-all rounded-lg">
+                        <i class="fas fa-plus mr-1.5"></i>Add Charges
                     </button>
                 </div>
             </div>
@@ -1169,40 +1122,24 @@ $conn->close();
             var newEntry = document.createElement('div');
             newEntry.classList.add('grid', 'grid-cols-2', 'gap-4', 'items-end', 'mb-2');
             newEntry.innerHTML = `
-                <div>
-            <select name="chargeothers[]" 
-                            class="pos-input w-full">
-                    <option value="" selected>Select a type</option>
-                    <option value="Table Tennis">Table Tennis</option>
-                    <option value="Pay Toilet">Pay Toilet</option>
-                    <option value="Pay Parking">Pay Parking</option>
-                    <option value="Ice & Water">Ice & Water</option>
-                    <option value="Ulam Vendor">Ulam Vendor</option>
-                    <option value="Gas">Gas</option>
-                    <option value="Famylihan">Famylihan</option>
-                    <option value="Garbage Haul">Garbage Haul</option>
-                    <option value="Photocopy">Photocopy</option>
-                    <option value="Tenant ID">Tenant ID</option>
-                    <option value="Function Room">Function Room</option>
-                    <option value="Tables & Chairs">Tables & Chairs</option>
-                    <option value="Overnight Works">Overnight Works</option>
-                    <option value="Vendo Sale">Vendo Sale</option>
-                    <option value="Zumba">Zumba</option>
-                    <option value="Sec Dep">Sec Dep</option>
-                    <option value="Meter Dep">Meter Dep</option>
-                    <option value="Utility Dep">Utility Dep</option>
-                    <option value="Miscellaneous">Miscellaneous</option>
-                    <option value="Forfeited Items">Forfeited Items</option>
-            </select>
-        </div>
+                <div class="relative custom-select">
+                    <input type="text" class="pos-input w-full cursor-pointer bg-white border-blue-200 focus:border-blue-500" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
+                    <input type="hidden" name="chargeothers[]">
+                    <div class="absolute z-50 w-full bg-white border border-blue-200 rounded-lg shadow-xl mt-1 hidden dropdown-menu flex-col overflow-hidden">
+                        <div class="p-2 border-b border-blue-100 bg-blue-50">
+                            <input type="text" class="w-full bg-white border border-blue-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" placeholder="Search charges...">
+                        </div>
+                        <div class="max-h-48 overflow-y-auto dropdown-options"></div>
+                    </div>
+                </div>
                 <div class="flex items-center">
                     <div class="relative flex-1">
             <input oninput="formatNumberAndCalculateNewBalance(this)" 
                             class="pos-input w-full"
                             type="text" name="otheramount[]" placeholder="0.00" inputmode="decimal">
                     </div>
-                    <button type="button" class="remove-charge ml-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2">
-                        <i class="fas fa-times"></i>
+                    <button type="button" class="remove-charge ml-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-full p-2.5 transition-colors">
+                        <i class="fas fa-trash-alt"></i>
                     </button>
         </div>
     `;
@@ -1253,8 +1190,8 @@ $conn->close();
                 }
             });
 
-            // Handle dynamic "Other Charges" from dropdowns (both static and dynamically added)
-            const otherSelects = document.querySelectorAll('select[name="chargeothers[]"]');
+            // Handle dynamic "Other Charges" from custom dropdowns (both static and dynamically added)
+            const otherSelects = document.querySelectorAll('input[name="chargeothers[]"]');
             const otherAmounts = document.querySelectorAll('input[name="otheramount[]"]');
             
             for (let i = 0; i < otherSelects.length; i++) {
@@ -1288,24 +1225,30 @@ $conn->close();
         }
 
         // Event listener for the confirm button
-        document.getElementById('confirmButton').addEventListener('click', function() {
-            // Close the modal
-            document.getElementById('confirmationModal').classList.add('hidden');
+        const confBtn = document.getElementById('confirmButton');
+        if (confBtn) {
+            confBtn.addEventListener('click', function() {
+                // Close the modal
+                document.getElementById('confirmationModal').classList.add('hidden');
 
-            // Submit the form programmatically
-            document.getElementById('collectionForm').submit();
-        });
+                // Submit the form programmatically
+                document.getElementById('collectionForm').submit();
+            });
+        }
 
         // Event listener for the cancel button
-        document.getElementById('cancelButton').addEventListener('click', function() {
-            // Reload the page or redirect to user.php
-            window.location.href = "user.php"; // Redirect to user.php
-            // OR for reloading the page, you can use:
-            // location.reload(); 
-        });
+        const canBtn = document.getElementById('cancelButton');
+        if (canBtn) {
+            canBtn.addEventListener('click', function() {
+                window.location.href = "user.php";
+            });
+        }
 
         // Event listener for the form submit button
-        document.getElementById('collectionForm').addEventListener('submit', showConfirmationModal);
+        const colForm = document.getElementById('collectionForm');
+        if (colForm) {
+            colForm.addEventListener('submit', showConfirmationModal);
+        }
 
         // Show welcome modal on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -1387,8 +1330,10 @@ $conn->close();
         // checkDuplicateBadge();
 
         // Inside the event listener for the notification button
-        document.getElementById('notificationButton').addEventListener('click', function (event) {
-            event.preventDefault(); // Prevent the default form submission
+        const notifBtn = document.getElementById('notificationButton');
+        if (notifBtn) {
+            notifBtn.addEventListener('click', function (event) {
+                event.preventDefault(); // Prevent the default form submission
             
             // Show loading indicator
             document.getElementById('duplicatedTransactionsTableBody').innerHTML = 
@@ -1466,7 +1411,8 @@ $conn->close();
                     document.getElementById('duplicatedTransactionsTableBody').innerHTML = 
                         '<tr><td colspan="10" class="text-center py-4 text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i> Error loading duplicated transactions</td></tr>';
                 });
-        });
+            });
+        }
 
         // Function to parse charges from the string
         function parseCharges(chargesString) {
@@ -1659,7 +1605,80 @@ $conn->close();
                 suggestSpaceCode(value);
             }
         });
+
+        // Custom Select Logic for Charges
+        const CHARGE_OPTIONS = [
+            "Table Tennis", "Pay Toilet", "Pay Parking", "Ice & Water", "Ulam Vendor",
+            "Gas", "Famylihan", "Garbage Haul", "Photocopy", "Tenant ID",
+            "Function Room", "Tables & Chairs", "Overnight Works", "Vendo Sale",
+            "Zumba", "Sec Dep", "Meter Dep", "Utility Dep", "Miscellaneous", "Forfeited Items"
+        ];
+
+        window.openCustomSelect = function(inputEl) {
+            // Close all others first
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+            
+            const wrapper = inputEl.closest('.custom-select');
+            const menu = wrapper.querySelector('.dropdown-menu');
+            const search = wrapper.querySelector('.dropdown-menu input');
+            
+            menu.classList.remove('hidden');
+            search.value = '';
+            window.renderCustomSelectOptions(wrapper, '');
+            search.focus();
+        };
+
+        window.renderCustomSelectOptions = function(wrapper, filterText) {
+            const optionsContainer = wrapper.querySelector('.dropdown-options');
+            const input = wrapper.querySelector('input[type="text"][readonly]');
+            const hidden = wrapper.querySelector('input[type="hidden"]');
+            const menu = wrapper.querySelector('.dropdown-menu');
+            
+            optionsContainer.innerHTML = '';
+            const filtered = CHARGE_OPTIONS.filter(opt => opt.toLowerCase().includes(filterText.toLowerCase()));
+            
+            filtered.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = 'px-3 py-2 cursor-pointer hover:bg-blue-50 text-gray-700 text-sm border-b border-gray-50 last:border-0 transition-colors';
+                div.textContent = opt;
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    input.value = opt;
+                    hidden.value = opt;
+                    menu.classList.add('hidden');
+                    if(typeof calculateNewBalance === 'function') calculateNewBalance();
+                };
+                optionsContainer.appendChild(div);
+            });
+            
+            if (filtered.length === 0) {
+                optionsContainer.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">No results found</div>';
+            }
+        };
+
+        // Attach event delegation for the search input
+        document.addEventListener('input', function(e) {
+            if (e.target.matches('.dropdown-menu input')) {
+                const wrapper = e.target.closest('.custom-select');
+                window.renderCustomSelectOptions(wrapper, e.target.value);
+            }
+        });
+
+        // Prevent clicks inside menu from closing it
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.dropdown-menu')) {
+                // Clicking inside the menu (like on the search box) should not close it
+                return;
+            }
+            if (e.target.matches('.custom-select input[readonly]')) {
+                // Handled by openCustomSelect
+                return;
+            }
+            // Clicking anywhere else closes all menus
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+        });
     </script>
 </body>
 
 </html>
+

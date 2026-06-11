@@ -101,7 +101,13 @@ $conn->close();
     <title>Print Summary</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="modern-bottom-nav.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
     <style>
+        body {
+            padding-bottom: 80px; /* Space for bottom nav */
+        }
         :root {
             --primary-color: #4361ee;
             --secondary-color: #3f37c9;
@@ -419,68 +425,18 @@ $conn->close();
 
     <!-- Modern UI (hidden on print) -->
     <div class="modern-ui">
-        <nav class="top-bar p-4 mb-4 w-full sticky top-0 z-40">
-            <div class="flex justify-between items-center w-full mx-auto max-w-6xl">
-                <div class="flex items-center">
-                    <a href="user.php" class="nav-btn flex items-center">
-                        <i class="fas fa-arrow-left mr-2"></i> Back
-                    </a>
-                </div>
-                <div class="absolute left-1/2 transform -translate-x-1/2">
-                </div>
-                <div class="sm:hidden">
-                    <button id="burger-menu-btn" class="nav-btn">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                </div>
-                <div class="hidden sm:flex sm:items-center sm:space-x-3">
-                    <a href="reprint.php" class="nav-btn flex items-center">
-                        <i class="fas fa-print mr-2"></i> Reprint
-                    </a>
-                    <a href="void_transaction.php" class="nav-btn flex items-center">
-                        <i class="fas fa-ban mr-2"></i> Void
-                    </a>
-                    <a href="user.php" class="nav-btn flex items-center">
-                        <i class="fas fa-plus-circle mr-2"></i> New Collection
-                    </a>
-                    <a href="index.php" class="nav-btn flex items-center">
-                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
-                    </a>
+        <nav class="top-bar p-3 mb-4 w-full sticky top-0 z-40 shadow-md">
+            <div class="flex items-center justify-between w-full mx-auto max-w-6xl">
+                <div class="flex items-center gap-2 text-white">
+                    <i class="fas fa-file-invoice text-xl opacity-90"></i>
+                    <div>
+                        <div class="text-base font-bold tracking-wide">Summary Report</div>
+                    </div>
                 </div>
             </div>
         </nav>
 
-        <!-- Side navigation for small screens -->
-        <div id="side-nav" class="hidden fixed inset-0 z-50">
-            <div class="flex h-full">
-                <div id="side-nav-backdrop" class="bg-black opacity-50 w-1/4 sm:w-3/4 h-full"></div>
-                <div class="side-menu w-3/4 sm:w-1/4 h-full transform transition-transform duration-300 ease-in-out -translate-x-full">
-                    <div class="flex justify-between items-center p-4 border-b border-white/20">
-                        <div class="flex items-center">
-                            <i class="fas fa-user-circle text-white text-2xl mr-2"></i>
-                            <span class="text-white font-bold"><?php echo htmlspecialchars($username); ?></span>
-                        </div>
-                        <button id="close-btn" class="text-white focus:outline-none hover:bg-white/20 p-2 rounded-full">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="flex flex-col items-start pl-8 mt-6 space-y-4">
-                        <a href="reprint.php" class="text-white text-lg py-3 w-full flex items-center hover:bg-white/10 rounded-lg px-4">
-                            <i class="fas fa-print mr-4 w-6 text-center"></i> Reprint Receipt
-                        </a>
-                        <a href="void_transaction.php" class="text-white text-lg py-3 w-full flex items-center hover:bg-white/10 rounded-lg px-4">
-                            <i class="fas fa-ban mr-4 w-6 text-center"></i> Void Transaction
-                        </a>
-                        <a href="user.php" class="text-white text-lg py-3 w-full flex items-center hover:bg-white/10 rounded-lg px-4">
-                            <i class="fas fa-plus-circle mr-4 w-6 text-center"></i> Create Collection
-                        </a>
-                        <a href="index.php" class="text-white text-lg py-3 w-full flex items-center hover:bg-white/10 rounded-lg px-4">
-                            <i class="fas fa-sign-out-alt mr-4 w-6 text-center"></i> Logout
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php include 'modern_bottom_nav.php'; ?>
 
         <div class="container mx-auto px-4 max-w-6xl">
             <!-- Header with Logo (hidden on screen, visible on print) -->
@@ -492,11 +448,14 @@ $conn->close();
             </div>
 
             <!-- Date Filter -->
-            <div class="date-picker mb-6">
-                <form id="dateForm" method="post" class="flex items-center justify-center space-x-4">
-                    <label for="selected_date" class="font-bold text-gray-700">Select Date:</label>
-                    <input type="date" name="selected_date" id="selected_date" value="<?php echo $selected_date; ?>" 
-                           onchange="this.form.submit()" class="custom-input">
+            <div class="mb-4">
+                <form id="dateForm" method="post" class="bg-white rounded-[16px] px-4 py-3 flex flex-col shadow-md border border-gray-100 summary-card">
+                    <label for="selected_date" class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 pl-1">Filter by Date</label>
+                    <div class="flex items-center w-full bg-blue-50/50 rounded-xl px-3 py-2 border border-blue-100 hover:border-blue-300 transition-colors cursor-pointer">
+                        <i class="fas fa-calendar-day text-blue-500 mr-2 text-lg"></i>
+                        <input type="text" name="selected_date" id="selected_date" value="<?php echo $selected_date; ?>" 
+                               class="bg-transparent text-sm font-bold text-gray-800 outline-none cursor-pointer flex-1 w-full placeholder-gray-500" placeholder="Select a date" readonly>
+                    </div>
                 </form>
             </div>
 
@@ -604,30 +563,6 @@ $conn->close();
     </div>
 
     <script>
-        // Burger menu logic
-        document.getElementById('burger-menu-btn').addEventListener('click', function() {
-            const sideNav = document.getElementById('side-nav');
-            sideNav.classList.remove('hidden');
-            setTimeout(function() {
-                const sideMenu = sideNav.querySelector('.transform');
-                sideMenu.classList.add('translate-x-0');
-                sideMenu.classList.remove('-translate-x-full');
-            }, 50);
-        });
-        
-        document.getElementById('close-btn').addEventListener('click', closeMenu);
-        document.getElementById('side-nav-backdrop').addEventListener('click', closeMenu);
-        
-        function closeMenu() {
-            const sideNav = document.getElementById('side-nav');
-            const sideMenu = sideNav.querySelector('.transform');
-            sideMenu.classList.add('-translate-x-full');
-            sideMenu.classList.remove('translate-x-0');
-            setTimeout(function() {
-                sideNav.classList.add('hidden');
-            }, 300);
-        }
-        
         // Add animation delay to stat items
         document.addEventListener('DOMContentLoaded', function() {
             const statItems = document.querySelectorAll('.stat-item');
@@ -639,5 +574,21 @@ $conn->close();
     
     <!-- App Print Integration -->
     <script src="app_print_integration.js"></script>
+
+    <!-- Flatpickr for Modern Date Picker -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr("#selected_date", {
+                dateFormat: "Y-m-d",
+                disableMobile: true, // Prevents mobile browsers from using native date picker, forcing our blue theme
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (dateStr) {
+                        document.getElementById("dateForm").submit();
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
