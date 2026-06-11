@@ -6,6 +6,7 @@ include 'config.php'; // Make sure config.php exists and has your database conne
 session_start();
 
 $error_message = ""; // Initialize an empty error message
+$remembered_username = isset($_COOKIE["remembered_username"]) ? $_COOKIE["remembered_username"] : '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Assuming you have validated and sanitized the input data
@@ -43,6 +44,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION["branch"] = $branch;
                 $_SESSION["user_type"] = $user_type;
                 $_SESSION["profile_photo"] = $profile_photo;
+
+                // Handle Remember Me
+                if (isset($_POST["remember-me"])) {
+                    setcookie("remembered_username", $username, time() + (86400 * 30), "/"); // 30 days
+                } else {
+                    setcookie("remembered_username", "", time() - 3600, "/"); // Clear cookie
+                }
 
                 // Close the statement
                 $stmt->close();
@@ -278,7 +286,7 @@ ob_end_flush();
             <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" class="space-y-6">
                 
                 <div class="input-box">
-                    <input type="text" name="username" id="username" required autocomplete="username" placeholder=" ">
+                    <input type="text" name="username" id="username" required autocomplete="username" placeholder=" " value="<?php echo htmlspecialchars($remembered_username); ?>">
                     <i class="fas fa-user input-icon"></i>
                     <label for="username">Username</label>
                 </div>
@@ -294,7 +302,7 @@ ob_end_flush();
 
                 <div class="flex items-center justify-between mt-2 mb-6">
                     <div class="flex items-center">
-                        <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer transition-colors">
+                        <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer transition-colors" <?php echo !empty($remembered_username) ? 'checked' : ''; ?>>
                         <label for="remember-me" class="ml-2 block text-sm text-gray-600 cursor-pointer select-none">
                             Remember me
                         </label>
