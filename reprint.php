@@ -182,6 +182,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             max-width: 520px;
             margin: 20px auto;
         }
+        @media (min-width: 1024px) {
+            .page-card {
+                max-width: calc(100% - 24px);
+            }
+        }
         .page-title {
             font-size: 18px; font-weight: 700;
             color: var(--text); margin-bottom: 16px;

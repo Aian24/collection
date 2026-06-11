@@ -582,7 +582,7 @@ $conn->close();
     <div class="px-3 pt-3">
     <?php include 'modern_bottom_nav.php'; ?>
 
-        <form id="collectionForm" method="post" action="user.php" class="mx-auto animate-fadeIn" style="max-width:520px">
+        <form id="collectionForm" method="post" action="user.php" class="mx-auto animate-fadeIn w-full max-w-[520px] lg:max-w-full lg:pr-6">
             <input readonly hidden type="text" name="collector" id="collector" value="<?php echo htmlspecialchars($lname); ?>">
             <input name="branch" id="branch" type="hidden" value="<?php echo htmlspecialchars($branch); ?>">
 

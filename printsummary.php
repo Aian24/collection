@@ -437,7 +437,7 @@ $conn->close();
 
         <?php include 'modern_bottom_nav.php'; ?>
 
-        <div class="container mx-auto px-4 max-w-6xl">
+        <div class="mx-auto px-4 w-full lg:px-6">
             <!-- Header with Logo (hidden on screen, visible on print) -->
             <div class="text-center mb-4 screen-hide">
                 <div class="glass-card inline-block p-6">

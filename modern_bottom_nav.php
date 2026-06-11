@@ -1,6 +1,48 @@
 <?php
 $currentPage = basename($_SERVER['PHP_SELF']);
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+$branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
 ?>
+
+<!-- Desktop Sidebar -->
+<div class="desktop-sidebar">
+    <div class="desktop-sidebar-logo">
+        <div style="background: linear-gradient(135deg, #3b82f6, #2563eb); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(37,99,235,0.4);">
+            <i class="fas fa-cash-register" style="font-size: 20px;"></i>
+        </div>
+        <div>
+            <span class="brand"><?= htmlspecialchars($branchName) ?></span>
+            <span class="sub">POS System</span>
+        </div>
+    </div>
+    
+    <div class="desktop-sidebar-menu">
+        <a href="user.php" class="desktop-sidebar-link <?= $currentPage == 'user.php' ? 'active' : '' ?>">
+            <i class="fas fa-plus-circle"></i> Create Receipt
+        </a>
+        <a href="printsummary.php" class="desktop-sidebar-link <?= $currentPage == 'printsummary.php' ? 'active' : '' ?>">
+            <i class="fas fa-file-invoice-dollar"></i> Summary Report
+        </a>
+        <a href="transactions.php" class="desktop-sidebar-link <?= $currentPage == 'transactions.php' ? 'active' : '' ?>">
+            <i class="fas fa-list-ul"></i> Transactions
+        </a>
+        <a href="reprint.php" class="desktop-sidebar-link <?= $currentPage == 'reprint.php' ? 'active' : '' ?>">
+            <i class="fas fa-print"></i> Reprint Receipt
+        </a>
+        <a href="void_transaction.php" class="desktop-sidebar-link <?= $currentPage == 'void_transaction.php' ? 'active' : '' ?>">
+            <i class="fas fa-ban"></i> Void Receipt
+        </a>
+        <a href="monitoring.php" class="desktop-sidebar-link <?= $currentPage == 'monitoring.php' ? 'active' : '' ?>">
+            <i class="fas fa-chart-pie"></i> Monitoring
+        </a>
+    </div>
+    
+    <div class="desktop-sidebar-footer">
+        <a href="#" onclick="showModernLogout(); return false;" class="desktop-sidebar-link text-red-400 hover-red" style="color: #f87171;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+</div>
 
 <div class="modern-bottom-nav">
     <!-- Left side -->
@@ -56,7 +98,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 <!-- Logout Confirmation Modal -->
 <div id="modernLogoutModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; display: none;">
-    <div style="background: white; border-radius: 24px; padding: 30px 20px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); position: relative; z-index: 2001; margin: auto; margin-top: 50%;">
+    <div style="background: white; border-radius: 24px; padding: 30px 20px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); position: relative; z-index: 2001; margin: auto;">
         <div style="width: 70px; height: 70px; border-radius: 20px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 20px;">
             <i class="fas fa-sign-out-alt"></i>
         </div>

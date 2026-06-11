@@ -196,54 +196,80 @@ $branch = $_SESSION["branch"];
         .animate-fadeIn { animation: fadeIn .35s ease; }
 
 
-        /* TABLE OVERRIDES */
+        /* TABLE OVERRIDES - MODERN DATATABLES */
         .data-table-container {
-            background: white; border-radius: 14px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            background: white; border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,.04);
             overflow-x: auto; -webkit-overflow-scrolling: touch;
             border: 1px solid var(--border);
         }
-        .data-table { border-collapse: separate; border-spacing: 0; }
+        .data-table { border-collapse: collapse !important; width: 100% !important; margin: 0 !important; }
         .data-table thead th {
-            background: var(--surface2); color: var(--text-muted);
-            font-weight: 600; font-size: 12px; text-transform: uppercase;
-            letter-spacing: .05em; padding: 14px 10px;
-            border-bottom: 2px solid var(--border); white-space: nowrap;
+            background: #f8fafc; color: #64748b;
+            font-weight: 700; font-size: 11px; text-transform: uppercase;
+            letter-spacing: .05em; padding: 16px 14px;
+            border-bottom: 2px solid #e2e8f0 !important; white-space: nowrap;
         }
-        .data-table tbody tr { border-bottom: 1px solid var(--surface2); transition: background .15s; }
-        .data-table tbody tr:hover { background: #eff6ff; }
-        .data-table tbody td { padding: 13px 10px; font-size: 14px; white-space: nowrap; }
-        @media (max-width:640px) {
-            .data-table { min-width: 900px; }
-            .data-table thead th, .data-table tbody td { padding: 10px 8px; font-size: 13px; }
+        table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0 !important; }
+        .data-table tbody tr { transition: background .15s; }
+        .data-table tbody tr:hover { background: #f1f5f9; }
+        .data-table tbody td { padding: 14px 14px; font-size: 13.5px; white-space: nowrap; border-bottom: 1px solid #f1f5f9; border-top: none !important; }
+        
+        /* DataTables Controls */
+        .dataTables_wrapper { padding: 0; }
+        .dataTables_wrapper .dataTables_length {
+            padding: 16px 20px 8px; color: #64748b; font-size: 13px; font-weight: 500;
         }
-        .summary-button {
-            background: linear-gradient(135deg,#2563eb,#1d4ed8);
-            color:#fff; border-radius:10px; padding:8px 14px;
-            font-weight:600; font-size:14px; border:none; cursor:pointer;
-            box-shadow:0 4px 12px rgba(37,99,235,.3); transition:all .2s;
-            display:flex; align-items:center; gap:6px;
+        .dataTables_wrapper .dataTables_length select {
+            border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 6px 28px 6px 12px; margin: 0 6px; outline: none; background: #fff; font-size: 13px; font-weight: 600; color: #334155; transition: border-color .2s;
+            appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 14px;
         }
-        .summary-button:hover { transform:translateY(-1px); }
-        .notification-badge {
-            background: linear-gradient(135deg,#dc2626,#b91c1c);
-            color:#fff; border-radius:10px; padding:8px 14px;
-            font-weight:600; font-size:14px; border:none; cursor:pointer;
-            box-shadow:0 4px 12px rgba(220,38,38,.3); transition:all .2s;
-            display:flex; align-items:center; gap:6px;
+        .dataTables_wrapper .dataTables_length select:focus { border-color: var(--primary); }
+        
+        .dataTables_wrapper .dataTables_filter {
+            padding: 16px 20px 8px; color: #64748b; font-size: 13px; font-weight: 500;
         }
-        .notification-badge:hover { transform:translateY(-1px); }
-        .dataTables_paginate .paginate_button.current,
-        .dataTables_paginate .paginate_button.active {
-            background: var(--primary) !important; color:#fff !important;
-            border-color: var(--primary) !important; font-weight:700 !important;
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; margin-left: 8px; outline: none; background: #fff; font-size: 13px; color: #334155; transition: all .2s; min-width: 220px;
         }
-        .dataTables_paginate .paginate_button.previous,
-        .dataTables_paginate .paginate_button.next { display:none !important; }
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_paginate { margin:0 !important; }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+        }
+        
+        .dataTables_wrapper .dataTables_info {
+            padding: 16px 20px; font-size: 13px; color: #64748b; font-weight: 500; clear: both;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate {
+            padding: 12px 20px 16px; display: flex; gap: 4px; align-items: center; justify-content: flex-end;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border: 1.5px solid #e2e8f0 !important; border-radius: 8px; padding: 6px 12px !important; min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b !important; background: #fff !important; transition: all .2s; font-size: 13px; font-weight: 600; margin: 0 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
+            background: #f8fafc !important; border-color: #cbd5e1 !important; color: #334155 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; box-shadow: 0 2px 8px rgba(37,99,235,.25);
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+            opacity: 0.5; cursor: not-allowed; background: #f8fafc !important;
+        }
+        
+        table.dataTable thead .sorting, 
+        table.dataTable thead .sorting_asc, 
+        table.dataTable thead .sorting_desc {
+            background-image: none !important; position: relative; padding-right: 24px; cursor: pointer;
+        }
+        table.dataTable thead .sorting:after, 
+        table.dataTable thead .sorting_asc:after, 
+        table.dataTable thead .sorting_desc:after {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 10px; opacity: 0.4;
+        }
+        table.dataTable thead .sorting:after { content: "\f0dc"; }
+        table.dataTable thead .sorting_asc:after { content: "\f0de"; opacity: 1; color: var(--primary); }
+        table.dataTable thead .sorting_desc:after { content: "\f0dd"; opacity: 1; color: var(--primary); }
 
 
         /* ── Transaction Cards ───────────────────────────────── */
@@ -399,7 +425,7 @@ $branch = $_SESSION["branch"];
         <div class="mb-3"></div>
 
         <!-- Search + Entries row -->
-        <div class="flex items-center justify-between mb-3 gap-2">
+        <div class="flex lg:hidden items-center justify-between mb-3 gap-2">
             <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-500 font-medium">Show</span>
                 <select id="entriesPerPage" class="pos-input" style="width:70px;padding:6px 8px;font-size:14px">
@@ -415,11 +441,32 @@ $branch = $_SESSION["branch"];
             </div>
         </div>
 
-        <!-- Cards container -->
-        <div id="cardsContainer"></div>
+        <!-- Cards container (Mobile only) -->
+        <div id="cardsContainer" class="lg:hidden"></div>
+
+        <!-- Table container (Desktop only) -->
+        <div id="tableWrapper" class="hidden lg:block data-table-container mt-4 mb-6 p-4">
+            <table id="transactionsTable" class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th>Transaction #</th>
+                        <th>Date</th>
+                        <th>Space</th>
+                        <th>Code</th>
+                        <th>Collector</th>
+                        <th>Tenant</th>
+                        <th>Paid Rent</th>
+                        <th>Paid Bal</th>
+                        <th>Charges</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
 
         <!-- Pagination + info -->
-        <div class="flex flex-col items-center gap-2 mt-4 mb-2">
+        <div class="flex lg:hidden flex-col items-center gap-2 mt-4 mb-2">
             <div id="paginationInfo" class="text-xs text-gray-500 font-medium"></div>
             <div id="paginationBtns" class="flex flex-wrap gap-1 justify-center"></div>
         </div>
@@ -447,6 +494,7 @@ $branch = $_SESSION["branch"];
 
     <script src="nav_badge.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.js"></script>
     <script>
     function n(v){ return parseFloat(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
     function fmtDate(d){
@@ -590,6 +638,7 @@ $branch = $_SESSION["branch"];
                 data.sort((a,b) => new Date(b.collected_date) - new Date(a.collected_date));
                 allData = data;
                 applyFilter();
+                renderTable(); // Render desktop table
                 updateNotificationCount();
             })
             .catch(() => {
@@ -612,6 +661,40 @@ $branch = $_SESSION["branch"];
                     document.getElementById('notificationButton').classList.remove('animate-pulse');
                 }
             }).catch(()=>{});
+    }
+
+    // ── Table builder for Desktop ─────────────────────────────────────────────
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = allData.map(t => {
+            const cTotal = getChargesTotal(t.charges);
+            const paid = parseFloat(t.paidrent||0) + parseFloat(t.paidbal||0) + cTotal;
+            const charges = t.charges && t.charges !== 'null' ? t.charges : '—';
+            return `
+                <tr>
+                    <td class="font-bold" style="color:var(--primary)">#${t.transaction_number}</td>
+                    <td>${fmtDate(t.collected_date)}</td>
+                    <td>${t.spacecode||'—'}</td>
+                    <td>${t.tenantcode||'—'}</td>
+                    <td>${t.collector||'—'}</td>
+                    <td class="font-bold" style="color:#1e293b">${t.tenantname||'—'}</td>
+                    <td style="color:#16a34a;font-weight:700">&#x20B1;${n(t.paidrent)}</td>
+                    <td style="color:#2563eb;font-weight:700">&#x20B1;${n(t.paidbal)}</td>
+                    <td style="font-size:12px;color:#64748b;max-width:200px;white-space:normal">${charges}</td>
+                    <td style="color:#15803d;font-weight:800;background:#dcfce7">&#x20B1;${n(paid)}</td>
+                </tr>
+            `;
+        }).join('');
+        
+        if ($.fn.DataTable.isDataTable('#transactionsTable')) {
+            $('#transactionsTable').DataTable().destroy();
+        }
+        $('#transactionsTable').DataTable({
+            responsive: true,
+            order: [[1, 'desc']],
+            pageLength: 25,
+            language: { search: "Search Transactions:" }
+        });
     }
 
     // ── Duplicated modal ──────────────────────────────────────────────────────
