@@ -62,6 +62,25 @@ body {
     transform: translateY(-2px) scale(1.1);
 }
 
+.nav-badge-alert {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+    z-index: 10;
+}
+
 .nav-item-center {
     flex: 1.2;
     display: flex;

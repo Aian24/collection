@@ -35,6 +35,13 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
         <a href="monitoring.php" class="desktop-sidebar-link <?= $currentPage == 'monitoring.php' ? 'active' : '' ?>">
             <i class="fas fa-chart-pie"></i> Monitoring
         </a>
+        <a href="transactions.php?showDuplicates=1" class="desktop-sidebar-link">
+            <div style="position: relative; display: inline-flex;">
+                <i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>
+                <span class="badge-fixed global-dup-badge" style="display: none; top: -5px !important; right: -8px !important;">0</span>
+            </div>
+            <span style="color: #ef4444;">Duplicates</span>
+        </a>
     </div>
     
     <div class="desktop-sidebar-footer">
@@ -55,6 +62,26 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
         <i class="fas fa-print"></i>
         <span>Reprint</span>
     </a>
+    <style>
+        .badge-fixed {
+            position: absolute !important;
+            top: -6px !important;
+            right: -10px !important;
+            background: #ef4444 !important;
+            color: white !important;
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            min-width: 18px !important;
+            height: 18px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 10px !important;
+            border: 2px solid #ffffff !important;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3) !important;
+            z-index: 10 !important;
+        }
+    </style>
 
     <!-- Center Floating Action Button (Create) -->
     <div class="nav-item-center">
@@ -69,6 +96,15 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
         <span>Void</span>
     </a>
 
+    <!-- Alerts (Duplicates) Button -->
+    <a href="transactions.php?showDuplicates=1" class="nav-item">
+        <div style="position: relative; display: inline-flex; align-items: center; justify-content: center;">
+            <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 24px;"></i>
+            <span class="badge-fixed global-dup-badge" style="display: none;">0</span>
+        </div>
+        <span style="color: #ef4444; font-weight: 700; margin-top: 2px;">Alerts</span>
+    </a>
+
     <!-- More Button (Far Right) -->
     <div class="nav-item-more-container">
         <!-- Floating Menu Bubbles above More -->
@@ -81,6 +117,7 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
                 <span class="pop-label">Monitoring</span>
                 <i class="fas fa-chart-pie"></i>
             </a>
+
             <a href="#" onclick="showModernLogout(); return false;" class="more-pop-item" style="--delay: 0.05s">
                 <span class="pop-label">Logout</span>
                 <i class="fas fa-sign-out-alt"></i>
@@ -141,4 +178,28 @@ function toggleMoreMenu() {
         moreIcon.style.transform = 'rotate(0deg)';
     }
 }
+
+// Globally fetch duplicated transactions count for the badges
+function updateGlobalDupBadges() {
+    fetch('fetch_duplicated_transactions.php')
+        .then(response => response.json())
+        .then(data => {
+            const badges = document.querySelectorAll('.global-dup-badge');
+            if (data && data.length > 0) {
+                badges.forEach(b => {
+                    b.innerText = data.length;
+                    b.style.display = 'flex';
+                });
+            } else {
+                badges.forEach(b => b.style.display = 'none');
+            }
+        })
+        .catch(error => console.error('Error fetching dup count for badges:', error));
+}
+
+// Initial fetch and set interval for every 15 seconds
+document.addEventListener('DOMContentLoaded', () => {
+    updateGlobalDupBadges();
+    setInterval(updateGlobalDupBadges, 15000);
+});
 </script>
