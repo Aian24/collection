@@ -106,7 +106,7 @@ $conn->close();
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
     <style>
         body {
-            padding-bottom: 80px; /* Space for bottom nav */
+            /* Scroll natively for smoothness, padding moved to modern-ui */
         }
         :root {
             --primary-color: #4361ee;
@@ -181,8 +181,7 @@ $conn->close();
         .modern-ui {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            height: 100vh;
-            overflow-y: auto;
+            padding-bottom: 100px; /* Space for bottom nav + extra padding */
         }
         
         .glass-card {
