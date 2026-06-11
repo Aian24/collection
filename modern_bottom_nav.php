@@ -62,6 +62,11 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
         <i class="fas fa-print"></i>
         <span>Reprint</span>
     </a>
+
+    <a href="monitoring.php" class="nav-item <?= $currentPage == 'monitoring.php' ? 'active' : '' ?>">
+        <i class="fas fa-chart-pie"></i>
+        <span>Monitor</span>
+    </a>
     <style>
         .badge-fixed {
             position: absolute !important;
@@ -102,20 +107,16 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
             <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 24px;"></i>
             <span class="badge-fixed global-dup-badge" style="display: none;">0</span>
         </div>
-        <span style="color: #ef4444; font-weight: 700; margin-top: 2px;">Alerts</span>
+        <span style="color: #ef4444; font-weight: 700; margin-top: 2px;">Duplicated</span>
     </a>
 
     <!-- More Button (Far Right) -->
     <div class="nav-item-more-container">
         <!-- Floating Menu Bubbles above More -->
         <div class="more-popout-menu" id="morePopoutMenu">
-            <a href="transactions.php" class="more-pop-item" style="--delay: 0.15s">
+            <a href="transactions.php" class="more-pop-item" style="--delay: 0.1s">
                 <span class="pop-label">Transactions</span>
                 <i class="fas fa-list-ul"></i>
-            </a>
-            <a href="monitoring.php" class="more-pop-item" style="--delay: 0.1s">
-                <span class="pop-label">Monitoring</span>
-                <i class="fas fa-chart-pie"></i>
             </a>
 
             <a href="#" onclick="showModernLogout(); return false;" class="more-pop-item" style="--delay: 0.05s">
