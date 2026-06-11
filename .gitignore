@@ -1,0 +1,4 @@
+node_modules/
+vendor/
+error_log
+.env

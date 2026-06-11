@@ -1,0 +1,641 @@
+
+
+/* index*/
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600&display=swap');
+
+*{
+   font-family: 'Poppins', sans-serif;
+   margin:0; padding:0;
+   box-sizing: border-box;
+   outline: none; border:none;
+   text-decoration: none;
+}
+
+.container{
+   min-height: 100vh;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding:20px;
+   padding-bottom: 60px;
+}
+
+.container .content{
+   text-align: center;
+}
+
+.container .content h3{
+   font-size: 30px;
+   color:#333;
+}
+
+.container .content h3 span{
+   background: rgb(12, 33, 216);
+   color:#fff;
+   border-radius: 5px;
+   padding:0 15px;
+}
+
+.container .content h2{
+   position: absolute;
+   margin-left: -12%;
+   margin-top: -20%;
+   font-size: 40px;
+   color:#333;
+}
+
+.container .content h2 span{
+   color:rgb(76, 0, 252);
+}
+
+.container .content p{
+   font-size: 25px;
+   margin-bottom: 20px;
+}
+
+.container .content .btn{
+   display: inline-block;
+   padding:10px 30px;
+   font-size: 20px;
+   background: #008fc7;
+   color:#fff;
+   margin:0 5px;
+   text-transform: capitalize;
+}
+
+.container .content .btn:hover{
+   background: rgb(0, 34, 228);
+}
+
+.form-container{
+   min-height: 100vh;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   padding:20px;
+   padding-bottom: 60px;
+   background: #eee;
+}
+
+.form-container form{
+   padding:20px;
+   border-radius: 5px;
+   box-shadow: 0 5px 10px rgba(0,0,0,.1);
+   background: #fff;
+   text-align: center;
+   width: 500px;
+}
+
+.form-container form h3{
+   font-size: 30px;
+   text-transform: uppercase;
+   margin-bottom: 10px;
+   color:#333;
+}
+
+.form-container form input,
+.form-container form select{
+   width: 100%;
+   padding:10px 15px;
+   font-size: 17px;
+   margin:8px 0;
+   background: #eee;
+   border-radius: 5px;
+}
+
+.form-container form select option{
+   background: #fff;
+}
+
+.form-container form .form-btn{
+   background: #46a2c7;
+   color:rgb(4, 20, 250);
+   text-transform: capitalize;
+   font-size: 20px;
+   cursor: pointer;
+}
+
+.form-container form .form-btn:hover{
+   background: rgb(20, 50, 220);
+   color:#fff;
+}
+
+.form-container form p{
+   margin-top: 10px;
+   font-size: 20px;
+   color:#333;
+}
+
+.form-container form p a{
+   color:rgb(33, 20, 220);
+}
+
+.form-container form .error-msg{
+   margin:10px 0;
+   display: block;
+   background: rgb(10, 32, 223);
+   color:#fff;
+   border-radius: 5px;
+   font-size: 20px;
+   padding:10px;
+}
+
+/* Nav Bar */
+ nav{
+   position: fixed;
+   background: #0082e6;
+   height: 80px;
+   width: 100%;
+ }
+ label.logo{
+  font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+   position: relative;
+   color: rgb(253, 0, 0);
+   font-size: 35px;
+   line-height: 80px;
+   padding: 0 100px;
+   font-weight: bold;
+ }
+ nav ul{
+   float: right;
+   margin-right: 20px;
+ }
+ nav ul li{
+   display: inline-block;
+   line-height: 80px;
+   margin: 0 5px;
+ }
+ nav ul li a{
+   color: white;
+   font-size: 17px;
+   padding: 7px 13px;
+   border-radius: 3px;
+   text-transform: uppercase;
+ }
+ a.active,a:hover{
+   background: #1b9bff;
+   transition: .5s;
+ }
+ .checkbtn{
+   font-size: 30px;
+   color: white;
+   float: right;
+   line-height: 80px;
+   margin-right: 40px;
+   cursor: pointer;
+   display: none;
+ }
+ #check{
+   display: none;
+ }
+
+
+ /*  Table */
+
+ .styled-table {
+  border-collapse:collapse;
+  margin:25px 0;
+  font-size: 0.9em;
+  font-family:sans-serif;
+  min-width:400px;
+  box-shadow:0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.styled-table thead tr {
+  background-color: #0f0cdd;
+  color: #ffffff;
+}
+.styled-table th,
+.styled-table td {
+    padding: 10px 15px;
+    text-align: center;
+}
+
+.styled-table tbody tr {
+  border-bottom: 1px solid #dddddd;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+  background-color: #f3f3f3;
+}
+
+.styled-table tbody tr:last-of-type {
+  border-bottom: 2px solid #0f47ff;
+}
+.styled-table tbody tr.active-row {
+  font-weight: bold;
+  color: #0004ff;
+}
+
+  /* Table AR */
+.table-AR{
+  margin-top: 500px;
+  border-collapse:collapse;
+  margin:25px 0;
+  font-size: 1em;
+  font-family:sans-serif;
+  box-shadow:0 0 20px rgba(45, 33, 214, 0.986);
+}
+
+
+.table-AR th,
+.table-AR td
+{
+    padding: 10px 20px;
+    text-align: center;
+    
+}
+
+.table-AR tbody tr {
+  border-bottom: 1px solid #0024f3;
+}
+
+.table-AR tbody tr:nth-of-type(even) {
+  background-color: #ffffff;
+}
+
+.table-AR tbody tr:last-of-type {
+  border-bottom: 2px solid #021bf8;
+  margin-top: 500px;
+}
+.table-AR tbody tr.active-row {
+  font-weight: bold;
+  color: #0b20df;
+}
+
+input[type="text"]
+{
+    font-size:15px;
+}
+input[type="date"]
+{
+    font-size:15px;
+}
+
+
+
+
+
+/* AUTOCOMPLETE WRAPPER */
+.acWrap {
+  display: flex;
+  position: relative;
+}
+
+/* SUGGESTIONS */
+.acWrap .acSuggest {
+  z-index: 1;
+  position: absolute;
+  top: 100%; left: 0;
+  width: 150%;
+  background: #fff;
+  border: 1px solid #eee;
+  display: none;
+}
+.acWrap .acSuggest {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.acWrap .acSuggest li {
+  padding: 10px;
+}
+.acWrap .acSuggest li:hover {
+  background: #d9e7ff;
+  cursor: pointer;
+}
+
+
+.imall{
+  color: red;
+}
+.imall2{
+  color: rgb(0, 0, 0);
+  font-size:em;font-size:1.9em;
+}
+
+
+
+
+ 
+
+.ak{
+  color: #FFFFFF;
+  margin-top: 2%;
+  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+font-size: 2em;
+}
+
+
+.address{
+  text-align:center;
+  margin-left:-60%; 
+}
+
+
+
+
+.add {
+  appearance: button;
+  background-color: #1899D6;
+  border: solid transparent;
+  border-radius: 16px;
+  border-width: 0 0 4px;
+  box-sizing: border-box;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .8px;
+  line-height: 20px;
+  margin: 0;
+  outline: none;
+  overflow: visible;
+  padding: 13px 19px;
+  text-align: center;
+  text-transform: uppercase;
+  touch-action: manipulation;
+  transform: translateZ(0);
+  transition: filter .2s;
+  user-select: none;
+  -webkit-user-select: none;
+  vertical-align: middle;
+  white-space: nowrap;
+ }
+ 
+ .add:after {
+  background-clip: padding-box;
+  background-color: #1CB0F6;
+  border: solid transparent;
+  border-radius: 16px;
+  border-width: 0 0 4px;
+  bottom: -4px;
+  content: "";
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: -1;
+ }
+ 
+ .add:main, button:focus {
+  user-select: auto;
+ }
+ 
+ .add:hover:not(:disabled) {
+  filter: brightness(1.1);
+ }
+ 
+ .add:disabled {
+  cursor: auto;
+ }
+ 
+ .add:active:after {
+  border-width: 0 0 0px;
+ }
+ 
+ .add:active {
+  padding-bottom: 10px;
+ }
+
+
+
+
+/* input decor */
+.input {
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid hsl(236, 92%, 66%);
+  outline: none;
+  transition: 200ms ease-in;
+  padding-left: 1rem;
+}
+
+.input:focus {
+  border-bottom: 4px solid hsl(236, 92%, 66%);
+  padding-top: 2px;
+}
+
+.input::placeholder {
+  color: hsl(236, 92%, 66%);
+  opacity: 0.5;
+}
+
+
+
+
+
+
+
+/* forgot pass */
+
+.forgot-container {
+  margin-top: 200px;
+  max-width: 400px;
+  background-color: #fff;
+  padding: 32px 24px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #212121;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.084), 0px 2px 3px rgba(0, 0, 0, 0.168);
+}
+
+.forgot-container button:active {
+  scale: 0.95;
+}
+
+.forgot-container .logo-container {
+  text-align: center;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.forgot-container .forgot {
+  display: flex;
+  flex-direction: column;
+}
+
+.forgot-container .forgot-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.forgot-container .forgot-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.forgot-container .forgot-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-family: inherit;
+  border: 1px solid #ccc;
+}
+
+.forgot-container .forgot-group input::placeholder {
+  opacity: 0.5;
+}
+
+.forgot-container .forgot-group input:focus {
+  outline: none;
+  border-color: #1778f2;
+}
+
+.forgot-container .forgot-submit-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: inherit;
+  color: #fff;
+  background-color: #212121;
+  border: none;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: inherit;
+  gap: 8px;
+  margin: 12px 0;
+  cursor: pointer;
+  border-radius: 6px;
+  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.084), 0px 2px 3px rgba(0, 0, 0, 0.168);
+}
+
+.forgot-container .forgot-submit-btn:hover {
+  background-color: #313131;
+}
+
+.forgot-container .link {
+  color: #1778f2;
+  text-decoration: none;
+}
+
+.forgot-container .signup-link {
+  align-self: center;
+  font-weight: 500;
+}
+
+.forgotcontainer .signup-link .link {
+  font-weight: 400;
+}
+
+.forgot-container .link:hover {
+  text-decoration: underline;
+}
+
+
+
+
+.delete-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #1899D6;
+  border: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.164);
+  cursor: pointer;
+  transition-duration: 0.3s;
+  overflow: hidden;
+  position: relative;
+}
+
+.delete-svgIcon {
+  width: 15px;
+  transition-duration: 0.3s;
+}
+
+.delete-svgIcon path {
+  fill: white;
+}
+
+.delete-button:hover {
+  width: 90px;
+  border-radius: 50px;
+  transition-duration: 0.3s;
+  background-color: rgb(255, 69, 69);
+  align-items: center;
+}
+
+.delete-button:hover .delete-svgIcon {
+  width: 20px;
+  transition-duration: 0.3s;
+  transform: translateY(60%);
+  -webkit-transform: rotate(360deg);
+  -moz-transform: rotate(360deg);
+  -o-transform: rotate(360deg);
+  -ms-transform: rotate(360deg);
+  transform: rotate(360deg);
+}
+
+.delete-button::before {
+  display: none;
+  content: "Delete";
+  color: white;
+  transition-duration: 0.3s;
+  font-size: 2px;
+}
+
+.delete-button:hover::before {
+  display: block;
+  padding-right: 10px;
+  font-size: 13px;
+  opacity: 1;
+  transform: translateY(0px);
+  transition-duration: 0.3s;
+}
+
+/* Add a new CSS rule for screens larger than 1535 pixels */
+@media screen and (min-width: 1536px) {
+  .container {
+    max-width: 1535px;
+  }
+}
+@media screen and (min-width: 1325px) {
+ .table-AR{
+  margin-top: -8%;
+  margin-left: 33%;
+ }
+}
+
+
+/* For screens with a maximum width of 768px */
+@media (max-width: 768px) {
+  nav ul {
+     display: none;
+     flex-direction: column;
+     position: fixed;
+     top: 0;
+     right: 0;
+     width: 100%;
+     height: 100%;
+     background-color: #0082e6;
+     z-index: 1;
+     transform: translateX(100%);
+     transition: transform 0.3s ease-in-out;
+  }
+
+  nav ul.show {
+     transform: translateX(0);
+  }
+
+  nav ul li {
+     margin-right: 0;
+     text-align: center;
+     padding: 20px;
+     width: 100%;
+  }
+
+  .checkbtn {
+     display: block;
+  }
+}

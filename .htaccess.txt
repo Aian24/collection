@@ -1,0 +1,7 @@
+Options +FollowSymLinks
+RewriteEngine On
+
+# Rewrite user.php to /user
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]

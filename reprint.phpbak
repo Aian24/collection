@@ -1,0 +1,197 @@
+<?php
+ob_start(); // Start output buffering
+include 'config.php';
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION["username"])) {
+    header("Location: index.php");
+    exit();
+}
+
+// Handle form submission
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $branch = $_POST['branch'];
+    $transaction_number = $_POST['transaction_number'];
+
+    // Initialize database connection
+    $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+
+    // Determine the table based on selected branch
+    $table = ($branch === 'Nova Market') ? 'collectednova' : (($branch === 'APM Branch') ? 'collectedapm' : 'collected');
+
+    // Prepare SQL query
+    $stmt = $conn->prepare("SELECT * FROM $table WHERE transaction_number = ?");
+    $stmt->bind_param("s", $transaction_number);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    // Check if transaction exists
+    if ($result->num_rows > 0) {
+        // Output the receipt (customize as needed)
+        while ($row = $result->fetch_assoc()) {
+            echo "Transaction Number: " . htmlspecialchars($row['transaction_number']) . "<br>";
+            // Add other fields you want to display
+        }
+    } else {
+        echo "No transaction found with that number.";
+    }
+
+    $stmt->close();
+    $conn->close();
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="../images/lc.png">
+    <title>Reprint Receipt</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Enhanced mobile styling */
+        @media (max-width: 640px) {
+            input, select, textarea, button {
+                font-size: 16px !important; /* Prevent zoom on iOS */
+                min-height: 44px;
+            }
+        }
+        
+        /* Improve navigation tap targets */
+        nav a {
+            padding: 8px 12px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-800 p-3 mb-2 w-full sticky top-0 z-40">
+        <div class="flex justify-between items-center w-full mx-auto">
+            <div>
+                <button type="button" onclick="openModal()"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg">
+                    Transactions
+                </button>
+            </div>
+            <div class="sm:hidden">
+                <button id="burger-menu-btn" class="text-white focus:outline-none bg-gray-700 p-2 rounded-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="hidden sm:flex sm:items-center sm:space-x-4">
+                <a href="reprint.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Reprint Receipt</a>
+                <a href="void_transaction.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Void Transaction</a>
+                <a href="user.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Create Collection</a>
+                <a href="index.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Side navigation for small screens -->
+    <div id="side-nav" class="hidden fixed inset-0 z-50">
+        <div class="flex h-full">
+            <!-- Semi-transparent backdrop -->
+            <div id="side-nav-backdrop" class="bg-black opacity-50 w-1/4 sm:w-3/4 h-full"></div>
+            
+            <!-- Actual navigation menu -->
+            <div class="bg-gray-800 w-3/4 sm:w-1/4 h-full transform transition-transform duration-300 ease-in-out">
+                <div class="flex justify-end p-4">
+                    <button id="close-btn" class="text-white focus:outline-none bg-gray-700 p-2 rounded-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex flex-col items-start pl-8 mt-10 space-y-4">
+                    <a href="reprint.php" class="text-white text-lg py-2">Reprint Receipt</a>
+                    <a href="void_transaction.php" class="text-white text-lg py-2">Void Transaction</a>
+                    <a href="user.php" class="text-white text-lg py-2">Create Collection</a>
+                    <a href="index.php" class="text-white text-lg py-2">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto mt-8 px-4">
+        <div class="max-w-md mx-auto bg-white shadow-lg p-6 rounded-lg">
+            <h1 class="text-2xl font-bold mb-4">Reprint Receipt</h1>
+            <form action="reprintreceipt.php" method="POST">
+                <div class="mb-4">
+                    <label for="branch" class="block text-sm font-medium text-gray-700">Select Branch</label>
+                    <select id="branch" name="branch" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                        required>
+                        <option value="" disabled selected>Select Branch</option>
+                        <option value="Nova Market">Nova Market</option>
+                        <option value="Sanko Market">Sanko Market</option>
+                        <option value="APM Branch">APM Branch</option> <!-- Added APM Branch -->
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="transaction_number" class="block text-sm font-medium text-gray-700">Transaction
+                        Number</label>
+                    <input type="text" id="transaction_number" name="transaction_number"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+                </div>
+                <div class="text-center">
+                    <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg">Reprint
+                        Receipt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    // Add transactions modal function 
+    function openModal() {
+        window.location.href = 'user.php'; // Redirect to user.php which has the transactions modal
+    }
+    
+    // Improve mobile menu handling with animations
+    document.getElementById('burger-menu-btn').addEventListener('click', function() {
+        const sideNav = document.getElementById('side-nav');
+        sideNav.classList.remove('hidden');
+        
+        // Animate the side menu
+        setTimeout(function() {
+            const sideMenu = sideNav.querySelector('.transform');
+            sideMenu.classList.add('translate-x-0');
+            sideMenu.classList.remove('-translate-x-full');
+        }, 50);
+    });
+
+    document.getElementById('close-btn').addEventListener('click', closeMenu);
+    document.getElementById('side-nav-backdrop').addEventListener('click', closeMenu);
+
+    function closeMenu() {
+        const sideNav = document.getElementById('side-nav');
+        const sideMenu = sideNav.querySelector('.transform');
+        
+        // Animate out
+        sideMenu.classList.add('-translate-x-full');
+        sideMenu.classList.remove('translate-x-0');
+        
+        // Hide after animation completes
+        setTimeout(function() {
+            sideNav.classList.add('hidden');
+        }, 300);
+    }
+</script>
+</body>
+</html>

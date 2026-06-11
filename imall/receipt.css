@@ -1,0 +1,39 @@
+.receiptCon {
+    position: relative;
+    top: 50px;
+    /* background-color: #0082e6; */
+    width: 35vw;
+    border-radius: 17px;
+    box-shadow: 1px 10px 10px gray;
+}
+
+.receiptHeader, .receiptFooter {
+    background-color: #0082e6;
+    color: white;
+    padding: 10px;
+    
+}
+
+
+@media print {
+    *{
+        padding: 1px !important;
+    }
+    .receiptCon {
+        position: static;
+        top: auto;
+        width: auto;
+        border-radius: 0;
+        box-shadow: none;
+        border: none !important;
+        padding: 0 !important;
+        letter-spacing: -1px;
+    }
+
+    .receiptHeader, .receiptFooter {
+        background-color: transparent;
+        color: black; /* Adjust text color for better visibility when printed */
+        padding: 0;
+        border: none;
+    }
+}

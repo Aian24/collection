@@ -1,0 +1,41 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.modal_content{
+    position: relative;
+    margin: auto;
+    padding: 17px;
+    margin-top: 2%;
+    width: 55%;
+    height: auto;
+    background-color: rgb(244, 241, 255);
+    border-radius: 24px;
+}
+
+.modalcontainer {
+    max-height: 750px; /* Set a maximum height for the container */
+    overflow-y: auto; /* Enable vertical scrolling when the content overflows */
+    overflow-x: hidden;
+}
+
+.transactionDetails{
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin: auto;
+
+}
+
+@media (max-width: 1440px) {
+    .modal_content{
+        width: 90vw;
+        height: 90vh;
+        overflow-y: auto;
+    }
+    .modalcontainer{
+        overflow-y: hidden;
+    }
+}

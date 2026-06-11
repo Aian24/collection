@@ -1,0 +1,300 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    outline: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+html ::-webkit-scrollbar {
+    width: 10px;
+    background-color: #111d2c;
+    cursor: pointer;
+}
+
+html ::-webkit-scrollbar-thumb {
+    background: linear-gradient(160deg, #3c76ba, #1e428b);
+    width: 10px;
+    border-radius: 5px;
+}
+
+html ::-webkit-scrollbar-thumb:hover {
+    background: #379dc3;
+    cursor: pointer;
+}
+
+body {
+
+    font-family: 'Raleway', sans-serif;
+    font-family: 'Roboto', sans-serif;
+    font-family: 'Poppins', sans-serif;
+    font-family: 'Rubik', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+a,
+ol,
+ul,
+li,
+img,
+span,
+input,
+form,
+label,
+.btn,
+.navbar,
+.navbar-brand {
+    margin: 0;
+    padding: 0;
+}
+
+h1::selection,
+h2::selection,
+h3::selection,
+h4::selection,
+h5::selection,
+h6::selection,
+p::selection,
+a::selection,
+ol::selection,
+ul::selection,
+li::selection,
+img::selection,
+span::selection,
+input::selection,
+form::selection,
+label::selection,
+.btn::selection,
+.navbar::selection,
+.navbar-brand::selection {
+    color: #fff;
+    background: #187fcc;
+    text-shadow: 1px 1px 1px #333;
+}
+
+ol,
+ul,
+li {
+    list-style-type: none;
+}
+
+a,
+a:hover {
+    text-decoration: none;
+    color: #333;
+    -webkit-transition: 0.2s;
+    transition: 0.2s;
+}
+
+h1 {
+    font-size: 50px;
+    color: #111;
+    font-weight: 600;
+}
+
+h2 {
+    font-size: 40px;
+    color: #111;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 35px;
+    color: #111;
+    font-weight: 600;
+}
+
+h4 {
+    font-size: 30px;
+    color: #111;
+    font-weight: 600;
+}
+
+h5 {
+    font-size: 25px;
+    color: #111;
+    font-weight: 600;
+}
+
+h6 {
+    font-size: 18px;
+    color: #111;
+}
+
+p {
+    font-size: 14px;
+    color: #111;
+}
+
+.ptb-50 {
+    padding: 50px 0px;
+}
+
+.mtb-15 {
+    margin: 15px 0;
+}
+
+
+
+
+
+
+
+
+/* For admin  table*/
+#min{
+    position: relative;
+    border: 2px solid hsl(236, 92%, 66%);
+}
+#max{
+    position: relative;
+    border: 2px solid hsl(236, 92%, 66%);
+}
+.datatable{
+    
+   background: #fff;
+    box-shadow: 1px 3px 5px #aaa;
+    border-radius: 5px;
+    width: auto;
+    height: auto;
+}
+
+.datatable .btn{
+    padding: 5px 10px;
+    margin: 10px 3px 10px 0;
+}
+
+
+.datatablebranch{
+    margin-top: 3%;
+    background: #fff;
+     box-shadow: 1px 3px 5px #aaa;
+     border-radius: 5px;
+     width: auto;
+     height: auto;
+ }
+ 
+ .datatablebranch .btn{
+     padding: 5px 10px;
+     margin: 10px 3px 10px 0;
+ }
+
+
+.datatable1{
+    margin-top: 5%;
+    margin-left: -9%;
+    position: relative;
+    height: 100%vh;
+    width: 100vw;
+   background: #fff;
+    padding: 15px;
+    box-shadow: 1px 3px 5px #aaa;
+    border-radius: 5px;
+    width: auto;
+}
+
+.datatable1 .btn{
+    padding: 5px 10px;
+    margin: 10px 3px 10px 0;
+    width: auto;
+}
+
+
+.datatable3{
+    margin-top: 2%;
+    margin-left: -4%;
+    position: relative;
+    background: #fff;
+     width: 70vw;
+    padding: 20px;
+    box-shadow: 1px 3px 5px #aaa;
+    border-radius: 5px;
+    width: auto;
+}
+
+.datatableuser{
+    margin-top: 8%;
+    margin-left: -15%;
+    position: relative;
+    background: #fff;
+     width: 85vw;
+    padding: 20px;
+    box-shadow: 1px 3px 5px #aaa;
+    border-radius: 5px;
+  
+}
+.datatableupdate{
+    position: relative;
+    background: #fff;
+    top:20px;
+     width: 75vw;
+    padding: 20px;
+    box-shadow: 1px 3px 5px #aaa;
+    border-radius: 5px;
+}
+
+
+
+
+@media (max-width: 1440px){
+    .datatable1{
+       margin-left: 2%;
+    }
+    .datatablebranch{
+        margin-left:18%; 
+        margin-top:2%; 
+        width:90vw;
+    }
+    .datatableuser{
+        margin-top: 8%;
+        margin-left: 2%;
+        position: relative;
+        background: #fff;
+         width: 120vw;
+        padding: 20px;
+        box-shadow: 1px 3px 5px #aaa;
+        border-radius: 5px;
+      
+    }
+}
+
+@media (max-width: 1440px){
+    .datatable3{
+        width: 100vw;
+        padding: 15px;
+    }
+}
+@media screen and (max-width: 1366px){
+    .datatableuser{
+        margin-top: 13%;
+        margin-left: -5%;
+        position: relative;
+       background: #fff;
+        padding: 15px;
+        box-shadow: 1px 3px 5px #aaa;
+        border-radius: 5px;
+        width: 120vw;
+    }
+    .datatable{
+        margin-left: 1%;
+        background: #fff;
+         box-shadow: 1px 3px 5px #aaa;
+         border-radius: 5px;
+         width: 70vw;
+         height: auto;
+     }
+     #myPieChart{
+            margin-left: -20%;
+}
+
+}
+

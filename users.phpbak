@@ -1,0 +1,1435 @@
+<?php
+ob_start(); // Start output buffering
+include 'config.php';
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION["username"])) {
+    header("Location: index.php");
+    exit();
+}
+
+// Get user details from session
+$username = $_SESSION["username"];
+$lname = $_SESSION["lname"];
+$branch = $_SESSION["branch"];
+
+// Set default timezone to Philippines
+date_default_timezone_set('Asia/Manila');
+
+// Get the current date and time in the Philippines timezone
+$currentDateTime = date('Y-m-d\TH:i:s');
+
+// Determine the latest transaction number based on branch
+$latestTransactionNumber = 0; // Default transaction number
+$tableName = '';
+
+// Check if the branch is Sanko Market or Nova Market
+if ($branch === 'Sanko Market') {
+    $tableName = 'collected';
+    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM collected");
+} elseif ($branch === 'Nova Market') {
+    $tableName = 'collectednova';
+    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM collectednova");
+} elseif ($branch === 'APM') {
+    $tableName = 'collectedapm';
+    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM collectedapm");
+} else {
+    echo "Invalid branch selection";
+    exit();
+}
+
+// Fetch the latest transaction number
+$latestTransactionRow = $latestTransactionQuery->fetch_assoc();
+$latestTransactionNumber = $latestTransactionRow['max_transaction'] ?? 0; // Use 0 as default if no transaction found
+
+// Check if form is submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Retrieve form data
+    $collector = $_POST['collector'];
+    $tenantcode = $_POST['tenantcode'];
+    $spacecode = $_POST['spacecode'];
+    $tenantname = $_POST['tenantname'];
+    $collected_date = $_POST['collected_date']; // Capture the collected date
+
+    // Remove commas and format numeric values properly
+    $rent = !empty($_POST['rent']) ? floatval(str_replace(',', '', $_POST['rent'])) : 0;
+    $rentbal = !empty($_POST['rentbal']) ? floatval(str_replace(',', '', $_POST['rentbal'])) : 0;
+    $runningBal = !empty($_POST['runningbal']) ? floatval(str_replace(',', '', $_POST['runningbal'])) : 0;
+    $paidrent = !empty($_POST['paidrent']) ? floatval(str_replace(',', '', $_POST['paidrent'])) : 0;
+    $paidbal = !empty($_POST['paidbal']) ? floatval(str_replace(',', '', $_POST['paidbal'])) : 0;
+    $total = !empty($_POST['total']) ? floatval(str_replace(',', '', $_POST['total'])) : 0;
+    $newbalance = !empty($_POST['newbalance']) ? floatval(str_replace(',', '', $_POST['newbalance'])) : 0;
+    $newrentbalance = !empty($_POST['newrentbalance']) ? floatval(str_replace(',', '', $_POST['newrentbalance'])) : 0;
+
+    // Use the latest transaction number to generate the next one
+    $nextTransactionNumber = $latestTransactionNumber + 1;
+
+    // Accumulate charges, if provided
+    $charges = [];
+    if (!empty($_POST['chargecusa'])) {
+        $charges[] = "Cusa: " . floatval(str_replace(',', '', $_POST['chargecusa']));
+    }
+    if (!empty($_POST['chargeac'])) {
+        $charges[] = "Aircon: " . floatval(str_replace(',', '', $_POST['chargeac']));
+    }
+    if (!empty($_POST['chargeelec'])) {
+        $charges[] = "Electricity: " . floatval(str_replace(',', '', $_POST['chargeelec']));
+    }
+    if (!empty($_POST['chargewater'])) {
+        $charges[] = "Water: " . floatval(str_replace(',', '', $_POST['chargewater']));
+    }
+
+    // Handle multiple 'chargeothers' and 'otheramount' entries
+    if (isset($_POST['chargeothers']) && isset($_POST['otheramount'])) {
+        foreach ($_POST['chargeothers'] as $index => $chargeType) {
+            $amount = isset($_POST['otheramount'][$index]) ? floatval(str_replace(',', '', $_POST['otheramount'][$index])) : 0;
+            if ($amount > 0) {
+                $charges[] = "$chargeType: " . $amount;
+            }
+        }
+    }
+
+    // Join all charges into a single string, or use an empty string if no charges
+    $chargesString = implode(', ', $charges);
+
+    // Prepare the INSERT statement for the main table
+    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date" .
+        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
+        (!empty($chargesString) ? ", ?" : "") . ")";
+
+    $insertStmt = $conn->prepare($query);
+
+    // Bind parameters for insertion
+    if (!empty($chargesString)) {
+        $insertStmt->bind_param("dssssssddddssssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date, $chargesString);
+    } else {
+        $insertStmt->bind_param("dssssssddddsssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date);
+    }
+
+    // Execute the INSERT statement
+    if ($insertStmt->execute()) {
+        // Update running balance and rent balance based on branch
+        $updateTable = ($branch === 'Sanko Market') ? 'sanko' : 'nova';
+        $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ? WHERE spacecode = ?");
+        $updateStmt->bind_param("dds", $newbalance, $newrentbalance, $spacecode);
+
+        if ($updateStmt->execute()) {
+            include 'modalsuccess.php'; // Include modalsuccess.php to display the success modal
+        } else {
+            echo "Error updating running and rent balance: " . $conn->error;
+        }
+
+        $updateStmt->close();
+
+        // If branch is APM, fetch from the apm table and insert into collectedapm
+        if ($branch === 'APM') {
+            $apmQuery = $conn->query("SELECT * FROM apm WHERE tenantcode = '$tenantcode' AND spacecode = '$spacecode'");
+            while ($apmRow = $apmQuery->fetch_assoc()) {
+                // Prepare the INSERT statement for collectedapm
+                $apmInsertQuery = "INSERT INTO collectedapm (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, collected_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $apmInsertStmt = $conn->prepare($apmInsertQuery);
+                $apmInsertStmt->bind_param("dsssssssss", $nextTransactionNumber, $collector, $branch, $apmRow['tenantcode'], $apmRow['spacecode'], $apmRow['tenantname'], $apmRow['rent'], $apmRow['rentbal'], $collected_date);
+                $apmInsertStmt->execute();
+                $apmInsertStmt->close();
+            }
+        }
+    } else {
+        echo "Error inserting collection: " . $conn->error;
+    }
+
+    $insertStmt->close();
+}
+
+$conn->close();
+?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>User page</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.4/css/jquery.dataTables.css">
+    <script type="text/javascript" src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.js"></script>
+    <!-- DataTables Responsive CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.6/css/responsive.bootstrap4.min.css">
+    <style>
+        /* Custom styling for pagination */
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            color: red;
+            /* Change pagination button color to red */
+        }
+
+        /* Custom styling for search box border */
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid black;
+            /* Change search box border color to black */
+        }
+
+        /* Prevent text wrapping in table headers */
+        .table th {
+            white-space: nowrap;
+            /* Prevent wrapping */
+            text-align: left;
+            /* Align text to the left */
+        }
+
+        /* Optional: Set a fixed width for specific columns */
+        .table th:nth-child(1) {
+            width: 100px;
+        }
+
+        /* Date */
+        .table th:nth-child(2) {
+            width: 150px;
+        }
+
+        /* Transaction# */
+        .table th:nth-child(3) {
+            width: 100px;
+        }
+
+        /* Space Code */
+        .table th:nth-child(4) {
+            width: 100px;
+        }
+
+        /* Tenant Code */
+        .table th:nth-child(5) {
+            width: 100px;
+        }
+
+        /* Paid Rent */
+        .table th:nth-child(6) {
+            width: 100px;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            .input-field {
+                font-size: 16px !important; /* Prevent zoom on iOS */
+                padding: 10px !important;
+            }
+            
+            .modal-content {
+                width: 95% !important;
+                margin: 0 auto;
+            }
+            
+            /* Better tap targets for mobile */
+            button, select, input {
+                min-height: 44px;
+            }
+            
+            /* Fix table scrolling on mobile */
+            .table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+        
+        /* Make modals more mobile-friendly */
+        .mobile-modal {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        /* Improve form appearance */
+        .form-input {
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+
+</head>
+
+
+
+<body class="bg-white" onload="calculateNewBalance()">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-800 p-3 mb-2 w-full sticky top-0 z-40">
+        <div class="flex justify-between items-center w-full mx-auto">
+            <!-- Transaction Button -->
+            <div>
+                <button type="button" onclick="openModal()"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105">
+                    Transactions
+                </button>
+            </div>
+            
+            <!-- Burger menu icon for small screens -->
+            <div class="sm:hidden">
+                <button id="burger-menu-btn" class="text-white focus:outline-none bg-gray-700 p-2 rounded-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Navigation links -->
+            <div class="hidden sm:flex sm:items-center sm:space-x-4">
+                <a href="reprint.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Reprint Receipt</a>
+                <a href="void_transaction.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Void Transaction</a>
+                <a href="user.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Create Collection</a>
+                <a href="index.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Side navigation for small screens -->
+    <div id="side-nav" class="hidden fixed inset-0 z-50">
+        <div class="flex h-full">
+            <!-- Semi-transparent backdrop -->
+            <div id="side-nav-backdrop" class="bg-black opacity-50 w-1/4 sm:w-3/4 h-full"></div>
+            
+            <!-- Actual navigation menu -->
+            <div class="bg-gray-800 w-3/4 sm:w-1/4 h-full transform transition-transform duration-300 ease-in-out">
+                <div class="flex justify-end p-4">
+                    <button id="close-btn" class="text-white focus:outline-none bg-gray-700 p-2 rounded-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex flex-col items-start pl-8 mt-10 space-y-4">
+                    <a href="reprint.php" class="text-white text-lg py-2">Reprint Receipt</a>
+                    <a href="void_transaction.php" class="text-white text-lg py-2">Void Transaction</a>
+                    <a href="user.php" class="text-white text-lg py-2">Create Collection</a>
+                    <a href="index.php" class="text-white text-lg py-2">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Your Form -->
+    <div class="w-full mt-2 px-4 sm:px-0">
+        <form id="collectionForm" method="post" action="user.php"
+            class="mx-auto bg-white shadow-lg rounded-lg px-4 sm:px-8 pt-6 pb-8 mb-4 max-w-4xl">
+            <!-- Your form inputs go here with enhanced styling -->
+
+            <!-- Display the latest transaction in gray -->
+            <div class="justify-center mb-4 hidden">
+                <p class="text-gray-500">Transaction Number: <?php echo $latestTransactionNumber; ?></p>
+            </div>
+
+            <!-- Displaying last name using an input field with name="collector" -->
+            <input readonly hidden
+                class="shadow appearance-none border rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="collector" type="text" name="collector" value="<?php echo $lname; ?>">
+
+            <!-- Enhance the section for better mobile appearance -->
+            <div class="mb-4 text-center bg-gray-100 py-2 rounded-lg">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="branch">
+                    Branch
+                </label>
+                <input name="branch" id="branch" type="text" value="<?php echo htmlspecialchars($branch); ?>" readonly
+                    class="shadow appearance-none border border-gray-300 rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline input-field"
+                    style="text-align:center;"> <!-- Centered text in input box -->
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="collected_date">
+                    Collection Date and Time
+                </label>
+                <input
+                    class="shadow appearance-none border rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline input-field"
+                    id="collected_date" type="datetime-local" name="collected_date"
+                    value="<?php echo date('Y-m-d\TH:i'); ?>"
+                    step="1">
+                <small class="text-gray-500 mt-1 block">Tap to select date and time</small>
+            </div>
+
+            <div class="mb-4 flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="spacecode">
+                        Space Code
+                    </label>
+                    <input required autocomplete="off"
+                        class="shadow appearance-none border border-black  rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="spacecode-input" type="text" name="spacecode" placeholder="Space Code"
+                        oninput="suggestSpaceCode(this.value)">
+                    <!-- Error message placeholder -->
+                    <span id="spacecode-error" class="text-red-500"></span>
+                    <div id="spacecode-suggestions" class="hidden absolute z-10 bg-white rounded mt-1 shadow-lg">
+                        <!-- Suggestions will be displayed here -->
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="tenantcode">
+                        Tenant Code
+                    </label>
+                    <input required
+                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="tenantcode" type="text" name="tenantcode" placeholder="Tenant Code">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="tenant">
+                    Tenant Name
+                </label>
+                <input required
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                    id="tenantname" type="text" name="tenantname" placeholder="Tenant Name">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="rent">
+                    Daily Rent
+                </label>
+                <input
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                    id="rent" type="text" name="rent" placeholder="Daily Rent">
+            </div>
+
+            <div class="mb-4 flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="rentbal">
+                        Rent Balance
+                    </label>
+                    <input
+                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="rentbal" type="text" name="rentbal" placeholder="Rent Balance"
+                        oninput="calculateNewBalance()">
+                </div>
+
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="runningbal">
+                        Arrear Balance
+                    </label>
+                    <input
+                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="runningbal" type="text" name="runningbal" placeholder="Arrear Balance">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="paidrent">
+                    Amount Paid (Daily Rent)
+                </label>
+                <input oninput="formatNumberAndCalculateNewBalance(this)"
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                    id="paidrent" type="text" name="paidrent" placeholder="Enter amount paid rent" inputmode="decimal">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="paidbal">
+                    Amount Paid (Arrear Balance)
+                </label>
+                <input oninput="formatNumberAndCalculateNewBalance(this)"
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                    id="paidbal" type="text" name="paidbal" placeholder="Enter amount paid balance" inputmode="decimal">
+            </div>
+
+            <div class="flex items-center">
+                <div class="flex-1 border-t border-gray-500"></div>
+                <div class="px-4 uppercase text-gray-600 text-lg font-bold tracking-wide">Charges</div>
+                <div class="flex-1 border-t border-gray-500"></div>
+            </div>
+
+            <div class="mb-4 flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargecusa">
+                        Cusa
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="chargecusa" type="text" name="chargecusa" placeholder="Enter amount" inputmode="decimal">
+                </div>
+
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargecusa">
+                        Aircon
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="chargeac" type="text" name="chargeac" placeholder="Enter amount" inputmode="decimal">
+                </div>
+            </div>
+
+            <div class="mb-4 flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargeelec">
+                        Electricity
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="chargeelec" type="text" name="chargeelec" placeholder="Enter amount" inputmode="decimal">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargewater">
+                        Water
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="chargewater" type="text" name="chargewater" placeholder="Enter amount " inputmode="decimal">
+                </div>
+            </div>
+
+            <div class="mb-4 flex flex-col gap-4">
+                <div class="flex gap-4 items-end">
+                    <div class="flex-1">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="chargeothers">
+                            Others
+                        </label>
+                        <select id="chargeothers" name="chargeothers[]"
+                            class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500">
+                            <option value="" selected>Select a type</option>
+                            <option value="Table Tennis">Table Tennis</option>
+                            <option value="Pay Toilet">Pay Toilet</option>
+                            <option value="Pay Parking">Pay Parking</option>
+                            <option value="Ice & Water">Ice & Water</option>
+                            <option value="Ulam Vendor">Ulam Vendor</option>
+                            <option value="Gas">Gas</option>
+                            <option value="Famylihan">Famylihan</option>
+                            <option value="Garbage Haul">Garbage Haul</option>
+                            <option value="Photocopy">Photocopy</option>
+                            <option value="Tenant ID">Tenant ID</option>
+                            <option value="Function Room">Function Room</option>
+                            <option value="Tables & Chairs">Tables & Chairs</option>
+                            <option value="Overnight Works">Overnight Works</option>
+                            <option value="Vendo Sale">Vendo Sale</option>
+                            <option value="Zumba">Zumba</option>
+                            <option value="Sec Dep">Sec Dep</option>
+                            <option value="Meter Dep">Meter Dep</option>
+                            <option value="Utility Dep">Utility Dep</option>
+                            <option value="Miscellaneous">Miscellaneous</option>
+                        </select>
+                    </div>
+
+                    <div class="flex-1">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="otheramount">
+                            Amount for Others
+                        </label>
+                        <input oninput="formatNumberAndCalculateNewBalance(this)"
+                            class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                            id="otheramount" type="text" name="otheramount[]" placeholder="Enter amount"
+                            inputmode="decimal">
+                    </div>
+                </div>
+
+                <div id="additionalChargesContainer" class="flex flex-col gap-2">
+                    <!-- Placeholder for additional charges -->
+                </div>
+
+                <div class="flex justify-center">
+                    <button type="button" id="addChargeButton"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        + Add
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center mb-4">
+                <div class="flex-1 border-t border-gray-500"></div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="total">
+                    Total
+                </label>
+                <input readonly
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                    id="total" type="text" name="total" placeholder="Total">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="balance">
+                    New Arrear Balance
+                </label>
+                <input readonly
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                    id="newbalance" type="text" name="newbalance" placeholder="New Balance">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="newrentbalance">
+                    New Rent Balance
+                </label>
+                <input readonly
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                    id="newrentbalance" type="text" name="newrentbalance" placeholder="New Rent Balance">
+            </div>
+
+            <div class="flex items-center justify-center">
+                <button
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 mt-4 rounded-lg focus:outline-none focus:shadow-outline w-full sm:w-auto shadow-lg transform transition hover:scale-105"
+                    type="submit" id="submitButton">
+                    Submit
+                </button>
+            </div>
+
+            <!-- Welcome Modal -->
+            <div id="welcomeModal" class="fixed z-50 inset-0 overflow-y-auto hidden">
+                <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 transition-opacity">
+                        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                    </div>
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+                    <div
+                        class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div class="sm:flex sm:items-start">
+                                <div
+                                    class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                                    <!-- Handshake icon -->
+                                    <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 21v-4m0 0V9m0 4h3m-3 4h3m8-10v4m0 0v8m0-8h-3m3 0h3m-11-9c-1.333 0-4 1.333-4 4v5c0 2.667 2.667 4 4 4h2.5c2.25 0 4.5 1.25 5.5 3l1.5 3v-15m-7 0c1.333 0 4-1.333 4-4m-4 4h3">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900">Welcome!</h3>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-gray-500">
+                                            have a great day!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Transactions Modal -->
+            <div id="viewTransactionsModal" class="fixed z-50 inset-0 overflow-y-auto hidden">
+                <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 transition-opacity">
+                        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                    </div>
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+                    <div
+                        class="inline-block align-bottom bg-gray-400 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <!-- Modal Header -->
+                        <div class="bg-gray-50 px-4 py-5 sm:px-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 text-center">Transactions Today
+                            </h3>
+                        </div>
+
+                        <!-- Modal Body -->
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div class="mb-4">
+                                <a href="printsummary.php"
+                                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded"
+                                    style="text-decoration: none;">
+                                    Summary Report
+                                </a>
+
+                                <button id="notificationButton"
+                                    class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-2 rounded ml-2">
+                                    Duplicated <span id="notificationCount" class="font-bold">0</span>
+                                </button>
+                            </div>
+
+                            <!-- Table Container -->
+                            <div class="overflow-x-auto">
+                                <table id="transactionsTable" class="table table-striped table-hover">
+                                    <!-- Table Header -->
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Date</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Transaction#</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Space Code</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Collector</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Branch</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Tenant Code</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Tenant Name</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Paid Rent</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Paid Balance</th>
+                                            <th
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                                Charges</th>
+                                        </tr>
+                                    </thead>
+                                    <!-- Table Body - This will be populated dynamically -->
+                                    <tbody id="transactionsTableBody">
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Modal Footer - Pagination and Close Button -->
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="button"
+                                class="inline-flex justify-center w-full rounded-md border border-transparent px-4 py-2 bg-gray-800 text-base font-medium text-white shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:ml-3 sm:w-auto sm:text-sm"
+                                onclick="closeModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Duplicated Transactions Modal -->
+            <div id="duplicatedTransactionsModal" class="fixed z-50 inset-0 overflow-y-auto hidden">
+                <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 transition-opacity">
+                        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                    </div>
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+                    <div
+                        class="inline-block align-bottom bg-gray-400 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <div class="bg-gray-50 px-4 py-5 sm:px-6">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 text-center">Duplicated Transactions
+                            </h3>
+                        </div>
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div class="overflow-x-auto">
+                                <table id="duplicatedTransactionsTable" class="table table-striped table-hover">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Transaction#</th>
+                                            <th>Space Code</th>
+                                            <th>Tenant Code</th>
+                                            <th>Paid Rent</th>
+                                            <th>Paid Balance</th>
+                                            <th>Aircon</th>
+                                            <th>Cusa</th>
+                                            <th>Electricity</th>
+                                            <th>Water</th>
+                                            <th>Table Tennis</th>
+                                            <th>Pay Toilet</th>
+                                            <th>Pay Parking</th>
+                                            <th>Ice and Water</th>
+                                            <th>Ulam Vendor</th>
+                                            <th>Gas</th>
+                                            <th>Famylihan</th>
+                                            <th>Garbage Haul</th>
+                                            <th>Photocopy</th>
+                                            <th>Tenant ID</th>
+                                            <th>Function Room</th>
+                                            <th>Tables and Chairs</th>
+                                            <th>Overnight Works</th>
+                                            <th>Vendo Sale</th>
+                                            <th>Zumba</th>
+                                            <th>Sec Dep</th>
+                                            <th>Meter Dep</th>
+                                            <th>Utility Dep</th>
+                                            <th>Miscellaneous</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="duplicatedTransactionsTableBody">
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="button"
+                                class="inline-flex justify-center w-full rounded-md border border-transparent px-4 py-2 bg-gray-800 text-base font-medium text-white shadow-sm hover:bg-gray-700 focus:outline-none"
+                                onclick="closeModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmation Modal -->
+            <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+                <div class="bg-white rounded-lg p-6 max-w-lg w-full">
+                    <h2 class="text-xl font-bold text-center">Payment Summary</h2>
+                    <p class="text-center mb-4">Please Double check the amount</p>
+                    <div id="confirmationSummary" class="mb-4">
+                        <!-- Dynamic content will be inserted here -->
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button id="cancelButton" class="bg-gray-500 text-white py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button id="confirmButton" class="bg-blue-500 text-white py-2 px-4 rounded">
+                            Ok
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="function.js"> </script>
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
+    <!-- DataTables Responsive JS -->
+    <script src="https://cdn.datatables.net/responsive/2.2.6/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.2.6/js/responsive.bootstrap4.min.js"></script>
+
+    <script>
+        // Function to open the modal
+        function openModal() {
+            document.getElementById('viewTransactionsModal').classList.remove('hidden');
+            // Call function to fetch and load transactions
+            fetchAndLoadTransactions();
+        }
+
+        // Function to close the modal and refresh the page
+        function closeModal() {
+            document.getElementById('viewTransactionsModal').classList.add('hidden');
+            location.reload(); // Reload the page
+        }
+
+        function fetchAndLoadTransactions() {
+            // Fetch transactions for today
+            fetch('fetch_transactions.php')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('transactionsTableBody');
+                    tableBody.innerHTML = ''; // Clear existing rows
+                    data.forEach(transaction => {
+                        const row = `
+                    <tr>
+                        <td>${transaction.collected_date}</td>
+                        <td>${transaction.transaction_number}</td>
+                        <td>${transaction.spacecode}</td>
+                        <td>${transaction.collector}</td>
+                        <td>${transaction.branch}</td>
+                        <td>${transaction.tenantcode}</td>
+                        <td>${transaction.tenantname}</td>
+                        <td>${transaction.paidrent}</td>
+                        <td>${transaction.paidbal}</td>
+                        <td>${transaction.charges}</td>
+                    </tr>
+                `;
+                        tableBody.innerHTML += row;
+                    });
+                    $('#transactionsTable').DataTable({
+                        responsive: true,
+                        paging: true,
+                        searching: true,
+                    });
+
+                    // Update notification count for duplicated transactions
+                    updateNotificationCount();
+                })
+                .catch(error => {
+                    console.error('Error fetching transactions:', error);
+                });
+        }
+
+        // Function to update notification count for duplicated transactions
+        function updateNotificationCount() {
+            fetch('fetch_duplicated_transactions.php')
+                .then(response => response.json())
+                .then(data => {
+                    const count = data.length;
+                    document.getElementById('notificationCount').textContent = count;
+                })
+                .catch(error => {
+                    console.error('Error fetching duplicated transactions:', error);
+                });
+        }
+
+        // Inside the event listener for the notification button
+        document.getElementById('notificationButton').addEventListener('click', function (event) {
+            event.preventDefault(); // Prevent the default form submission
+            fetch('fetch_duplicated_transactions.php')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('duplicatedTransactionsTableBody');
+                    tableBody.innerHTML = ''; // Clear existing rows
+
+                    if (data.length > 0) {
+                        data.forEach(transaction => {
+                            const charges = parseCharges(transaction.charges); // Parse charges from string
+
+                            const row = `
+                        <tr>
+                            <td>${new Date(transaction.collected_date).toLocaleString()}</td>
+                            <td>${transaction.transaction_number}</td>
+                            <td>${transaction.spacecode}</td>
+                            <td>${transaction.tenantcode}</td>
+                            <td>${transaction.paidrent}</td>
+                            <td>${transaction.paidbal}</td>
+                            <td>${number_format(charges.aircon, 2)}</td>
+                            <td>${number_format(charges.cusa, 2)}</td>
+                            <td>${number_format(charges.electricity, 2)}</td>
+                            <td>${number_format(charges.water, 2)}</td>
+                            <td>${number_format(charges.table_tennis, 2)}</td>
+                            <td>${number_format(charges.pay_toilet, 2)}</td>
+                            <td>${number_format(charges.pay_parking, 2)}</td>
+                            <td>${number_format(charges.ice_water, 2)}</td>
+                            <td>${number_format(charges.ulam_vendor, 2)}</td>
+                            <td>${number_format(charges.gas, 2)}</td>
+                            <td>${number_format(charges.famylihan, 2)}</td>
+                            <td>${number_format(charges.garbage_haul, 2)}</td>
+                            <td>${number_format(charges.photocopy, 2)}</td>
+                            <td>${number_format(charges.tenant_id, 2)}</td>
+                            <td>${number_format(charges.function_room, 2)}</td>
+                            <td>${number_format(charges.tables_chairs, 2)}</td>
+                            <td>${number_format(charges.overnight_works, 2)}</td>
+                            <td>${number_format(charges.vendo_sale, 2)}</td>
+                            <td>${number_format(charges.zumba, 2)}</td>
+                            <td>${number_format(charges.secdep, 2)}</td>
+                            <td>${number_format(charges.meterdep, 2)}</td>
+                             <td>${number_format(charges.utilitydep, 2)}</td>
+                            <td>${number_format(charges.miscellaneous, 2)}</td>
+                        </tr>
+                    `;
+                            tableBody.innerHTML += row;
+                        });
+
+                        // Initialize DataTable for duplicated transactions
+                        $('#duplicatedTransactionsTable').DataTable({
+                            responsive: true,
+                            paging: true,
+                            searching: true,
+                        });
+
+                        document.getElementById('duplicatedTransactionsModal').classList.remove('hidden');
+                    } else {
+                        alert('No duplicated transactions found.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching duplicated transactions:', error);
+                });
+        });
+
+        // Function to format numbers
+        function number_format(number, decimals) {
+            return Number(number).toLocaleString(undefined, {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        }
+
+        // Function to parse charges from the string
+        function parseCharges(chargesString) {
+            const charges = {
+                aircon: 0,
+                cusa: 0,
+                electricity: 0,
+                water: 0,
+                table_tennis: 0,
+                pay_toilet: 0,
+                pay_parking: 0,
+                ice_water: 0,
+                ulam_vendor: 0,
+                gas: 0,
+                famylihan: 0,
+                garbage_haul: 0,
+                photocopy: 0,
+                tenant_id: 0,
+                function_room: 0,
+                tables_chairs: 0,
+                overnight_works: 0,
+                vendo_sale: 0,
+                zumba: 0,
+                secdep: 0,
+                meterdep: 0,
+                utilitydep: 0,
+                miscellaneous: 0
+            };
+
+            const chargeArray = chargesString.split(', ');
+            chargeArray.forEach(charge => {
+                const match = charge.match(/(\w+):\s*(\d+\.?\d*)?/);
+                if (match) {
+                    const key = match[1].toLowerCase();
+                    charges[key] = parseFloat(match[2]) || 0;
+                }
+            });
+
+            return charges;
+        }
+
+        // Function to close the welcome modal
+        function closeWelcomeModal() {
+            document.getElementById("welcomeModal").classList.add("hidden");
+            // Store a flag in localStorage indicating that the modal has been closed
+            localStorage.setItem("welcomeModalClosed", "true");
+        }
+
+        // Function to check if the welcome modal should be displayed
+        function checkWelcomeModal() {
+            // Check if the modal should be displayed based on whether it has been closed before
+            var welcomeModalClosed = localStorage.getItem("welcomeModalClosed");
+            if (!welcomeModalClosed) {
+                // If the modal has not been closed before, display it
+                document.getElementById("welcomeModal").classList.remove("hidden");
+                // Set a timeout to close the modal after 3 seconds
+                setTimeout(closeWelcomeModal, 2000);
+            }
+        }
+
+        // Call the function to check if the welcome modal should be displayed when the page loads
+        window.onload = checkWelcomeModal;
+
+        // Suggest Space Code and Auto Complete
+        function suggestSpaceCode(value) {
+            var branch = document.getElementById("branch").value; // Get selected branch value
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "suggest_spacecode.php", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var suggestions = JSON.parse(xhr.responseText);
+                    var suggestionsContainer = document.getElementById("spacecode-suggestions");
+                    var errorSpan = document.getElementById("spacecode-error"); // Get error message span
+                    suggestionsContainer.innerHTML = "";
+                    if (suggestions.length > 0) {
+                        for (var i = 0; i < suggestions.length; i++) {
+                            var option = document.createElement("div");
+                            option.classList.add("cursor-pointer", "py-1", "px-4", "hover:bg-gray-200");
+                            option.innerText = suggestions[i];
+                            option.onclick = function () {
+                                document.getElementById("spacecode-input").value = this.innerText;
+                                suggestionsContainer.classList.add("hidden");
+                                fetchTenantDetails(this.innerText); // Fetch tenant details when suggestion is clicked
+                            };
+                            suggestionsContainer.appendChild(option);
+                        }
+                        suggestionsContainer.classList.remove("hidden");
+                        errorSpan.textContent = ""; // Clear error message
+                    } else {
+                        suggestionsContainer.classList.add("hidden");
+                        errorSpan.textContent = "No suggestions found"; // Display message for no suggestions found
+                    }
+
+                    // Check if the typed value matches any suggestion
+                    if (suggestions.includes(value)) {
+                        fetchTenantDetails(value); // Fetch tenant details if the typed value matches a suggestion
+                    } else {
+                        clearTenantDetails(); // Clear tenant details if the typed value does not match any suggestion
+                    }
+                }
+            };
+            xhr.send("search=" + encodeURIComponent(value) + "&branch=" + encodeURIComponent(branch)); // Pass branch value
+        }
+
+        document.addEventListener("click", function (event) {
+            var suggestionsContainer = document.getElementById("spacecode-suggestions");
+            if (event.target !== suggestionsContainer && !suggestionsContainer.contains(event.target)) {
+                suggestionsContainer.classList.add("hidden");
+            }
+        });
+
+        // Function to fetch tenant details based on the selected space code and branch
+        function fetchTenantDetails(spacecode) {
+            var branch = document.getElementById("branch").value; // Get selected branch value
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "get_tenant_details.php", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        document.getElementById("tenantcode").value = response.tenantcode;
+                        document.getElementById("tenantname").value = response.tenantname;
+                        document.getElementById("rent").value = response.dailyRent;
+                        document.getElementById("rentbal").value = response.rentbal; // Update rentbal field
+                        document.getElementById("runningbal").value = response.runningbal;
+
+                        // Check if the spacecode is "Ambulant"
+                        var isAmbulant = response.editable;
+
+                        // Set readonly attribute for input fields based on the condition
+                        document.getElementById("tenantcode").readOnly = !isAmbulant;
+                        document.getElementById("tenantname").readOnly = !isAmbulant;
+                        document.getElementById("rent").readOnly = !isAmbulant;
+                        document.getElementById("rentbal").readOnly = !isAmbulant; // Update rentbal readonly
+                        document.getElementById("runningbal").readOnly = !isAmbulant;
+                    } else {
+                        // Handle error or clear fields
+                        clearTenantDetails();
+                    }
+                }
+            };
+            xhr.send("spacecode=" + encodeURIComponent(spacecode) + "&branch=" + encodeURIComponent(branch)); // Pass branch value
+        }
+
+        // Function to clear tenant details
+        function clearTenantDetails() {
+            document.getElementById("tenantname").value = "";
+            document.getElementById("rent").value = "";
+            document.getElementById("rentbal").value = "";
+            document.getElementById("runningbal").value = "";
+            // Clear readonly attributes
+            document.getElementById("tenantname").readOnly = false;
+            document.getElementById("rent").readOnly = false;
+            document.getElementById("rentbal").readOnly = false;
+            document.getElementById("runningbal").readOnly = false;
+        }
+
+        // Listen for input event on the space code input field
+        document.getElementById("spacecode-input").addEventListener("input", function (event) {
+            var value = event.target.value.trim();
+            if (value === "") {
+                clearTenantDetails(); // Clear tenant details if the input field becomes empty
+            } else {
+                suggestSpaceCode(value); // Suggest space code if the input field is not empty
+            }
+        });
+
+        // Function to calculate new running balance and new rent balance
+        function calculateNewBalance() {
+            // Get the values from input fields and default to 0 if empty
+            var dailyRent = parseFloat(document.getElementById("rent").value.replace(/,/g, '')) || 0;
+            var paidRent = parseFloat(document.getElementById("paidrent").value.replace(/,/g, '')) || 0;
+            var paidBalance = parseFloat(document.getElementById("paidbal").value.replace(/,/g, '')) || 0;
+            var rentBalance = parseFloat(document.getElementById("rentbal").value.replace(/,/g, '')) || 0;
+            var runningBalance = parseFloat(document.getElementById("runningbal").value.replace(/,/g, '')) || 0;
+
+            // Get the charges values from predefined inputs
+            var chargecusa = parseFloat(document.getElementById("chargecusa").value.replace(/,/g, '')) || 0;
+            var chargeac = parseFloat(document.getElementById("chargeac").value.replace(/,/g, '')) || 0;
+            var chargeelec = parseFloat(document.getElementById("chargeelec").value.replace(/,/g, '')) || 0;
+            var chargewater = parseFloat(document.getElementById("chargewater").value.replace(/,/g, '')) || 0;
+
+            // Calculate total charges from predefined inputs
+            var totalCharges = chargecusa + chargeac + chargeelec + chargewater;
+
+            // Get the value from the predefined 'Others' inputs
+            var otherAmount = parseFloat(document.getElementById("otheramount").value.replace(/,/g, '')) || 0;
+
+            // Check if there is a valid other type selected and amount is greater than 0
+            var otherType = document.getElementById("chargeothers").value;
+            if (otherType && otherAmount > 0) {
+                totalCharges += otherAmount;
+            }
+
+            // Get dynamically added charges
+            var additionalCharges = document.querySelectorAll('#additionalChargesContainer .flex-1 input');
+            additionalCharges.forEach(function (input) {
+                var amount = parseFloat(input.value.replace(/,/g, '')) || 0;
+                totalCharges += amount;
+            });
+
+            // Calculate total amount paid
+            var totalAmountPaid = paidRent + paidBalance;
+            
+            // Calculate rent balance remaining
+            var rentBalanceRemaining = dailyRent - paidRent; // Remaining daily rent after payment
+
+            // If both rentBalance and rentBalanceRemaining are negative, subtract the absolute value of remaining
+            // If rentBalance is negative and rentBalanceRemaining is positive or zero, just add the remaining rent
+            // If rentBalanceRemaining is negative, ignore it like you want
+
+            var newRentBalance;
+
+            if (rentBalance < 0 && rentBalanceRemaining < 0) {
+                // Both are negative, ignore the negative sign for calculation
+                newRentBalance = rentBalance + Math.abs(rentBalanceRemaining); // subtract effectively
+            } else {
+                // Normal case, just add everything
+                newRentBalance = rentBalance + rentBalanceRemaining;
+            }
+
+            // Calculate new running balance
+            var newRunningBalance = runningBalance - paidBalance; // Remaining daily rent after payment
+
+            var newRunningBalance;
+
+            if (runningBalance < 0 && paidBalance < 0) {
+                newRunningBalance = runningBalance + Math.abs(paidBalance); // subtract effectively
+            } else {
+                newRunningBalance = runningBalance + paidBalance;
+            }
+
+            // Format the new rent balance with commas and two decimal places
+            var formattedNewRentBalance = newRentBalance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            // Update the value of the new rent balance input field
+            document.getElementById("newrentbalance").value = formattedNewRentBalance;
+
+            // Format the new running balance with commas and two decimal places
+            var formattedNewRunningBalance = newRunningBalance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            // Update the value of the new running balance input field
+            document.getElementById("newbalance").value = formattedNewRunningBalance;
+
+            // Update the total input field
+            var total = totalAmountPaid + totalCharges;
+            var formattedTotal = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("total").value = formattedTotal;
+        }
+
+        // Function to format numbers with commas and trigger calculation
+        function formatNumberAndCalculateNewBalance(input) {
+            // Remove non-numeric characters and commas
+            let cleanValue = input.value.replace(/[^\d.]/g, '');
+
+            // Format the number with commas
+            let formattedValue = cleanValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            // Set the formatted value back to the input
+            input.value = formattedValue;
+
+            // Now you can use this value for further calculations
+            calculateNewBalance();
+        }
+
+        // For add button other charges
+        document.getElementById('addChargeButton').addEventListener('click', function () {
+            var container = document.getElementById('additionalChargesContainer');
+
+            // Create a new entry with dropdown and amount input
+            var newEntry = document.createElement('div');
+            newEntry.classList.add('mb-4', 'flex', 'gap-4', 'items-end');
+            newEntry.innerHTML = `
+        <div class="flex-1">
+            <select name="chargeothers[]" 
+                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500">
+                    <option value="" selected>Select a type</option>
+                    <option value="Table Tennis">Table Tennis</option>
+                    <option value="Pay Toilet">Pay Toilet</option>
+                    <option value="Pay Parking">Pay Parking</option>
+                    <option value="Ice & Water">Ice & Water</option>
+                    <option value="Ulam Vendor">Ulam Vendor</option>
+                    <option value="Gas">Gas</option>
+                    <option value="Famylihan">Famylihan</option>
+                    <option value="Garbage Haul">Garbage Haul</option>
+                    <option value="Photocopy">Photocopy</option>
+                    <option value="Tenant ID">Tenant ID</option>
+                    <option value="Function Room">Function Room</option>
+                    <option value="Tables & Chairs">Tables & Chairs</option>
+                    <option value="Overnight Works">Overnight Works</option>
+                    <option value="Vendo Sale">Vendo Sale</option>
+                    <option value="Zumba">Zumba</option>
+                    <option value="Sec Dep">Sec Dep</option>
+                    <option value="Meter Dep">Meter Dep</option>
+                    <option value="Utility Dep">Utility Dep</option>
+                    <option value="Miscellaneous">Miscellaneous</option>
+            </select>
+        </div>
+        <div class="flex-1">
+            <input oninput="formatNumberAndCalculateNewBalance(this)" 
+                   class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                   type="text" name="otheramount[]" placeholder="Enter amount" inputmode="decimal">
+        </div>
+    `;
+
+            container.appendChild(newEntry);
+        });
+
+        // For Modal Payment Summary
+        // Function to format the numbers as currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'PHP'
+            }).format(value);
+        }
+
+        // Function to gather the values and show the modal
+        function showConfirmationModal(event) {
+            event.preventDefault(); // Prevent the form from submitting immediately
+
+            // Retrieve the form values
+            const rent = parseFloat(document.getElementById('rent').value.replace(',', '')) || 0;
+            const rentbal = parseFloat(document.getElementById('rentbal').value.replace(',', '')) || 0;
+            const runningbal = parseFloat(document.getElementById('runningbal').value.replace(',', '')) || 0;
+            const paidrent = parseFloat(document.getElementById('paidrent').value.replace(',', '')) || 0;
+            const paidbal = parseFloat(document.getElementById('paidbal').value.replace(',', '')) || 0;
+            const total = parseFloat(document.getElementById('total').value.replace(',', '')) || 0;
+            const newbalance = parseFloat(document.getElementById('newbalance').value.replace(',', '')) || 0;
+            const newrentbalance = parseFloat(document.getElementById('newrentbalance').value.replace(',', '')) || 0;
+
+            // Get all charges (Cusa, Aircon, Electricity, Water, Other charges from dropdown)
+            const charges = [];
+            
+            const chargeNames = [
+                { label: 'Cusa', id: 'chargecusa' },
+                { label: 'Aircon', id: 'chargeac' },
+                { label: 'Electricity', id: 'chargeelec' },
+                { label: 'Water', id: 'chargewater' }
+            ];
+            
+            chargeNames.forEach(charge => {
+                const chargeAmount = parseFloat(document.getElementById(charge.id).value.replace(',', '')) || 0;
+                if (chargeAmount > 0) {
+                    charges.push({ name: charge.label, amount: chargeAmount });
+                }
+            });
+
+            // Handle dynamic "Other Charges" from dropdown
+            const selectedChargeType = document.getElementById('chargeothers').value;
+            const otherAmount = parseFloat(document.getElementById('otheramount').value.replace(',', '')) || 0;
+
+            if (selectedChargeType && otherAmount > 0) {
+                charges.push({ name: selectedChargeType, amount: otherAmount });
+            }
+
+            // Generate the charges summary HTML
+            let chargesHtml = '';
+            charges.forEach(charge => {
+                chargesHtml += `<p><strong>${charge.name}:</strong> ${formatCurrency(charge.amount)}</p>`;
+            });
+
+            // Update the Amount Paid (Arrear Balance) to include the charges as well
+            const totalPaidArrearBalance = paidbal + charges.reduce((acc, charge) => acc + charge.amount, 0);
+
+            // Display the payment summary in the modal
+            const summaryHtml = `
+                <p><strong>Amount Paid (Daily Rent):</strong> ${formatCurrency(paidrent)}</p>
+                <p><strong>Amount Paid (Arrear Balance):</strong> ${formatCurrency(paidbal)}</p>
+                ${chargesHtml}  <!-- Display charges here -->
+                <p><strong>Total Paid (including Charges):</strong> ${formatCurrency(total)}</p>
+            `;
+            document.getElementById('confirmationSummary').innerHTML = summaryHtml;
+
+            // Show the confirmation modal
+            document.getElementById('confirmationModal').classList.remove('hidden');
+        }
+
+        // Event listener for the confirm button
+        document.getElementById('confirmButton').addEventListener('click', function() {
+            // Close the modal
+            document.getElementById('confirmationModal').classList.add('hidden');
+
+            // Submit the form programmatically
+            document.getElementById('collectionForm').submit();
+        });
+
+        // Event listener for the cancel button
+        document.getElementById('cancelButton').addEventListener('click', function() {
+            // Reload the page or redirect to user.php
+            window.location.href = "user.php"; // Redirect to user.php
+            // OR for reloading the page, you can use:
+            // location.reload(); 
+        });
+
+        // Event listener for the form submit button
+        document.getElementById('collectionForm').addEventListener('submit', showConfirmationModal);
+
+        // Fix date time picker for mobile devices
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if the datetime-local input is supported
+            const input = document.getElementById('collected_date');
+            const isDateTimeSupported = function() {
+                const input = document.createElement('input');
+                input.setAttribute('type', 'datetime-local');
+                return input.type !== 'text';
+            };
+            
+            if (!isDateTimeSupported()) {
+                // If datetime-local isn't supported, use alternative input type
+                input.type = 'text';
+                input.setAttribute('placeholder', 'YYYY-MM-DD HH:MM');
+                input.value = '<?php echo date('Y-m-d H:i'); ?>';
+                
+                // Add pattern for validation
+                input.setAttribute('pattern', '[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}');
+            }
+            
+            // Make sure the input is properly formatted when the form is submitted
+            document.getElementById('collectionForm').addEventListener('submit', function(e) {
+                const input = document.getElementById('collected_date');
+                let dateValue = input.value;
+                
+                // If it's in datetime-local format, convert to MySQL format
+                if (dateValue.includes('T')) {
+                    dateValue = dateValue.replace('T', ' ');
+                    
+                    // Add seconds if they're not present
+                    if (dateValue.split(':').length < 3) {
+                        dateValue += ':00';
+                    }
+                    
+                    input.value = dateValue;
+                }
+            }, true); // Use capturing to run before the confirmation modal
+            
+            // Make table scrollable on mobile
+            const tables = document.querySelectorAll('table');
+            tables.forEach(table => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-container';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+            });
+        });
+
+        // Improve mobile menu handling with animations
+        document.getElementById('burger-menu-btn').addEventListener('click', function() {
+            const sideNav = document.getElementById('side-nav');
+            sideNav.classList.remove('hidden');
+            
+            // Animate the side menu
+            setTimeout(function() {
+                const sideMenu = sideNav.querySelector('.transform');
+                sideMenu.classList.add('translate-x-0');
+                sideMenu.classList.remove('-translate-x-full');
+            }, 50);
+        });
+
+        document.getElementById('close-btn').addEventListener('click', closeMenu);
+        document.getElementById('side-nav-backdrop').addEventListener('click', closeMenu);
+
+        function closeMenu() {
+            const sideNav = document.getElementById('side-nav');
+            const sideMenu = sideNav.querySelector('.transform');
+            
+            // Animate out
+            sideMenu.classList.add('-translate-x-full');
+            sideMenu.classList.remove('translate-x-0');
+            
+            // Hide after animation completes
+            setTimeout(function() {
+                sideNav.classList.add('hidden');
+            }, 300);
+        }
+    </script>
+</body>
+
+</html>

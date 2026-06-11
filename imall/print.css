@@ -1,0 +1,239 @@
+@media print {
+  .create, .print{
+      display: none;
+  }
+  .align{
+    text-align:left;
+  }
+  .indent{
+    text-indent: 20px;
+  }
+  .total{
+    text-align:right;
+  }
+  .pa{
+    text-align: center;
+    font-weight: 600;
+    font-size:.8.5em;
+  }
+ 
+  .topnav {
+    display: none;
+}
+.table{
+  margin-left: -2%;
+  table-layout: auto;
+  width: 180px;  
+}
+.pos{
+  font-size:14px;
+}
+
+  *{
+    padding: 1px !important;
+    font-size: 12px;
+    font-family :Verdana;
+    margin:0px;
+
+}
+
+  select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background: transparent; /* Set the background to transparent */
+      padding: 0; /* Adjust padding to remove extra space */
+  }
+  @page {
+      size: 76cm 100% !important;
+      margin: 0 !important;
+  }
+  .note{
+      text-align: justify;
+  }
+  .trade {
+      border: none; /* Remove the border when printing */
+      outline: none; /* Remove the outline when printing */
+  }
+  .note, .address{
+      width: auto !important;
+      padding: 0 ;
+      text-align: justify;
+      word-wrap: break-word;
+  }
+  .pa{
+
+      border-top: 1px solid black;
+
+  }
+  .pe{
+    border-top: 1px solid black;
+
+}
+  .receive{
+      border-top: 1px solid black;
+      border-bottom: 1px solid black;
+  }
+  select{
+      -webkit-appearance: none;
+      border: none; 
+      width: 200px;
+  }
+  ::-webkit-input-placeholder {
+      color: transparent;
+ }
+}
+
+*{
+  font-family :Verdana;
+}
+
+.table-AR{
+  text-align: left;
+}
+input[type="text"]{
+  outline: none;
+  border: none;
+}
+.receive{
+  border-bottom: 1px, solid, black;
+}
+.trade{
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  resize: none; /* Disable resizing for the textarea */
+  overflow-y: hidden;
+  border: none;
+  outline: none; /* Remove the outline when printing */
+  height: 20px;
+  padding: 2px;
+} 
+th{
+  padding-right: 10px;
+  font-size: 15px;
+  color: #2c2c2c;
+} 
+
+.imall{
+  padding-top: 10px;
+}
+.logo{
+  border: 1px solid black;
+  width: 130px;
+  height: 70px;
+  text-align: center;
+}
+.canlubang{
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+.note, .address{
+  width: 450px;
+  padding: 17px;
+  text-align: justify;
+}
+.receive{
+  text-align: center;
+  margin-top: 20px;
+  background-color: #c9c9c9;
+}
+.name{
+  text-align: center;
+  padding: 5px;
+}
+.name .mall{
+  border-top: 1px solid black;
+}
+.total{
+  padding-bottom: 15px;
+}
+.select{
+  font-size: 14px;
+}
+.addButton{
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  text-align: center;
+  margin: 5px;
+  padding: 4px;
+}
+
+#suggestionBox {
+  display: block !important;
+}
+.check{
+  margin-top: 10px;
+}
+/*  USER NAV*/
+.topnav {
+  position: relative;
+  overflow: hidden;
+  background-color:  #0082e6;
+  box-shadow: 0 3px 5px rgb(99, 99, 99);
+  top:-7px;
+  left: -7px;
+  height: 40px;
+  padding: 8px;
+  width: 100%;
+}
+
+.topnav a {
+  float: left;
+  display: block;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-size: 19px;
+}
+
+.topnav a:hover {
+  color: rgb(255, 255, 255);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.topnav .icon {
+  display: none;
+}
+
+
+.receiptCon {
+  position: relative;
+  top: 50px;
+  /* background-color: #0082e6; */
+  width: 35vw;
+  border-radius: 17px;
+  box-shadow: 1px 10px 10px gray;
+}
+
+.receiptHeader, .receiptFooter {
+  background-color: #0082e6;
+  color: white;
+  padding: 10px;
+  
+}
+
+@media print {
+    .receiptCon {
+      position: static;
+      top: auto;
+      width: auto;
+      border-radius: 0;
+      box-shadow: none;
+      border: none !important;
+      padding: 0 !important;
+      letter-spacing: -1px;
+  }
+
+  .receiptHeader, .receiptFooter {
+      background-color: transparent;
+      color: black; /* Adjust text color for better visibility when printed */
+      padding: 0;
+      border: none;
+  }
+}

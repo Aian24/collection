@@ -1,0 +1,337 @@
+<?php
+ob_start(); // Start output buffering
+include 'config.php';
+session_start();
+
+// Initialize variables
+$message = '';
+$message_type = ''; // 'success' or 'error'
+
+// Check if user is logged in
+if (!isset($_SESSION["username"])) {
+    header("Location: index.php");
+    exit();
+}
+
+// Set the timezone to Manila
+date_default_timezone_set('Asia/Manila');
+
+// Get the current date and time
+$void_date = date('Y-m-d H:i:s');
+
+// Redirect after form submission to avoid resubmission
+if (isset($_POST['submit'])) {
+    $transaction_number = $_POST['transaction_number'];
+    $branch = $_POST['branch'];
+    $note = $_POST['note'];
+
+    // Validate branch selection and set table name dynamically
+    $valid_branches = ['nova', 'sanko', 'apm'];
+    if (!in_array($branch, $valid_branches)) {
+        $message = 'Invalid branch selected.';
+        $message_type = 'error';
+    } else {
+        // Dynamically create the correct table name based on the branch selected
+        if ($branch === 'sanko') {
+            $branch_table = 'collected'; // Use the same "collected" table for "sanko" branch
+        } else {
+            $branch_table = 'collected' . $branch;
+        }
+
+        // Start the transaction
+        $conn->begin_transaction();
+
+        try {
+            // Fetch the original values from the respective branch table (collectednova, collectedapm, or collected for sanko)
+            $stmt = $conn->prepare("SELECT rentbal, runningbal, tenantcode, spacecode, rent, paidrent, paidbal, charges, collector, tenantname FROM $branch_table WHERE transaction_number = ?");
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $conn->error);
+            }
+            $stmt->bind_param('s', $transaction_number);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $transaction = $result->fetch_assoc();
+
+            if (!$transaction) {
+                // Transaction not found
+                throw new Exception("Transaction not found.");
+            }
+
+            // Extract values
+            $original_rentbal = $transaction['rentbal'];
+            $original_runningbal = $transaction['runningbal'];
+            $tenantcode = $transaction['tenantcode'];
+            $spacecode = $transaction['spacecode'];
+            $rent = $transaction['rent'];
+            $paidrent = $transaction['paidrent'];
+            $paidbal = $transaction['paidbal'];
+            $charges = $transaction['charges'];
+            $collector = $transaction['collector'];
+            $tenantname = $transaction['tenantname'];
+
+            // Rollback in the collected table (collectednova, collectedsanko, collectedapm)
+            $stmt = $conn->prepare("UPDATE $branch_table SET rentbal = ?, runningbal = ? WHERE transaction_number = ?");
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $conn->error);
+            }
+            $stmt->bind_param('dds', $original_rentbal, $original_runningbal, $transaction_number);
+            $stmt->execute();
+
+            // Rollback in the selected branch table (collectednova, collectedsanko, collectedapm)
+            $stmt = $conn->prepare("UPDATE $branch_table SET rentbal = ?, runningbal = ? WHERE tenantcode = ? AND spacecode = ?");
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $conn->error);
+            }
+            $stmt->bind_param('ddss', $original_rentbal, $original_runningbal, $tenantcode, $spacecode);
+            $stmt->execute();
+
+            // Prepare to insert into void table
+            $branch_name = ucfirst($branch) . ' Branch';
+            $stmt = $conn->prepare("INSERT INTO void (transaction_number, branch, note, rent, rentbal, runningbal, paidrent, paidbal, charges, collector, tenantname, spacecode, void_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $conn->error);
+            }
+
+            // Bind parameters
+            $stmt->bind_param('sssddddddssss', $transaction_number, $branch_name, $note, $rent, $original_rentbal, $original_runningbal, $paidrent, $paidbal, $charges, $collector, $tenantname, $spacecode, $void_date);
+            $stmt->execute();
+
+            // Delete the transaction record from the respective collected table (collectednova, collectedsanko, collectedapm)
+            $stmt = $conn->prepare("DELETE FROM $branch_table WHERE transaction_number = ?");
+            if (!$stmt) {
+                throw new Exception("Prepare failed: " . $conn->error);
+            }
+            $stmt->bind_param('s', $transaction_number);
+            $stmt->execute();
+
+            // Commit the transaction
+            $conn->commit();
+            $_SESSION['void_transaction_message'] = 'Transaction voided successfully.';
+            $_SESSION['void_transaction_message_type'] = 'success';
+
+        } catch (Exception $e) {
+            // Rollback the transaction on error
+            $conn->rollback();
+            $_SESSION['void_transaction_message'] = $e->getMessage();
+            $_SESSION['void_transaction_message_type'] = 'error';
+        }
+    }
+}
+
+mysqli_close($conn);
+ob_end_flush(); // End output buffering and flush output
+?>
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Void Transaction</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .message-success {
+            color: green;
+        }
+
+        .message-error {
+            color: red;
+        }
+        
+        /* Enhanced mobile styling */
+        @media (max-width: 640px) {
+            input, select, textarea, button {
+                font-size: 16px !important; /* Prevent zoom on iOS */
+                min-height: 44px;
+            }
+        }
+        
+        /* Improve navigation tap targets */
+        nav {
+            padding: 12px;
+        }
+        
+        nav a {
+            padding: 8px 12px;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-0">
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-800 p-3 mb-2 w-full sticky top-0 z-40">
+        <div class="flex justify-between items-center w-full mx-auto">
+            <div>
+                <button type="button" onclick="openModal()"
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg">
+                    Transactions
+                </button>
+            </div>
+            <div class="sm:hidden">
+                <button id="burger-menu-btn" class="text-white focus:outline-none bg-gray-700 p-2 rounded-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="hidden sm:flex sm:items-center sm:space-x-4">
+                <a href="reprint.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Reprint Receipt</a>
+                <a href="void_transaction.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Void Transaction</a>
+                <a href="user.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Create Collection</a>
+                <a href="index.php" class="text-white hover:bg-gray-700 px-3 py-2 rounded-md">Logout</a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Add the improved side navigation for mobile -->
+    <div id="side-nav" class="hidden fixed inset-0 z-50">
+        <div class="flex h-full">
+            <!-- Semi-transparent backdrop -->
+            <div id="side-nav-backdrop" class="bg-black opacity-50 w-1/4 sm:w-3/4 h-full"></div>
+            
+            <!-- Actual navigation menu -->
+            <div class="bg-gray-800 w-3/4 sm:w-1/4 h-full transform transition-transform duration-300 ease-in-out">
+                <div class="flex justify-end p-4">
+                    <button id="close-btn" class="text-white focus:outline-none bg-gray-700 p-2 rounded-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex flex-col items-start pl-8 mt-10 space-y-4">
+                    <a href="reprint.php" class="text-white text-lg py-2">Reprint Receipt</a>
+                    <a href="void_transaction.php" class="text-white text-lg py-2">Void Transaction</a>
+                    <a href="user.php" class="text-white text-lg py-2">Create Collection</a>
+                    <a href="index.php" class="text-white text-lg py-2">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-lg mx-auto bg-white p-8 rounded-lg shadow-md mt-10">
+        <h1 class="text-xl font-semibold mb-4 text-center">Void a Transaction</h1>
+        <form action="void_transaction.php" method="post">
+            <div class="mb-4">
+                <label for="transaction_number" class="block text-gray-700">Transaction Number:</label>
+                <input type="text" id="transaction_number" name="transaction_number" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none" required>
+            </div>
+            <div class="mb-4">
+                <label for="branch" class="block text-gray-700">Select Branch:</label>
+                <select id="branch" name="branch" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none" required>
+                    <option value="" disabled selected>Select Branch</option>
+                    <option value="nova">Nova Branch</option>
+                    <option value="sanko">Sanko Branch</option>
+                    <option value="apm">APM Branch</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label for="note" class="block text-gray-700">Note:</label>
+                <textarea required id="note" name="note" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none"></textarea>
+            </div>
+            <button type="submit" name="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Void Transaction</button>
+        </form>
+    </div>
+
+    <!-- Result Modal for Success/Error Messages -->
+    <div id="resultModal" class="modal">
+        <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <div class="px-4 py-5">
+                <h3 id="resultMessage" class="text-lg font-medium text-center"></h3>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if there is a message to show
+            const message = "<?php echo isset($_SESSION['void_transaction_message']) ? $_SESSION['void_transaction_message'] : ''; ?>";
+            const messageType = "<?php echo isset($_SESSION['void_transaction_message_type']) ? $_SESSION['void_transaction_message_type'] : ''; ?>";
+
+            if (message) {
+                const resultModal = document.getElementById('resultModal');
+                const resultMessage = document.getElementById('resultMessage');
+
+                resultMessage.textContent = message;
+                
+                // Style based on success/error
+                if (messageType === 'success') {
+                    resultMessage.classList.add('text-green-500');
+                    resultMessage.classList.remove('text-red-500');
+                } else {
+                    resultMessage.classList.add('text-red-500');
+                    resultMessage.classList.remove('text-green-500');
+                }
+
+                resultModal.classList.add('active');
+
+                // Clear session variables after showing the message
+                <?php unset($_SESSION['void_transaction_message']); ?>
+                <?php unset($_SESSION['void_transaction_message_type']); ?>
+
+                // Close the modal and refresh the page after 2 seconds
+                setTimeout(function () {
+                    resultModal.classList.remove('active');
+                    window.location.href = 'void_transaction.php'; // Reload the page
+                }, 2000);
+            }
+        });
+
+        // Add transactions modal function
+        function openModal() {
+            window.location.href = 'user.php'; // Redirect to user.php which has the transactions modal
+        }
+        
+        // Improve mobile menu handling with animations
+        document.getElementById('burger-menu-btn').addEventListener('click', function() {
+            const sideNav = document.getElementById('side-nav');
+            sideNav.classList.remove('hidden');
+            
+            // Animate the side menu
+            setTimeout(function() {
+                const sideMenu = sideNav.querySelector('.transform');
+                sideMenu.classList.add('translate-x-0');
+                sideMenu.classList.remove('-translate-x-full');
+            }, 50);
+        });
+
+        document.getElementById('close-btn').addEventListener('click', closeMenu);
+        document.getElementById('side-nav-backdrop').addEventListener('click', closeMenu);
+
+        function closeMenu() {
+            const sideNav = document.getElementById('side-nav');
+            const sideMenu = sideNav.querySelector('.transform');
+            
+            // Animate out
+            sideMenu.classList.add('-translate-x-full');
+            sideMenu.classList.remove('translate-x-0');
+            
+            // Hide after animation completes
+            setTimeout(function() {
+                sideNav.classList.add('hidden');
+            }, 300);
+        }
+    </script>
+</body>
+</html>
