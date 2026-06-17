@@ -110,31 +110,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Execute the INSERT statement
     if ($insertStmt->execute()) {
         // Update running balance and rent balance based on branch
-        $updateTable = ($branch === 'Sanko Market') ? 'sanko' : 'nova';
-        $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ? WHERE spacecode = ?");
-        $updateStmt->bind_param("dds", $newbalance, $newrentbalance, $spacecode);
-
-        if ($updateStmt->execute()) {
-            include 'modalsuccess.php'; // Include modalsuccess.php to display the success modal
-        } else {
-            echo "Error updating running and rent balance: " . $conn->error;
+        $updateTable = '';
+        if ($branch === 'Sanko Market') {
+            $updateTable = 'sanko';
+        } elseif ($branch === 'Nova Market') {
+            $updateTable = 'nova';
+        } elseif ($branch === 'APM') {
+            $updateTable = 'apm';
         }
 
-        $updateStmt->close();
+        if (!empty($updateTable)) {
+            $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ? WHERE spacecode = ?");
+            $updateStmt->bind_param("dds", $newbalance, $newrentbalance, $spacecode);
 
-        // If branch is APM, fetch from the apm table and insert into collectedapm
-        if ($branch === 'APM') {
-            $apmQuery = $conn->query("SELECT * FROM apm WHERE tenantcode = '$tenantcode' AND spacecode = '$spacecode'");
-            while ($apmRow = $apmQuery->fetch_assoc()) {
-                // Prepare the INSERT statement for collectedapm
-                $apmInsertQuery = "INSERT INTO collectedapm (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, collected_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                $apmInsertStmt = $conn->prepare($apmInsertQuery);
-                $apmRent = $apmRow['rent'] ?? 0;
-                $apmRentBal = $apmRow['rentbal'] ?? 0;
-                $apmInsertStmt->bind_param("dssssssss", $nextTransactionNumber, $collector, $branch, $apmRow['tenantcode'], $apmRow['spacecode'], $apmRow['tenantname'], $apmRent, $apmRentBal, $collected_date);
-                $apmInsertStmt->execute();
-                $apmInsertStmt->close();
+            if ($updateStmt->execute()) {
+                include 'modalsuccess.php'; // Include modalsuccess.php to display the success modal
+            } else {
+                echo "Error updating running and rent balance: " . $conn->error;
             }
+
+            $updateStmt->close();
+        } else {
+            include 'modalsuccess.php';
         }
     } else {
         echo "Error inserting collection: " . $conn->error;
@@ -1218,9 +1215,10 @@ $conn->close();
         const confBtn = document.getElementById('confirmButton');
         if (confBtn) {
             confBtn.addEventListener('click', function() {
-                // Close the modal
-                document.getElementById('confirmationModal').classList.add('hidden');
-
+                // Disable button to prevent double-clicks
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+                
                 // Submit the form programmatically
                 document.getElementById('collectionForm').submit();
             });
