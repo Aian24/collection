@@ -35,7 +35,7 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
         <a href="monitoring.php" class="desktop-sidebar-link <?= $currentPage == 'monitoring.php' ? 'active' : '' ?>">
             <i class="fas fa-chart-pie"></i> Monitoring
         </a>
-        <a href="transactions.php?showDuplicates=1" class="desktop-sidebar-link">
+        <a href="duplicated.php" class="desktop-sidebar-link <?= $currentPage == 'duplicated.php' ? 'active' : '' ?>">
             <div style="position: relative; display: inline-flex;">
                 <i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>
                 <span class="badge-fixed global-dup-badge" style="display: none; top: -5px !important; right: -8px !important;">0</span>
@@ -102,7 +102,7 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
     </a>
 
     <!-- Alerts (Duplicates) Button -->
-    <a href="transactions.php?showDuplicates=1" class="nav-item">
+    <a href="duplicated.php" class="nav-item <?= $currentPage == 'duplicated.php' ? 'active' : '' ?>">
         <div style="position: relative; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fas fa-exclamation-circle" style="color: #ef4444; font-size: 24px;"></i>
             <span class="badge-fixed global-dup-badge" style="display: none;">0</span>

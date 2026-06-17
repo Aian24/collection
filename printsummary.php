@@ -99,21 +99,18 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="../images/lc.png">
     <title>Print Summary</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="modern-bottom-nav.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
-            /* Scroll natively for smoothness, padding moved to modern-ui */
-        }
-        :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --accent-color: #f72585;
-            --success-color: #4cc9f0;
-            --warning-color: #f8961e;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            -webkit-font-smoothing: antialiased;
         }
         
         /* Print styles - match print.php UI */
@@ -121,6 +118,7 @@ $conn->close();
             body, p, h1, div, span {
                 color: black !important;
                 background: white !important;
+                font-family: sans-serif;
                 font-size: 12px;
                 line-height: 1.2;
                 margin: 0;
@@ -132,7 +130,7 @@ $conn->close();
                 height: auto;
                 margin-bottom: 4%;
             }
-            .print-button, .modern-ui, .nav, #side-nav, #date-filter, .print-btn {
+            .modern-app, .modern-bottom-nav {
                 display: none !important;
             }
             .print-only {
@@ -172,173 +170,18 @@ $conn->close();
         .print-only {
             display: none;
         }
-        /* Hide logo on screen, show only on print */
-        .screen-hide {
-            display: none;
+
+        /* Flatpickr Customization */
+        .flatpickr-calendar {
+            font-family: 'Inter', sans-serif !important;
+            border-radius: 16px !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+            border: none !important;
+            padding: 10px !important;
         }
-        
-        /* Modern UI styles */
-        .modern-ui {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding-bottom: 100px; /* Space for bottom nav + extra padding */
-        }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-        }
-        
-        .summary-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            animation: slideInUp 0.6s ease-out;
-        }
-        
-        .summary-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-        }
-        
-        .stat-item {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            padding: 20px;
-            color: white;
-            transition: all 0.3s ease;
-            animation: fadeInUp 0.6s ease-out;
-        }
-        
-        .stat-item:hover {
-            transform: scale(1.05);
-        }
-        
-        .stat-item.rent {
-            background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 100%);
-        }
-        
-        .stat-item.balance {
-            background: linear-gradient(135deg, #f72585 0%, #7209b7 100%);
-        }
-        
-        .stat-item.charges {
-            background: linear-gradient(135deg, #f8961e 0%, #f3722c 100%);
-        }
-        
-        .stat-item.total {
-            background: linear-gradient(135deg, #06ffa5 0%, #00d4aa 100%);
-        }
-        
-        .charge-item {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 10px 0;
-            border-left: 4px solid var(--primary-color);
-            animation: slideInRight 0.6s ease-out;
-        }
-        
-        .date-picker {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .custom-input {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 12px 16px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: white;
-        }
-        
-        .custom-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-            outline: none;
-        }
-        
-        .print-btn {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border: none;
-            border-radius: 15px;
-            padding: 15px 30px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
-        }
-        
-        .print-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(67, 97, 238, 0.4);
-        }
-        
-        /* Animations */
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        /* Top bar styles */
-        .top-bar {
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-        }
-        
-        .nav-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            padding: 8px 16px;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-1px);
-        }
-        
-        /* Side menu styles */
-        .side-menu {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            backdrop-filter: blur(10px);
+        .flatpickr-day.selected {
+            background: #2563eb !important;
+            border-color: #2563eb !important;
         }
     </style>
 </head>
@@ -422,154 +265,120 @@ $conn->close();
         </div>
     </div>
 
-    <!-- Modern UI (hidden on print) -->
-    <div class="modern-ui">
-        <nav class="top-bar p-3 mb-4 w-full sticky top-0 z-40 shadow-md">
-            <div class="flex items-center justify-between w-full mx-auto max-w-6xl">
-                <div class="flex items-center gap-2 text-white">
-                    <i class="fas fa-file-invoice text-xl opacity-90"></i>
-                    <div>
-                        <div class="text-base font-bold tracking-wide">Summary Report</div>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
+    <!-- Modern App Layout -->
+    <div class="modern-app min-h-screen bg-[#f3f4f6] pb-32">
+        <!-- Bottom Nav Include -->
         <?php include 'modern_bottom_nav.php'; ?>
 
-        <div class="mx-auto px-4 w-full lg:px-6">
-            <!-- Header with Logo (hidden on screen, visible on print) -->
-            <div class="text-center mb-4 screen-hide">
-                <div class="glass-card inline-block p-6">
-                    <img src="images/lc.png" alt="Logo" class="h-24 mx-auto mb-3">
-                    <p class="text-white text-xl font-semibold">Summary Report</p>
+        <!-- Topbar -->
+        <div class="bg-white px-6 pt-8 pb-4 shadow-sm sticky top-0 z-30">
+            <div class="flex justify-between items-center w-full lg:max-w-full max-w-lg mx-auto lg:px-8">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Summary</h1>
+                    <p class="text-sm font-medium text-gray-500"><?php echo isset($branch) ? $branch : 'Branch'; ?></p>
                 </div>
-            </div>
-
-            <!-- Date Filter -->
-            <div class="mb-4">
-                <form id="dateForm" method="post" class="bg-white rounded-[16px] px-4 py-3 flex flex-col shadow-md border border-gray-100 summary-card">
-                    <label for="selected_date" class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 pl-1">Filter by Date</label>
-                    <div class="flex items-center w-full bg-blue-50/50 rounded-xl px-3 py-2 border border-blue-100 hover:border-blue-300 transition-colors cursor-pointer">
-                        <i class="fas fa-calendar-day text-blue-500 mr-2 text-lg"></i>
-                        <input type="text" name="selected_date" id="selected_date" value="<?php echo $selected_date; ?>" 
-                               class="bg-transparent text-sm font-bold text-gray-800 outline-none cursor-pointer flex-1 w-full placeholder-gray-500" placeholder="Select a date" readonly>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Main Summary Card -->
-            <div class="summary-card p-6 mb-6">
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div class="stat-item rent">
-                        <div class="text-center">
-                            <i class="fas fa-home text-2xl mb-1"></i>
-                            <h3 class="font-bold text-sm">Total Rent</h3>
-                            <p class="text-xl font-bold">₱<?php echo number_format($total_rent, 2); ?></p>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-item balance">
-                        <div class="text-center">
-                            <i class="fas fa-wallet text-2xl mb-1"></i>
-                            <h3 class="font-bold text-sm">Total Balance</h3>
-                            <p class="text-xl font-bold">₱<?php echo number_format($total_balance, 2); ?></p>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-item charges">
-                        <div class="text-center">
-                            <i class="fas fa-bolt text-2xl mb-1"></i>
-                            <h3 class="font-bold text-sm">Total Charges</h3>
-                            <p class="text-xl font-bold">₱<?php echo number_format($total_charges, 2); ?></p>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-item total">
-                        <div class="text-center">
-                            <i class="fas fa-calculator text-2xl mb-1"></i>
-                            <h3 class="font-bold text-sm">Grand Total</h3>
-                            <p class="text-xl font-bold">₱<?php echo number_format($total, 2); ?></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Report Details & Charges in one row -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Report Details -->
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
-                            <i class="fas fa-info-circle mr-2 text-blue-600"></i>
-                            Report Details
-                        </h3>
-                        <div class="space-y-2">
-                            <div class="flex justify-between items-center">
-                                <span class="font-semibold text-gray-700">Date:</span>
-                                <span class="text-gray-900"><?php echo $selected_date; ?></span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="font-semibold text-gray-700">Branch:</span>
-                                <span class="text-gray-900"><?php echo isset($branch) ? $branch : ''; ?></span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="font-semibold text-gray-700">Collector:</span>
-                                <span class="text-gray-900"><?php echo isset($lname) ? $lname : ''; ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Charges Breakdown -->
-                    <?php if (!empty($charge_totals)): ?>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
-                                <i class="fas fa-list-ul mr-2 text-blue-600"></i>
-                                Charges Breakdown
-                            </h3>
-                            <div class="space-y-2">
-                                <?php foreach ($charge_totals as $charge_type => $amount): ?>
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-semibold text-gray-700">
-                                            <?php echo htmlspecialchars($charge_type); ?>:
-                                        </span>
-                                        <span class="font-bold text-green-600">
-                                            ₱<?php echo number_format($amount, 2); ?>
-                                        </span>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
-                                <i class="fas fa-list-ul mr-2 text-blue-600"></i>
-                                Charges Breakdown
-                            </h3>
-                            <p class="text-gray-500 text-center">No charges for this date</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                
-                <!-- Print Button -->
-                <div class="text-center mt-6 pt-6 border-t border-gray-200">
-                    <button onclick="window.print()" class="print-btn">
-                        <i class="fas fa-print mr-2"></i>
-                        Print Summary
-                    </button>
+                <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+                    <i class="fas fa-file-invoice"></i>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        // Add animation delay to stat items
-        document.addEventListener('DOMContentLoaded', function() {
-            const statItems = document.querySelectorAll('.stat-item');
-            statItems.forEach((item, index) => {
-                item.style.animationDelay = `${index * 0.1}s`;
-            });
-        });
-    </script>
+        <div class="px-5 pt-6 pb-6 space-y-5 w-full lg:max-w-full max-w-lg mx-auto lg:px-12">
+            
+            <!-- Date Selector -->
+            <form id="dateForm" method="post">
+                <div class="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex items-center relative transition-all active:scale-[0.98]">
+                    <div class="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-blue-500 mr-3">
+                        <i class="fas fa-calendar-alt text-lg"></i>
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Collection Date</p>
+                        <input type="text" name="selected_date" id="selected_date" value="<?php echo $selected_date; ?>" 
+                               class="bg-transparent text-gray-900 font-bold text-base outline-none cursor-pointer w-full" readonly>
+                    </div>
+                    <div class="px-4 text-gray-300">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Grand Total Card -->
+            <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-6 shadow-xl shadow-blue-600/20 text-white relative overflow-hidden">
+                <!-- Decorative background shapes -->
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-white opacity-10 rounded-full blur-xl"></div>
+                
+                <div class="relative z-10">
+                    <p class="text-blue-100 font-medium text-sm mb-1">Grand Total Collected</p>
+                    <h2 class="text-4xl font-black tracking-tight mb-5">₱<?php echo number_format($total, 2); ?></h2>
+                    <div class="flex items-center gap-2 text-sm font-medium bg-white/10 w-max px-3 py-1.5 rounded-full border border-white/20">
+                        <i class="fas fa-user-circle text-blue-200"></i>
+                        <span><?php echo isset($lname) ? $lname : ''; ?></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breakdown: Rent & Arrear -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Rent</p>
+                    <p class="text-xl font-bold text-gray-900">₱<?php echo number_format($total_rent, 2); ?></p>
+                </div>
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                    <div class="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Arrear</p>
+                    <p class="text-xl font-bold text-gray-900">₱<?php echo number_format($total_balance, 2); ?></p>
+                </div>
+            </div>
+
+            <!-- Total Charges -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-5 flex items-center justify-between border-b border-gray-50 bg-gray-50/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-900">Total Charges</h3>
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Itemized Breakdown</p>
+                        </div>
+                    </div>
+                    <p class="font-bold text-xl text-gray-900">₱<?php echo number_format($total_charges, 2); ?></p>
+                </div>
+                
+                <div class="p-3">
+                    <?php if (!empty($charge_totals)): ?>
+                        <div class="space-y-1">
+                            <?php foreach ($charge_totals as $charge_type => $amount): ?>
+                                <div class="flex justify-between items-center p-3 rounded-2xl hover:bg-gray-50 transition">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-2 h-2 rounded-full bg-orange-400"></div>
+                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($charge_type); ?></span>
+                                    </div>
+                                    <span class="text-sm font-bold text-gray-900">₱<?php echo number_format($amount, 2); ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="py-6 text-center">
+                            <p class="text-sm font-medium text-gray-400">No extra charges today</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Print Button (Inline) -->
+            <button onclick="window.print()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 mt-4 active:scale-[0.98] transition-all">
+                <i class="fas fa-print"></i>
+                <span class="text-lg">Print Receipt</span>
+            </button>
+        </div>
+    </div>
     
     <!-- App Print Integration -->
     <script src="app_print_integration.js"></script>
@@ -580,7 +389,7 @@ $conn->close();
         document.addEventListener('DOMContentLoaded', function() {
             flatpickr("#selected_date", {
                 dateFormat: "Y-m-d",
-                disableMobile: true, // Prevents mobile browsers from using native date picker, forcing our blue theme
+                disableMobile: true,
                 onChange: function(selectedDates, dateStr, instance) {
                     if (dateStr) {
                         document.getElementById("dateForm").submit();

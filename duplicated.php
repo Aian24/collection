@@ -12,7 +12,7 @@ $branch = $_SESSION["branch"];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Transactions</title>
+    <title>Duplicated Transactions</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.4/css/jquery.dataTables.css">
@@ -49,7 +49,7 @@ $branch = $_SESSION["branch"];
         .top-bar {
             position: fixed; top: 0; left: 0; right: 0;
             height: var(--nav-h);
-            background: linear-gradient(90deg,#2563eb,#1d4ed8);
+            background: linear-gradient(90deg,#ef4444,#dc2626);
             color: #fff;
             display: flex; align-items: center;
             justify-content: space-between;
@@ -124,7 +124,7 @@ $branch = $_SESSION["branch"];
         }
         /* SIDE DRAWER */
         .side-menu {
-            background: linear-gradient(180deg,#2563eb,#1d4ed8);
+            background: linear-gradient(180deg,#ef4444,#b91c1c);
         }
         /* PAGE CARD */
         .page-card {
@@ -205,14 +205,14 @@ $branch = $_SESSION["branch"];
         }
         .data-table { border-collapse: collapse !important; width: 100% !important; margin: 0 !important; }
         .data-table thead th {
-            background: #f8fafc; color: #64748b;
+            background: #fef2f2; color: #991b1b;
             font-weight: 700; font-size: 11px; text-transform: uppercase;
             letter-spacing: .05em; padding: 16px 14px;
-            border-bottom: 2px solid #e2e8f0 !important; white-space: nowrap;
+            border-bottom: 2px solid #fecaca !important; white-space: nowrap;
         }
         table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0 !important; }
         .data-table tbody tr { transition: background .15s; }
-        .data-table tbody tr:hover { background: #f1f5f9; }
+        .data-table tbody tr:hover { background: #fef2f2; }
         .data-table tbody td { padding: 14px 14px; font-size: 13.5px; white-space: nowrap; border-bottom: 1px solid #f1f5f9; border-top: none !important; }
         
         /* DataTables Controls */
@@ -251,7 +251,7 @@ $branch = $_SESSION["branch"];
         }
         .dataTables_wrapper .dataTables_paginate .paginate_button.current,
         .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-            background: var(--primary) !important; color: #fff !important; border-color: var(--primary) !important; box-shadow: 0 2px 8px rgba(37,99,235,.25);
+            background: #ef4444 !important; color: #fff !important; border-color: #ef4444 !important; box-shadow: 0 2px 8px rgba(239,68,68,.25);
         }
         .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
             opacity: 0.5; cursor: not-allowed; background: #f8fafc !important;
@@ -268,8 +268,8 @@ $branch = $_SESSION["branch"];
             position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: 10px; opacity: 0.4;
         }
         table.dataTable thead .sorting:after { content: "\f0dc"; }
-        table.dataTable thead .sorting_asc:after { content: "\f0de"; opacity: 1; color: var(--primary); }
-        table.dataTable thead .sorting_desc:after { content: "\f0dd"; opacity: 1; color: var(--primary); }
+        table.dataTable thead .sorting_asc:after { content: "\f0de"; opacity: 1; color: var(--danger); }
+        table.dataTable thead .sorting_desc:after { content: "\f0dd"; opacity: 1; color: var(--danger); }
 
 
         /* ── Transaction Cards ───────────────────────────────── */
@@ -277,19 +277,20 @@ $branch = $_SESSION["branch"];
             background: #fff;
             border-radius: 14px;
             box-shadow: 0 2px 10px rgba(0,0,0,.07);
-            border: 1px solid #e2e8f0;
+            border: 1px solid #fee2e2;
+            border-left: 4px solid #ef4444;
             margin-bottom: 10px;
             overflow: hidden;
             transition: box-shadow .2s;
         }
-        .tx-card:hover { box-shadow: 0 4px 18px rgba(37,99,235,.12); }
+        .tx-card:hover { box-shadow: 0 4px 18px rgba(239,68,68,.12); }
         .tx-card-header {
             display: flex; justify-content: space-between; align-items: flex-start;
             padding: 12px 14px 10px;
-            background: linear-gradient(135deg,#eff6ff,#dbeafe);
-            border-bottom: 1px solid #bfdbfe;
+            background: linear-gradient(135deg,#fef2f2,#fee2e2);
+            border-bottom: 1px solid #fecaca;
         }
-        .tx-tran { font-size: 15px; font-weight: 700; color: #1d4ed8; }
+        .tx-tran { font-size: 15px; font-weight: 700; color: #b91c1c; }
         .tx-date { font-size: 11px; color: #64748b; margin-top: 2px; }
         .tx-total {
             font-size: 17px; font-weight: 800;
@@ -319,11 +320,11 @@ $branch = $_SESSION["branch"];
             background: #fff; font-size: 13px; font-weight: 600;
             color: #475569; cursor: pointer; transition: all .2s;
         }
-        .pg-btn:hover:not([disabled]) { border-color: #2563eb; color: #2563eb; }
+        .pg-btn:hover:not([disabled]) { border-color: #ef4444; color: #ef4444; }
         .pg-btn[disabled] { opacity: .35; cursor: not-allowed; }
         .pg-btn.pg-active {
-            background: #2563eb; border-color: #2563eb;
-            color: #fff; box-shadow: 0 3px 10px rgba(37,99,235,.3);
+            background: #ef4444; border-color: #ef4444;
+            color: #fff; box-shadow: 0 3px 10px rgba(239,68,68,.3);
         }
         .pg-ellipsis { font-size: 14px; color: #94a3b8; padding: 0 4px; line-height: 34px; }
 
@@ -334,13 +335,10 @@ $branch = $_SESSION["branch"];
     <!-- TOP BAR -->
     <nav class="top-bar">
         <div class="brand">
-            <i class="fas fa-cash-register"></i>
+            <i class="fas fa-exclamation-triangle"></i>
             <div>
-                <div class="brand-name"><?php
-                    $db = isset($_SESSION['branch']) ? $_SESSION['branch'] : '';
-                    echo ($db==='Sanko Market') ? 'Sanko Market' : htmlspecialchars($db);
-                    ?></div>
-                <div class="brand-sub">Collection POS</div>
+                <div class="brand-name">Duplicated</div>
+                <div class="brand-sub">Transactions needing attention</div>
             </div>
         </div>
         <button class="user-pill" id="burger-menu-btn">
@@ -356,37 +354,37 @@ $branch = $_SESSION["branch"];
         <div class="flex h-full">
             <div id="side-nav-backdrop" class="bg-black opacity-50 flex-1 h-full"></div>
             <div class="side-menu w-72 h-full transform transition-transform duration-300 ease-in-out translate-x-full ml-auto">
-                <div class="flex justify-between items-center p-4 border-b border-blue-800">
+                <div class="flex justify-between items-center p-4 border-b border-red-800">
                     <div class="flex items-center gap-3">
                         <i class="fas fa-user-circle text-white text-3xl"></i>
                         <div>
                             <div class="text-white font-bold"><?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : ''; ?></div>
-                            <div class="text-blue-200 text-xs"><?php
+                            <div class="text-red-200 text-xs"><?php
                     $db = isset($_SESSION['branch']) ? $_SESSION['branch'] : '';
                     echo ($db==='Sanko Market') ? 'Sanko Market' : htmlspecialchars($db);
                     ?></div>
                         </div>
                     </div>
-                    <button id="close-btn" class="text-white p-2 hover:bg-blue-800 rounded-full">
+                    <button id="close-btn" class="text-white p-2 hover:bg-red-800 rounded-full">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
                 <div class="flex flex-col mt-4 px-3 gap-1">
-                    <a href="user.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
-                        <i class="fas fa-plus-circle w-5 text-center text-blue-300"></i> New Collection
+                    <a href="user.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-red-800">
+                        <i class="fas fa-plus-circle w-5 text-center text-red-300"></i> New Collection
                     </a>
-                    <a href="transactions.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
-                        <i class="fas fa-list-ul w-5 text-center text-blue-300"></i> Transactions
+                    <a href="transactions.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-red-800">
+                        <i class="fas fa-list-ul w-5 text-center text-red-300"></i> Transactions
                     </a>
-                    <a href="reprint.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
-                        <i class="fas fa-print w-5 text-center text-blue-300"></i> Reprint Receipt
+                    <a href="reprint.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-red-800">
+                        <i class="fas fa-print w-5 text-center text-red-300"></i> Reprint Receipt
                     </a>
-                    <a href="void_transaction.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
+                    <a href="void_transaction.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-red-800">
                         <i class="fas fa-ban w-5 text-center text-yellow-300"></i> Void Transaction
                     </a>
                 </div>
-                <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-800">
-                    <a href="index.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-red-700 transition">
+                <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-red-800">
+                    <a href="index.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-red-900 transition">
                         <i class="fas fa-sign-out-alt w-5 text-center text-red-300"></i> Logout
                     </a>
                 </div>
@@ -395,6 +393,57 @@ $branch = $_SESSION["branch"];
     </div>
 
     <?php include 'modern_bottom_nav.php'; ?>
+
+    <div class="px-3 pt-3">
+        <!-- Search + Entries row -->
+        <div class="flex lg:hidden items-center justify-between mb-3 gap-2">
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-500 font-medium">Show</span>
+                <select id="entriesPerPage" class="pos-input" style="width:70px;padding:6px 8px;font-size:14px">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            <div class="relative flex-1" style="max-width:200px">
+                <i class="fas fa-search absolute" style="left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px"></i>
+                <input id="searchInput" type="text" placeholder="Search..." class="pos-input w-full" style="padding:8px 8px 8px 30px;font-size:14px">
+            </div>
+        </div>
+
+        <!-- Cards container (Mobile only) -->
+        <div id="cardsContainer" class="lg:hidden"></div>
+
+        <!-- Table container (Desktop only) -->
+        <div id="tableWrapper" class="hidden lg:block data-table-container mt-4 mb-6 p-4 border-t-4 border-red-500">
+            <div class="mb-4 text-red-600 font-bold text-lg"><i class="fas fa-exclamation-triangle mr-2"></i> Duplicated Transactions</div>
+            <table id="transactionsTable" class="data-table w-full">
+                <thead>
+                    <tr>
+                        <th>Transaction #</th>
+                        <th>Date</th>
+                        <th>Space</th>
+                        <th>Code</th>
+                        <th>Collector</th>
+                        <th>Tenant</th>
+                        <th>Paid Rent</th>
+                        <th>Paid Bal</th>
+                        <th>Charges</th>
+                        <th>Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Pagination + info -->
+        <div class="flex lg:hidden flex-col items-center gap-2 mt-4 mb-2">
+            <div id="paginationInfo" class="text-xs text-gray-500 font-medium"></div>
+            <div id="paginationBtns" class="flex flex-wrap gap-1 justify-center"></div>
+        </div>
+    </div>
 
     <!-- Logout Modern Modal -->
     <div id="logoutConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] animate-fadeIn">
@@ -418,61 +467,6 @@ $branch = $_SESSION["branch"];
             </div>
         </div>
     </div>
-
-    <div class="px-3 pt-3">
-
-        <!-- Control Panel Row Removed - Integrated into Bottom Nav -->
-        <div class="mb-3"></div>
-
-        <!-- Search + Entries row -->
-        <div class="flex lg:hidden items-center justify-between mb-3 gap-2">
-            <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-500 font-medium">Show</span>
-                <select id="entriesPerPage" class="pos-input" style="width:70px;padding:6px 8px;font-size:14px">
-                    <option value="5">5</option>
-                    <option value="10" selected>10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                </select>
-            </div>
-            <div class="relative flex-1" style="max-width:200px">
-                <i class="fas fa-search absolute" style="left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px"></i>
-                <input id="searchInput" type="text" placeholder="Search..." class="pos-input w-full" style="padding:8px 8px 8px 30px;font-size:14px">
-            </div>
-        </div>
-
-        <!-- Cards container (Mobile only) -->
-        <div id="cardsContainer" class="lg:hidden"></div>
-
-        <!-- Table container (Desktop only) -->
-        <div id="tableWrapper" class="hidden lg:block data-table-container mt-4 mb-6 p-4">
-            <table id="transactionsTable" class="data-table w-full">
-                <thead>
-                    <tr>
-                        <th>Transaction #</th>
-                        <th>Date</th>
-                        <th>Space</th>
-                        <th>Code</th>
-                        <th>Collector</th>
-                        <th>Tenant</th>
-                        <th>Paid Rent</th>
-                        <th>Paid Bal</th>
-                        <th>Charges</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-
-        <!-- Pagination + info -->
-        <div class="flex lg:hidden flex-col items-center gap-2 mt-4 mb-2">
-            <div id="paginationInfo" class="text-xs text-gray-500 font-medium"></div>
-            <div id="paginationBtns" class="flex flex-wrap gap-1 justify-center"></div>
-        </div>
-    </div>
-
-
 
     <script src="nav_badge.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -545,6 +539,11 @@ $branch = $_SESSION["branch"];
                     <div class="tx-value" style="font-size:12px;color:#64748b;white-space:normal">${charges}</div>
                 </div>` : ''}
             </div>
+            <div class="p-3 border-t border-red-100 flex justify-end bg-red-50">
+                <a href="void_transaction.php?txn=${t.transaction_number}" class="bg-red-600 text-white hover:bg-red-700 font-bold py-2 px-5 rounded-xl text-sm transition-colors flex items-center gap-2 shadow-sm shadow-red-200">
+                    <i class="fas fa-ban"></i> Void Issue
+                </a>
+            </div>
         </div>`;
     }
 
@@ -574,7 +573,7 @@ $branch = $_SESSION["branch"];
 
         const container = document.getElementById('cardsContainer');
         if (!total) {
-            container.innerHTML = '<div class="flex flex-col items-center justify-center py-16 px-4 text-center"><div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100"><i class="fas fa-inbox text-3xl text-gray-400"></i></div><h3 class="text-lg font-bold text-gray-700 mb-1">No transactions found</h3><p class="text-sm text-gray-400">There are no records matching your current criteria.</p></div>';
+            container.innerHTML = '<div class="flex flex-col items-center justify-center py-16 px-4 text-center"><div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 border-2 border-green-100"><i class="fas fa-check text-3xl text-green-500"></i></div><h3 class="text-lg font-bold text-gray-700 mb-1">No duplicates found!</h3><p class="text-sm text-gray-400">All your transactions are looking good.</p></div>';
         } else {
             container.innerHTML = slice.map(buildCard).join('');
         }
@@ -611,9 +610,9 @@ $branch = $_SESSION["branch"];
     // ── Load transactions ─────────────────────────────────────────────────────
     function fetchAndLoadTransactions() {
         document.getElementById('cardsContainer').innerHTML =
-            '<div class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-3xl mb-3 block"></i>Loading...</div>';
+            '<div class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-3xl mb-3 block"></i>Loading duplicates...</div>';
 
-        fetch('fetch_transactions.php')
+        fetch('fetch_duplicated_transactions.php')
             .then(r => r.json())
             .then(data => {
                 // Sort newest first
@@ -621,28 +620,11 @@ $branch = $_SESSION["branch"];
                 allData = data;
                 applyFilter();
                 renderTable(); // Render desktop table
-                updateNotificationCount();
             })
             .catch(() => {
                 document.getElementById('cardsContainer').innerHTML =
                     '<div class="text-center py-12 text-red-400"><i class="fas fa-exclamation-triangle text-3xl mb-3 block"></i>Error loading transactions</div>';
             });
-    }
-
-    function updateNotificationCount() {
-        fetch('fetch_duplicated_transactions.php')
-            .then(r => r.json())
-            .then(data => {
-                const badge = document.getElementById('notificationCountBadge');
-                if (data.length > 0) {
-                    badge.textContent = data.length;
-                    badge.style.display = 'flex';
-                    document.getElementById('notificationButton').classList.add('animate-pulse');
-                } else {
-                    badge.style.display = 'none';
-                    document.getElementById('notificationButton').classList.remove('animate-pulse');
-                }
-            }).catch(()=>{});
     }
 
     // ── Table builder for Desktop ─────────────────────────────────────────────
@@ -654,7 +636,7 @@ $branch = $_SESSION["branch"];
             const charges = t.charges && t.charges !== 'null' ? t.charges : '—';
             return `
                 <tr>
-                    <td class="font-bold" style="color:var(--primary)">#${t.transaction_number}</td>
+                    <td class="font-bold text-red-600">#${t.transaction_number}</td>
                     <td>${fmtDate(t.collected_date)}</td>
                     <td>${t.spacecode||'—'}</td>
                     <td>${t.tenantcode||'—'}</td>
@@ -664,6 +646,11 @@ $branch = $_SESSION["branch"];
                     <td style="color:#2563eb;font-weight:700">&#x20B1;${n(t.paidbal)}</td>
                     <td style="font-size:12px;color:#64748b;max-width:200px;white-space:normal">${charges}</td>
                     <td style="color:#15803d;font-weight:800;background:#dcfce7">&#x20B1;${n(paid)}</td>
+                    <td>
+                        <a href="void_transaction.php?txn=${t.transaction_number}" class="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 transition-colors inline-flex">
+                            <i class="fas fa-ban"></i> Void
+                        </a>
+                    </td>
                 </tr>
             `;
         }).join('');
@@ -676,13 +663,11 @@ $branch = $_SESSION["branch"];
             order: [[1, 'desc']],
             pageLength: 25,
             language: { 
-                search: "Search Transactions:",
-                emptyTable: '<div class="flex flex-col items-center justify-center py-16 px-4 text-center"><div class="w-20 h-20 bg-gray-50 rounded-full mx-auto flex items-center justify-center mb-4 border border-gray-100"><i class="fas fa-inbox text-3xl text-gray-400"></i></div><h3 class="text-lg font-bold text-gray-700 mb-1">No transactions found</h3><p class="text-sm text-gray-400">There are no records matching your current criteria.</p></div>'
+                search: "Search Duplicates:",
+                emptyTable: '<div class="flex flex-col items-center justify-center py-16 px-4 text-center"><div class="w-20 h-20 bg-green-50 rounded-full mx-auto flex items-center justify-center mb-4 border-2 border-green-100"><i class="fas fa-check text-3xl text-green-500"></i></div><h3 class="text-lg font-bold text-gray-700 mb-1">No duplicates found!</h3><p class="text-sm text-gray-400">All your transactions are looking good.</p></div>'
             }
         });
     }
-
-
 
     // ── Event listeners ───────────────────────────────────────────────────────
     document.getElementById('searchInput').addEventListener('input', applyFilter);
@@ -692,8 +677,15 @@ $branch = $_SESSION["branch"];
 
     document.addEventListener('DOMContentLoaded', () => {
         fetchAndLoadTransactions();
-
     });
+
+    // Logout Modal Functions
+    function showLogoutModal() {
+        document.getElementById('logoutConfirmModal').classList.remove('hidden');
+    }
+    function hideLogoutModal() {
+        document.getElementById('logoutConfirmModal').classList.add('hidden');
+    }
 
     // ── Side drawer ───────────────────────────────────────────────────────────
     (function() {
@@ -714,15 +706,6 @@ $branch = $_SESSION["branch"];
         if(closeBtn) closeBtn.addEventListener('click', closeDrawer);
         if(backdrop) backdrop.addEventListener('click', closeDrawer);
     })();
-
-    // Logout Modal Functions
-    function showLogoutModal() {
-        document.getElementById('logoutConfirmModal').classList.remove('hidden');
-    }
-    function hideLogoutModal() {
-        document.getElementById('logoutConfirmModal').classList.add('hidden');
-    }
     </script>
 </body>
 </html>
-

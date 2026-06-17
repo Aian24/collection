@@ -194,27 +194,98 @@ $today = date('Y-m-d');
                     <button onclick="hideLogoutModal()" class="w-full bg-gray-50 hover:bg-gray-100 text-gray-500 font-bold py-4 px-6 rounded-2xl transition-all active:scale-95 font-sans">
                         KEEP WORKING
                     </button>
+</head>
+<body>
+
+    <nav class="top-bar">
+        <div class="flex items-center gap-2 text-white">
+            <i class="fas fa-chart-line text-xl"></i>
+            <span class="font-bold">Monitoring</span>
+        </div>
+        <div class="text-white text-xs opacity-80"><?php echo htmlspecialchars($branch); ?></div>
+    </nav>
+
+    <div class="p-3">
+        <!-- MONITOR PROGRESS CARD -->
+        <div class="monitor-card animate-fadeIn mb-3" style="padding: 14px;">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-sm">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <span class="text-sm font-black text-gray-800">Collected Today</span>
                 </div>
+                <div class="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                    <?php echo date('M d, Y'); ?>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="bg-blue-50 p-3 rounded-xl text-center border border-blue-100">
+                    <div class="text-[9px] uppercase font-black text-blue-400 mb-0.5">Paid</div>
+                    <div id="mon-collected" class="text-xl font-black text-blue-700 leading-tight">0</div>
+                    <div id="mon-total" class="text-[9px] text-blue-400">out of 0</div>
+                </div>
+                <div class="bg-red-50 p-3 rounded-xl text-center border border-red-100">
+                    <div class="text-[9px] uppercase font-black text-red-400 mb-0.5">Unpaid</div>
+                    <div id="mon-pending" class="text-xl font-black text-red-700 leading-tight">0</div>
+                    <div id="mon-percent" class="text-[9px] text-red-400">0% left</div>
+                </div>
+            </div>
+
+            <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+                <div id="mon-bar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
+            </div>
+
+            <!-- STEPS / GUIDE -->
+            <div class="bg-blue-600 bg-opacity-5 rounded-xl p-2.5 flex items-start gap-2.5 border border-blue-100">
+                <div class="text-blue-600 mt-0.5"><i class="fas fa-info-circle text-xs"></i></div>
+                <div class="text-[10px] text-blue-800 leading-relaxed font-semibold">
+                    <span class="text-blue-600 font-black uppercase mr-1">Easy Step:</span> 
+                    Simply click on any <span class="text-red-600 font-bold">Unpaid Space</span> below to automatically pre-fill the New Collection form.
+                </div>
+            </div>
+        </div>
+
+        <div class="monitor-card animate-fadeIn" style="padding: 16px;">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-black text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-user-clock text-red-500 text-xs"></i> Unpaid List
+                </h3>
+            </div>
+            
+            <div class="relative mb-3">
+                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                <input type="text" id="mon-search" onkeyup="filterList()" placeholder="Search space code..." 
+                       class="w-full bg-gray-50 border border-gray-100 rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-2 focus:ring-blue-100 transition">
+            </div>
+
+            <div id="mon-list" class="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+                <!-- List items -->
             </div>
         </div>
     </div>
 
-    <!-- Duplicated Transactions Modal -->
-    <div id="duplicatedTransactionsModal" class="fixed z-50 inset-0 hidden" style="background:rgba(0,0,0,0.55)">
-        <div class="flex items-start justify-center min-h-screen pt-14 px-3 pb-24">
-            <div class="relative bg-white rounded-2xl shadow-2xl w-full overflow-hidden" style="max-width:480px">
-                <div class="flex justify-between items-center px-4 py-3" style="background:linear-gradient(90deg,#dc2626,#b91c1c)">
-                    <h3 class="text-white font-bold text-base flex items-center gap-2">
-                        <i class="fas fa-exclamation-circle"></i> Duplicated Transactions
-                    </h3>
-                    <button onclick="closeDupModal()" class="text-white p-1 hover:opacity-75">
-                        <i class="fas fa-times text-lg"></i>
-                    </button>
+    <?php include 'modern_bottom_nav.php'; ?>
+
+    <!-- Logout Modern Modal -->
+    <div id="logoutConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] animate-fadeIn">
+        <div class="mobile-modal bg-white rounded-3xl p-8 max-w-[340px] w-full mx-4 shadow-2xl relative overflow-hidden text-left">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-50 rounded-full opacity-50"></div>
+            <div class="text-center relative z-10">
+                <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-2xl bg-red-500 mb-6 shadow-xl shadow-red-100">
+                    <i class="fas fa-sign-out-alt text-white text-3xl"></i>
                 </div>
-                <div class="p-3 overflow-y-auto" style="max-height:70vh">
-                    <div id="dupCardsContainer" class="flex flex-col gap-2">
-                        <div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
-                    </div>
+                <h3 class="text-2xl font-black text-gray-900 mb-2 font-sans">Going so soon?</h3>
+                <p class="text-gray-500 mb-8 px-2 font-medium font-sans">Are you sure you want to exit and end your collection session?</p>
+                
+                <div class="flex flex-col gap-3">
+                    <a href="index.php" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center justify-center gap-2 font-sans">
+                        <i class="fas fa-door-open mr-1"></i> YES, EXIT
+                    </a>
+                    <button onclick="hideLogoutModal()" class="w-full bg-gray-50 hover:bg-gray-100 text-gray-500 font-bold py-4 px-6 rounded-2xl transition-all active:scale-95 font-sans">
+                        KEEP WORKING
+                    </button>
                 </div>
             </div>
         </div>
@@ -310,59 +381,6 @@ $today = date('Y-m-d');
         function hideLogoutModal() {
             document.getElementById('logoutConfirmModal').classList.add('hidden');
         }
-
-        // Duplicate Card Modal Logic
-        function closeDupModal() {
-            document.getElementById('duplicatedTransactionsModal').classList.add('hidden');
-        }
-
-        function fmtDate(d) {
-            const dt = new Date(d);
-            return isNaN(dt) ? d : dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-        }
-        function nFmt(v) { return parseFloat(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-        function getChargesTotal(chStr) {
-            if (!chStr || chStr === 'null') return 0;
-            let total = 0;
-            const parts = chStr.split(',');
-            for (let p of parts) {
-                const match = p.match(/:\s*([\d,.]+)/);
-                if (match) total += parseFloat(match[1].replace(/,/g, '')) || 0;
-            }
-            return total;
-        }
-        function buildDupCardUser(t) {
-            const cTotal = getChargesTotal(t.charges);
-            const total = parseFloat(t.paidrent||0) + parseFloat(t.paidbal||0) + cTotal;
-            const charges = t.charges && t.charges !== 'null' ? t.charges : '';
-            return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);border:1px solid #fee2e2;border-left:4px solid #dc2626;margin-bottom:0;overflow:hidden">
-                <div style="background:linear-gradient(135deg,#fff5f5,#fee2e2);padding:10px 14px 8px;border-bottom:1px solid #fecaca;display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                        <div style="font-size:15px;font-weight:700;color:#dc2626">#${t.transaction_number}</div>
-                        <div style="font-size:11px;color:#64748b">${fmtDate(t.collected_date)}</div>
-                    </div>
-                    <div style="font-size:14px;font-weight:800;color:#16a34a">&#x20B1;${nFmt(total)}</div>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:10px 14px 12px">
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Space</div><div style="font-size:13px;font-weight:600;color:#374151">${t.spacecode||'—'}</div></div>
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Code</div><div style="font-size:13px;font-weight:600;color:#374151">${t.tenantcode||'—'}</div></div>
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Paid Rent</div><div style="font-size:13px;font-weight:700;color:#16a34a">&#x20B1;${nFmt(t.paidrent)}</div></div>
-                    ${charges ? `<div style="padding:4px;grid-column:1/-1"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Charges</div><div style="font-size:12px;color:#64748b">${charges}</div></div>` : ''}
-                    <div style="padding:4px;grid-column:1/-1"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Tenant</div><div style="font-size:14px;font-weight:600;color:#1e293b">${t.tenantname||'—'}</div></div>
-                </div>
-            </div>`;
-        }
-        function openDupModal(e) {
-            if(e) e.preventDefault();
-            const m = document.getElementById('duplicatedTransactionsModal'), c = document.getElementById('dupCardsContainer');
-            if(!m || !c) return;
-            m.classList.remove('hidden');
-            c.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8"><i class="fas fa-spinner fa-spin" style="font-size:24px"></i></div>';
-            fetch('fetch_duplicated_transactions.php').then(r=>r.json()).then(data=>{
-                c.innerHTML = data.length ? data.map(buildDupCardUser).join('') : '<div style="text-align:center;padding:32px;color:#22c55e"><i class="fas fa-check-circle" style="font-size:32px;display:block;margin-bottom:8px"></i>No duplicates found!</div>';
-            }).catch(()=>c.innerHTML='<div style="text-align:center;padding:24px;color:#ef4444">Error loading</div>');
-        }
     </script>
 </body>
 </html>
-

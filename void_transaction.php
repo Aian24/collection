@@ -593,7 +593,7 @@ ob_end_flush(); // End output buffering and flush output
                         <i class="fas fa-hashtag"></i>Transaction Number
                     </label>
                     <input type="text" id="transaction_number" name="transaction_number" 
-                           class="pos-input w-full" required>
+                           class="pos-input w-full" value="<?php echo isset($_GET['txn']) ? htmlspecialchars($_GET['txn']) : ''; ?>" required>
                 </div>
                 
                 <div class="mb-4">
@@ -666,26 +666,7 @@ ob_end_flush(); // End output buffering and flush output
         </div>
     </div>
 
-    <!-- Duplicated Transactions Modal -->
-    <div id="duplicatedTransactionsModal" class="fixed z-50 inset-0 hidden" style="background:rgba(0,0,0,0.55)">
-        <div class="flex items-start justify-center min-h-screen pt-14 px-3 pb-24">
-            <div class="relative bg-white rounded-2xl shadow-2xl w-full overflow-hidden" style="max-width:480px">
-                <div class="flex justify-between items-center px-4 py-3" style="background:linear-gradient(90deg,#dc2626,#b91c1c)">
-                    <h3 class="text-white font-bold text-base flex items-center gap-2">
-                        <i class="fas fa-exclamation-circle"></i> Duplicated Transactions
-                    </h3>
-                    <button onclick="closeDupModal()" class="text-white p-1 hover:opacity-75">
-                        <i class="fas fa-times text-lg"></i>
-                    </button>
-                </div>
-                <div class="p-3 overflow-y-auto" style="max-height:70vh">
-                    <div id="dupCardsContainer" class="flex flex-col gap-2">
-                        <div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <input type="hidden" id="branch" value="<?php echo htmlspecialchars($formBranch); ?>">
     <script src="nav_badge.js"></script>
@@ -697,57 +678,7 @@ ob_end_flush(); // End output buffering and flush output
             document.getElementById('logoutConfirmModal').classList.add('hidden');
         }
 
-        // Duplicate Card Modal Logic
-        function closeDupModal() {
-            document.getElementById('duplicatedTransactionsModal').classList.add('hidden');
-        }
 
-        function fmtDate(d) {
-            const dt = new Date(d);
-            return isNaN(dt) ? d : dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-        }
-        function nFmt(v) { return parseFloat(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-        function getChargesTotal(chStr) {
-            if (!chStr || chStr === 'null') return 0;
-            let total = 0;
-            const parts = chStr.split(',');
-            for (let p of parts) {
-                const match = p.match(/:\s*([\d,.]+)/);
-                if (match) total += parseFloat(match[1].replace(/,/g, '')) || 0;
-            }
-            return total;
-        }
-        function buildDupCardUser(t) {
-            const cTotal = getChargesTotal(t.charges);
-            const total = parseFloat(t.paidrent||0) + parseFloat(t.paidbal||0) + cTotal;
-            const charges = t.charges && t.charges !== 'null' ? t.charges : '';
-            return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);border:1px solid #fee2e2;border-left:4px solid #dc2626;margin-bottom:0;overflow:hidden">
-                <div style="background:linear-gradient(135deg,#fff5f5,#fee2e2);padding:10px 14px 8px;border-bottom:1px solid #fecaca;display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                        <div style="font-size:15px;font-weight:700;color:#dc2626">#${t.transaction_number}</div>
-                        <div style="font-size:11px;color:#64748b">${fmtDate(t.collected_date)}</div>
-                    </div>
-                    <div style="font-size:14px;font-weight:800;color:#16a34a">&#x20B1;${nFmt(total)}</div>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:10px 14px 12px">
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Space</div><div style="font-size:13px;font-weight:600;color:#374151">${t.spacecode||'—'}</div></div>
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Code</div><div style="font-size:13px;font-weight:600;color:#374151">${t.tenantcode||'—'}</div></div>
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Paid Rent</div><div style="font-size:13px;font-weight:700;color:#16a34a">&#x20B1;${nFmt(t.paidrent)}</div></div>
-                    ${charges ? `<div style="padding:4px;grid-column:1/-1"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Charges</div><div style="font-size:12px;color:#64748b">${charges}</div></div>` : ''}
-                    <div style="padding:4px;grid-column:1/-1"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Tenant</div><div style="font-size:14px;font-weight:600;color:#1e293b">${t.tenantname||'—'}</div></div>
-                </div>
-            </div>`;
-        }
-        function openDupModal(e) {
-            if(e) e.preventDefault();
-            const m = document.getElementById('duplicatedTransactionsModal'), c = document.getElementById('dupCardsContainer');
-            if(!m || !c) return;
-            m.classList.remove('hidden');
-            c.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8"><i class="fas fa-spinner fa-spin" style="font-size:24px"></i></div>';
-            fetch('fetch_duplicated_transactions.php').then(r=>r.json()).then(data=>{
-                c.innerHTML = data.length ? data.map(buildDupCardUser).join('') : '<div style="text-align:center;padding:32px;color:#22c55e"><i class="fas fa-check-circle" style="font-size:32px;display:block;margin-bottom:8px"></i>No duplicates found!</div>';
-            }).catch(()=>c.innerHTML='<div style="text-align:center;padding:24px;color:#ef4444">Error loading</div>');
-        }
     </script>
 </body>
 </html>

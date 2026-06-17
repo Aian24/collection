@@ -821,26 +821,7 @@ $conn->close();
         </div>
     </div>
 
-    <!-- Duplicated Transactions Modal -->
-    <div id="duplicatedTransactionsModal" class="fixed z-50 inset-0 hidden" style="background:rgba(0,0,0,0.55)">
-        <div class="flex items-start justify-center min-h-screen pt-14 px-3 pb-24">
-            <div class="relative bg-white rounded-2xl shadow-2xl w-full overflow-hidden" style="max-width:480px">
-                <div class="flex justify-between items-center px-4 py-3" style="background:linear-gradient(90deg,#dc2626,#b91c1c)">
-                    <h3 class="text-white font-bold text-base flex items-center gap-2">
-                        <i class="fas fa-exclamation-circle"></i> Duplicated Transactions
-                    </h3>
-                    <button onclick="closeModal()" class="text-white p-1 hover:opacity-75">
-                        <i class="fas fa-times text-lg"></i>
-                    </button>
-                </div>
-                <div class="p-3 overflow-y-auto" style="max-height:70vh">
-                    <div id="dupCardsContainerUser" class="flex flex-col gap-2">
-                        <div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Confirmation Modal -->
     <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
