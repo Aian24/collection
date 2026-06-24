@@ -1075,6 +1075,13 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
             </li>
 
             <li class="nav-item">
+                <a class="nav-link" href="server_health.php">
+                    <i class="fas fa-fw fa-server"></i>
+                    <span>Server Health</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
                 <a class="nav-link" href="../index.php">
                     <i class="fas fa-fw fa-sign-in-alt"></i>
                     <span>Login Page</span>
