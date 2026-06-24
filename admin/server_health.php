@@ -248,14 +248,13 @@ if ($result) {
         if (isset($_POST['kill_processes'])) {
             if (function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(', ', ini_get('disable_functions'))))) {
                 $user = get_current_user();
-                // Attempt several common shared hosting kill commands for the current user
-                @shell_exec("pkill -u $user -f php 2>&1");
-                @shell_exec("killall -9 -u $user lsphp 2>&1");
-                @shell_exec("killall -9 -u $user php-cgi 2>&1");
-                @shell_exec("killall -9 -u $user php 2>&1");
+                // We must run the kill command in the background with a delay (sleep 2).
+                // Otherwise, it instantly kills THIS script before it can send the webpage, causing a 503 Service Unavailable error.
+                $kill_cmd = "nohup sh -c 'sleep 2; pkill -u $user -f php; killall -9 -u $user lsphp; killall -9 -u $user php-cgi; killall -9 -u $user php' > /dev/null 2>&1 &";
+                @shell_exec($kill_cmd);
                 
                 echo '<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-                        <p><i class="fas fa-skull-crossbones mr-2"></i>Sent kill signals to all background PHP processes for user '.$user.'.</p>
+                        <p><i class="fas fa-skull-crossbones mr-2"></i>Sent kill signals to all background PHP processes. (Taking effect in 2 seconds)</p>
                       </div>';
             } else {
                 echo '<div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
