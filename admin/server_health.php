@@ -172,9 +172,11 @@ if ($result) {
                 <div class="card-body">
                     <div class="flex justify-between items-start">
                         <div>
-                            <div class="stat-value <?php echo !is_numeric($session_count) ? 'text-lg mt-2' : ''; ?>">
-                                <?php echo $session_count; ?>
-                            </div>
+                            <?php if (is_numeric($session_count)): ?>
+                                <div class="stat-value"><?php echo $session_count; ?></div>
+                            <?php else: ?>
+                                <div class="text-sm font-bold text-red-500 mt-2 mb-1"><?php echo $session_count; ?></div>
+                            <?php endif; ?>
                             <div class="stat-label">Active Sessions</div>
                         </div>
                         <div class="p-3 bg-purple-50 rounded-lg text-purple-500"><i class="fas fa-users text-xl"></i></div>
