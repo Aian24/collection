@@ -195,7 +195,13 @@ if ($result) {
                         </div>
                         <div class="p-3 bg-green-50 rounded-lg text-green-500"><i class="fas fa-microchip text-xl"></i></div>
                     </div>
-                    <div class="text-xs text-gray-500 mt-4"><i class="fas fa-info-circle mr-1"></i>Running background scripts</div>
+                    <div class="flex gap-2 mt-4">
+                        <form method="POST" class="w-full">
+                            <button type="submit" name="kill_processes" class="w-full text-xs py-1 px-2 border border-green-200 text-green-700 rounded hover:bg-green-50 transition-colors" onclick="return confirm('Are you sure? This will terminate ALL running PHP scripts immediately.');">
+                                <i class="fas fa-skull-crossbones mr-1"></i> Kill Processes
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -236,6 +242,26 @@ if ($result) {
                   </div>';
             // Refresh variables
             $root_log_size = 0; $admin_log_size = 0;
+        }
+
+        // Handle Kill Processes action
+        if (isset($_POST['kill_processes'])) {
+            if (function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(', ', ini_get('disable_functions'))))) {
+                $user = get_current_user();
+                // Attempt several common shared hosting kill commands for the current user
+                @shell_exec("pkill -u $user -f php 2>&1");
+                @shell_exec("killall -9 -u $user lsphp 2>&1");
+                @shell_exec("killall -9 -u $user php-cgi 2>&1");
+                @shell_exec("killall -9 -u $user php 2>&1");
+                
+                echo '<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+                        <p><i class="fas fa-skull-crossbones mr-2"></i>Sent kill signals to all background PHP processes for user '.$user.'.</p>
+                      </div>';
+            } else {
+                echo '<div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+                        <p><i class="fas fa-exclamation-triangle mr-2"></i>Cannot kill processes: shell_exec is disabled on this server.</p>
+                      </div>';
+            }
         }
         ?>
 
