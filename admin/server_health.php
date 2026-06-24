@@ -196,8 +196,9 @@ if ($result) {
                         <div class="p-3 bg-green-50 rounded-lg text-green-500"><i class="fas fa-microchip text-xl"></i></div>
                     </div>
                     <div class="flex gap-2 mt-4">
-                        <form method="POST" class="w-full">
-                            <button type="submit" name="kill_processes" class="w-full text-xs py-1 px-2 border border-green-200 text-green-700 rounded hover:bg-green-50 transition-colors" onclick="return confirm('Are you sure? This will terminate ALL running PHP scripts immediately.');">
+                        <form id="killForm" method="POST" class="w-full">
+                            <input type="hidden" name="kill_processes" value="1">
+                            <button type="button" class="w-full text-xs py-1 px-2 border border-green-200 text-green-700 rounded hover:bg-green-50 transition-colors" onclick="showKillModal()">
                                 <i class="fas fa-skull-crossbones mr-1"></i> Kill Processes
                             </button>
                         </form>
@@ -371,5 +372,51 @@ if ($result) {
             <p class="mt-1">Collection POS &copy; <?php echo date('Y'); ?></p>
         </div>
     </div>
+
+    <!-- Kill Processes Modal -->
+    <div id="killModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 transition-opacity" style="backdrop-filter: blur(4px);">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all scale-95 opacity-0" id="killModalContent">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <i class="fas fa-skull-crossbones text-3xl text-red-500"></i>
+            </div>
+            <h3 class="text-xl font-black text-gray-800 text-center mb-2">Terminate Processes?</h3>
+            <p class="text-gray-500 text-sm text-center mb-6 px-2">
+                This will immediately forcefully kill all your background PHP scripts. Are you absolutely sure?
+            </p>
+            <div class="flex gap-3">
+                <button onclick="hideKillModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded-xl transition-colors">
+                    Cancel
+                </button>
+                <button onclick="document.getElementById('killForm').submit()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-red-200 transition-colors flex items-center justify-center">
+                    <i class="fas fa-fire mr-2"></i> Yes, Kill
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showKillModal() {
+            const modal = document.getElementById('killModal');
+            const content = document.getElementById('killModalContent');
+            modal.classList.remove('hidden');
+            // Small delay to allow display:block to apply before animating opacity/transform
+            setTimeout(() => {
+                modal.classList.add('opacity-100');
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function hideKillModal() {
+            const modal = document.getElementById('killModal');
+            const content = document.getElementById('killModalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            modal.classList.remove('opacity-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // Wait for transition to finish
+        }
+    </script>
 </body>
 </html>
