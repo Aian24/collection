@@ -1,4 +1,5 @@
 <?php
+set_time_limit(30); // DataTables queries should never take more than 30 seconds
 include '../config.php';
 
 // Get request parameters from DataTables

@@ -11,6 +11,9 @@ $(document).ready(function() {
     }
 
     function updateNotifications() {
+        // Don't poll if the page is not visible
+        if (document.hidden) return;
+        
         const loadingHtml = `
             <a class="dropdown-item" href="#">
                 <div class="mr-3">
@@ -105,7 +108,7 @@ $(document).ready(function() {
     function startNotificationInterval() {
         if ($('#autoUpdateToggleNotifications').is(':checked')) {
             updateNotifications();
-            notificationInterval = setInterval(updateNotifications, 30000);
+            notificationInterval = setInterval(updateNotifications, 60000); // Every 60s (was 30s)
         }
     }
 
@@ -132,6 +135,17 @@ $(document).ready(function() {
     $('#allTransactionsModal').on('hidden.bs.modal', function () {
         if ($('#autoUpdateToggleNotifications').is(':checked')) {
             startNotificationInterval();
+        }
+    });
+
+    // Pause/resume based on page visibility
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            stopNotificationInterval();
+        } else {
+            if ($('#autoUpdateToggleNotifications').is(':checked')) {
+                startNotificationInterval();
+            }
         }
     });
 

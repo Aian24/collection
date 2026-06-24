@@ -233,14 +233,28 @@ while ($row = $qry->fetch_assoc()) {
             });
         }
 
-        // Update the online status every 5 seconds (adjust as needed)
-        setInterval(function () {
+        // Update the online status every 60 seconds (was 5s - too aggressive for shared hosting)
+        var _userStatusInterval = null;
+        function _pollUserStatus() {
+            if (document.hidden) return;
             <?php foreach ($userData as $row): ?>
                 var userId = <?php echo $row['id']; ?>;
                 var onlineStatus = <?php echo $row['online_status']; ?>;
                 updateUserStatus(userId, onlineStatus);
             <?php endforeach; ?>
-        }, 5000); // 5000 milliseconds = 5 seconds
+        }
+        function _startUserStatusPolling() {
+            if (_userStatusInterval) clearInterval(_userStatusInterval);
+            _pollUserStatus();
+            _userStatusInterval = setInterval(_pollUserStatus, 60000);
+        }
+        function _stopUserStatusPolling() {
+            if (_userStatusInterval) { clearInterval(_userStatusInterval); _userStatusInterval = null; }
+        }
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) _stopUserStatusPolling(); else _startUserStatusPolling();
+        });
+        _startUserStatusPolling();
     });
 </script>
 </body>

@@ -203,15 +203,29 @@ if (isset($_POST['submit'])) {
         <?php endif; ?>
     });
 
-    // Periodically update user's online status
-    setInterval(function () {
+    // Periodically update user's online status (every 60s, was 5s)
+    var _statusInterval = setInterval(function () {
+        if (document.hidden) return; // Don't poll when tab is hidden
         <?php if (isset($_SESSION['user_name']) && $_SESSION['online_status'] == 1) : ?>
             var userId = <?php echo $user_id; ?>;
             updateUserStatus(userId, 1);
         <?php endif; ?>
-    }, 5000);
-});
+    }, 60000);
 
+    // Pause/resume based on visibility
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            clearInterval(_statusInterval);
+        } else {
+            _statusInterval = setInterval(function () {
+                <?php if (isset($_SESSION['user_name']) && $_SESSION['online_status'] == 1) : ?>
+                    var userId = <?php echo $user_id; ?>;
+                    updateUserStatus(userId, 1);
+                <?php endif; ?>
+            }, 60000);
+        }
+    });
+});
 </script>
 
 

@@ -33,6 +33,7 @@ if (isset($_GET['branch'])) {
         $resCollected = $conn->query("SELECT COUNT(DISTINCT spacecode) as collected FROM $collectedTable WHERE DATE(collected_date) = '$date'");
         $collectedCount = $resCollected->fetch_assoc()['collected'];
         
+        $conn->close();
         echo json_encode([
             'success' => true,
             'total' => (int)$totalCount,
@@ -42,5 +43,7 @@ if (isset($_GET['branch'])) {
         exit();
     }
 }
+$conn->close();
 echo json_encode(['success' => false]);
 ?>
+

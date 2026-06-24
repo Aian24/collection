@@ -10,6 +10,10 @@ date_default_timezone_set('Asia/Manila');
 $username = $_SESSION["username"] ?? '';
 $branch = $_SESSION["branch"] ?? '';
 
+// Release session lock immediately - this is an AJAX endpoint polled frequently
+// Holding the lock blocks all other requests from the same user
+session_write_close();
+
 if (empty($username) || empty($branch)) {
     header('Content-Type: application/json');
     echo json_encode([]);

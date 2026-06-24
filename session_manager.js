@@ -2,19 +2,23 @@
  * Session Manager
  * Monitors PHP session status and warns users about expiration
  * Helps prevent losing work due to session timeout while offline
+ *
+ * OPTIMIZED: Reduced polling frequency and added visibility-based pausing
+ * to prevent background process buildup on shared hosting.
  */
 
 const SessionManager = (function() {
     'use strict';
 
-    // Configuration
-    const SESSION_CHECK_INTERVAL = 60000; // Check every 1 minute
+    // Configuration - OPTIMIZED for shared hosting
+    const SESSION_CHECK_INTERVAL = 300000; // Check every 5 minutes (was 1 minute)
     const SESSION_WARNING_TIME = 300000; // Warn 5 minutes before expiration
     const SESSION_TIMEOUT = 1800000; // Default PHP session timeout (30 minutes)
     
     let sessionCheckTimer = null;
     let lastActivityTime = Date.now();
     let isWarningShown = false;
+    let isPageVisible = true;
 
     /**
      * Initialize session manager
@@ -22,6 +26,9 @@ const SessionManager = (function() {
     function init() {
         // Track user activity
         trackUserActivity();
+        
+        // Track page visibility to stop polling when tab is hidden
+        trackPageVisibility();
         
         // Start session monitoring
         startSessionMonitoring();
@@ -47,10 +54,36 @@ const SessionManager = (function() {
     }
 
     /**
+     * Track page visibility - stop polling when tab is not visible
+     * This is a KEY optimization: hidden tabs were generating phantom requests
+     */
+    function trackPageVisibility() {
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                isPageVisible = false;
+                stopMonitoring();
+            } else {
+                isPageVisible = true;
+                // Resume monitoring and do an immediate check
+                startSessionMonitoring();
+                checkSessionStatus();
+            }
+        });
+    }
+
+    /**
      * Start monitoring session status
      */
     function startSessionMonitoring() {
+        // Clear any existing timer first
+        if (sessionCheckTimer) {
+            clearInterval(sessionCheckTimer);
+        }
+        
         sessionCheckTimer = setInterval(() => {
+            // Don't poll if page is not visible
+            if (!isPageVisible) return;
+            
             const timeSinceActivity = Date.now() - lastActivityTime;
             const timeUntilExpiry = SESSION_TIMEOUT - timeSinceActivity;
             
@@ -68,11 +101,21 @@ const SessionManager = (function() {
     }
 
     /**
+     * Stop monitoring (used when page becomes hidden)
+     */
+    function stopMonitoring() {
+        if (sessionCheckTimer) {
+            clearInterval(sessionCheckTimer);
+            sessionCheckTimer = null;
+        }
+    }
+
+    /**
      * Check session status with server
      */
     async function checkSessionStatus() {
-        if (!navigator.onLine) {
-            return; // Can't check while offline
+        if (!navigator.onLine || !isPageVisible) {
+            return; // Can't check while offline or when tab is hidden
         }
 
         try {
@@ -206,9 +249,7 @@ const SessionManager = (function() {
      */
     function handleSessionExpired() {
         // Stop monitoring
-        if (sessionCheckTimer) {
-            clearInterval(sessionCheckTimer);
-        }
+        stopMonitoring();
 
         // Check if there are offline transactions
         if (typeof OfflineHandler !== 'undefined') {
@@ -297,10 +338,7 @@ const SessionManager = (function() {
      * Stop session monitoring (cleanup)
      */
     function stop() {
-        if (sessionCheckTimer) {
-            clearInterval(sessionCheckTimer);
-            sessionCheckTimer = null;
-        }
+        stopMonitoring();
     }
 
     // Public API
@@ -320,4 +358,3 @@ if (document.readyState === 'loading') {
 } else {
     SessionManager.init();
 }
-

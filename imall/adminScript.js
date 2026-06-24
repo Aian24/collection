@@ -1,4 +1,5 @@
-// Add this code to adminScript.js
+// Admin chat functionality
+// OPTIMIZED: Added visibility-based pausing and increased interval from 5s to 15s
 function sendAdminMessage() {
     var adminMessageInput = document.getElementById('admin-message-input');
     var adminMessage = adminMessageInput.value.trim();
@@ -20,6 +21,9 @@ function sendAdminMessage() {
 }
 
 function updateAdminChat() {
+    // Don't poll if page is not visible
+    if (document.hidden) return;
+    
     // Fetch and display admin chat messages from server (PHP)
     var xhr = new XMLHttpRequest();
     xhr.open('GET', 'getMessages.php', true);
@@ -44,6 +48,30 @@ function handleKeyDown(event) {
     }
 }
 
-// Fetch and display admin chat messages on page load
-updateAdminChat();
-setInterval(updateAdminChat, 5000); // Update admin chat every 5 seconds (adjust as needed)
+// Admin chat polling with visibility-based pause/resume
+var _adminChatInterval = null;
+
+function _startAdminChatPolling() {
+    if (_adminChatInterval) clearInterval(_adminChatInterval);
+    updateAdminChat();
+    _adminChatInterval = setInterval(updateAdminChat, 15000); // Every 15s (was 5s)
+}
+
+function _stopAdminChatPolling() {
+    if (_adminChatInterval) {
+        clearInterval(_adminChatInterval);
+        _adminChatInterval = null;
+    }
+}
+
+// Pause/resume based on page visibility
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        _stopAdminChatPolling();
+    } else {
+        _startAdminChatPolling();
+    }
+});
+
+// Start polling
+_startAdminChatPolling();

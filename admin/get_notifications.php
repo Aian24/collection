@@ -7,8 +7,6 @@ date_default_timezone_set('Asia/Manila');
 // Get today's date
 $today = date('Y-m-d');
 
-// Log for debugging
-error_log("Fetching notifications for date: $today");
 
 // Determine which tables to query based on branch filter
 $branch_filter = isset($_GET['branch']) ? $_GET['branch'] : '';
@@ -38,20 +36,17 @@ if ($branch_filter === 'Sanko Market') {
 
 $query = implode(" UNION ALL ", $queries) . " ORDER BY collected_date DESC LIMIT 10";
 
-// Log the query for debugging
-error_log("Notification query: $query");
 
 $result = mysqli_query($conn, $query);
 
 if (!$result) {
-    error_log("Query error: " . mysqli_error($conn));
+
 }
 
 $notifications = array();
 
 if ($result) {
-    $row_count = mysqli_num_rows($result);
-    error_log("Found $row_count notifications");
+
     
     while ($row = mysqli_fetch_assoc($result)) {
         $message = '';
@@ -112,7 +107,7 @@ $total_transactions = 0;
 
 if ($count_result && $row = mysqli_fetch_assoc($count_result)) {
     $total_transactions = $row['total'];
-    error_log("Total transactions today: $total_transactions");
+
     mysqli_free_result($count_result);
 } else {
     error_log("Count query error: " . mysqli_error($conn));

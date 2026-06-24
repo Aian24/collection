@@ -1,4 +1,5 @@
-// Add this code to userScript.js
+// Chat functionality for user pages
+// OPTIMIZED: Added visibility-based pausing and increased interval from 5s to 15s
 function sendMessage() {
     var messageInput = document.getElementById('message-input');
     var message = messageInput.value.trim();
@@ -20,6 +21,9 @@ function sendMessage() {
 }
 
 function updateChat() {
+    // Don't poll if page is not visible
+    if (document.hidden) return;
+    
     // Fetch and display chat messages from server (PHP)
     var xhr = new XMLHttpRequest();
     xhr.open('GET', 'getAdminMessages.php', true);
@@ -45,6 +49,30 @@ function handleKeyDown(event) {
     }
 }
 
-// Fetch and display chat messages on page load
-updateChat();
-setInterval(updateChat, 5000); // Update chat every 5 seconds (adjust as needed)
+// Chat polling with visibility-based pause/resume
+var _chatInterval = null;
+
+function _startChatPolling() {
+    if (_chatInterval) clearInterval(_chatInterval);
+    updateChat();
+    _chatInterval = setInterval(updateChat, 15000); // Every 15s (was 5s)
+}
+
+function _stopChatPolling() {
+    if (_chatInterval) {
+        clearInterval(_chatInterval);
+        _chatInterval = null;
+    }
+}
+
+// Pause/resume based on page visibility
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        _stopChatPolling();
+    } else {
+        _startChatPolling();
+    }
+});
+
+// Start polling
+_startChatPolling();

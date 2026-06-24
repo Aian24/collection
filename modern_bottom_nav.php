@@ -154,6 +154,10 @@ $branchName = isset($_SESSION['branch']) ? $_SESSION['branch'] : 'Collection';
 </div>
 
 <script>
+// Guard against double-inclusion (some pages include this nav twice)
+if (!window._modernBottomNavLoaded) {
+window._modernBottomNavLoaded = true;
+
 function showModernLogout() {
     toggleMoreMenu(); // Close the more menu
     document.getElementById('modernLogoutModal').style.display = 'flex';
@@ -166,41 +170,75 @@ function hideModernLogout() {
 }
 
 function toggleMoreMenu() {
-    document.getElementById('morePopoutMenu').classList.toggle('active');
-    document.getElementById('moreMenuOverlay').classList.toggle('active');
+    var popout = document.getElementById('morePopoutMenu');
+    var overlay = document.getElementById('moreMenuOverlay');
+    if (popout) popout.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active');
     const moreIcon = document.getElementById('moreIcon');
-    if (moreIcon.classList.contains('fa-ellipsis-h')) {
-        moreIcon.classList.remove('fa-ellipsis-h');
-        moreIcon.classList.add('fa-times');
-        moreIcon.style.transform = 'rotate(90deg)';
-    } else {
-        moreIcon.classList.remove('fa-times');
-        moreIcon.classList.add('fa-ellipsis-h');
-        moreIcon.style.transform = 'rotate(0deg)';
+    if (moreIcon) {
+        if (moreIcon.classList.contains('fa-ellipsis-h')) {
+            moreIcon.classList.remove('fa-ellipsis-h');
+            moreIcon.classList.add('fa-times');
+            moreIcon.style.transform = 'rotate(90deg)';
+        } else {
+            moreIcon.classList.remove('fa-times');
+            moreIcon.classList.add('fa-ellipsis-h');
+            moreIcon.style.transform = 'rotate(0deg)';
+        }
     }
 }
 
 // Globally fetch duplicated transactions count for the badges
-function updateGlobalDupBadges() {
-    fetch('fetch_duplicated_transactions.php')
-        .then(response => response.json())
-        .then(data => {
-            const badges = document.querySelectorAll('.global-dup-badge');
-            if (data && data.length > 0) {
-                badges.forEach(b => {
-                    b.innerText = data.length;
-                    b.style.display = 'flex';
-                });
-            } else {
-                badges.forEach(b => b.style.display = 'none');
-            }
-        })
-        .catch(error => console.error('Error fetching dup count for badges:', error));
-}
+// OPTIMIZED: Reduced from 15s to 120s and added visibility pause.
+// nav_badge.js already polls this data at 60s, so this is just a fallback sync.
+(function() {
+    var dupBadgeInterval = null;
 
-// Initial fetch and set interval for every 15 seconds
-document.addEventListener('DOMContentLoaded', () => {
-    updateGlobalDupBadges();
-    setInterval(updateGlobalDupBadges, 15000);
-});
+    function updateGlobalDupBadges() {
+        if (document.hidden) return; // Don't poll when tab is hidden
+        fetch('fetch_duplicated_transactions.php')
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                var badges = document.querySelectorAll('.global-dup-badge');
+                if (data && data.length > 0) {
+                    badges.forEach(function(b) {
+                        b.innerText = data.length;
+                        b.style.display = 'flex';
+                    });
+                } else {
+                    badges.forEach(function(b) { b.style.display = 'none'; });
+                }
+            })
+            .catch(function(error) { console.error('Error fetching dup count for badges:', error); });
+    }
+    // Expose globally for other scripts that may call it
+    window.updateGlobalDupBadges = updateGlobalDupBadges;
+
+    function startDupPolling() {
+        if (dupBadgeInterval) clearInterval(dupBadgeInterval);
+        updateGlobalDupBadges();
+        dupBadgeInterval = setInterval(updateGlobalDupBadges, 120000); // Every 2 minutes
+    }
+
+    function stopDupPolling() {
+        if (dupBadgeInterval) {
+            clearInterval(dupBadgeInterval);
+            dupBadgeInterval = null;
+        }
+    }
+
+    // Pause/resume based on page visibility
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            stopDupPolling();
+        } else {
+            startDupPolling();
+        }
+    });
+
+    // Initial fetch and start
+    document.addEventListener('DOMContentLoaded', startDupPolling);
+})();
+
+} // end double-include guard
 </script>

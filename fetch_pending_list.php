@@ -22,8 +22,11 @@ if (isset($_GET['branch'])) {
         $pending[] = $row;
     }
     
+    $conn->close();
     echo json_encode(['success' => true, 'pending' => $pending]);
     exit();
 }
+$conn->close();
 echo json_encode(['success' => false]);
 ?>
+

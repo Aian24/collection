@@ -319,11 +319,13 @@ $today = date('Y-m-d');
                         
                         // Badge
                         const badge = document.getElementById('notificationBadge');
-                        if (pending > 0) {
-                            badge.textContent = pending;
-                            badge.style.display = 'flex';
-                        } else {
-                            badge.style.display = 'none';
+                        if (badge) {
+                            if (pending > 0) {
+                                badge.textContent = pending;
+                                badge.style.display = 'flex';
+                            } else {
+                                badge.style.display = 'none';
+                            }
                         }
                     }
                 });
