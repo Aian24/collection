@@ -17,6 +17,10 @@ $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : null;
 $end_date = isset($_GET['end_date']) ? $_GET['end_date'] : null;
 $branch = isset($_GET['branch']) ? $_GET['branch'] : 'collected';
 
+$start_datetime = $start_date ? $start_date . ' 00:00:00' : null;
+$end_datetime = $end_date ? $end_date . ' 23:59:59' : null;
+
+
 // Determine the table to query
 $tableName = ($branch === 'Nova Market') ? 'collectednova' : (($branch === 'APM') ? 'collectedapm' : 'collected');
 
@@ -38,7 +42,7 @@ $queryMonthly = "SELECT MONTH(collected_date) AS month,
                         SUM(paidrent) AS total_paidrent, 
                         SUM(paidbal) AS total_paidbal
                  FROM $tableName 
-                 WHERE DATE(collected_date) BETWEEN '$start_date' AND '$end_date' 
+                 WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime' 
                  GROUP BY MONTH(collected_date)";
 
 $resultMonthly = mysqli_query($conn, $queryMonthly);
@@ -57,7 +61,7 @@ $queryYearly = "SELECT YEAR(collected_date) AS year,
                        SUM(paidrent) AS total_paidrent, 
                        SUM(paidbal) AS total_paidbal
                 FROM $tableName 
-                WHERE DATE(collected_date) BETWEEN '$start_date' AND '$end_date' 
+                WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime' 
                 GROUP BY YEAR(collected_date)";
 
 $resultYearly = mysqli_query($conn, $queryYearly);

@@ -23,6 +23,9 @@ if (!strtotime($start_date) || !strtotime($end_date)) {
     $start_date = date('Y-m-01');
     $end_date = date('Y-m-d');
 }
+$start_datetime = $start_date . ' 00:00:00';
+$end_datetime = $end_date . ' 23:59:59';
+
 
 // Sanitize branch input
 $escaped_branch = mysqli_real_escape_string($conn, $branch);
@@ -184,18 +187,18 @@ if ($yearly_result) {
 // Get transactions for the table AND calculate totals
 if ($branch) {
     $query_transactions = "SELECT * FROM $table 
-        WHERE DATE(collected_date) BETWEEN '$start_date' AND '$end_date' 
+        WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime' 
         AND branch = '$escaped_branch' 
         ORDER BY collected_date ASC, transaction_number ASC";
 } else {
     $query_transactions = "(SELECT * FROM collected 
-        WHERE DATE(collected_date) BETWEEN '$start_date' AND '$end_date')
+        WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime')
         UNION ALL 
         (SELECT * FROM collectednova 
-        WHERE DATE(collected_date) BETWEEN '$start_date' AND '$end_date')
+        WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime')
         UNION ALL 
         (SELECT * FROM collectedapm 
-        WHERE DATE(collected_date) BETWEEN '$start_date' AND '$end_date')
+        WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime')
         ORDER BY collected_date ASC, transaction_number ASC";
 }
 

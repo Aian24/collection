@@ -44,10 +44,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['spacecode']) && isset(
         // Check if already paid on the selected date
         $collectedTable = ($branch === 'Sanko Market') ? 'collected' : (($branch === 'Nova Market') ? 'collectednova' : 'collectedapm');
         $checkDate = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');
+        $startOfDay = $checkDate . ' 00:00:00';
+        $endOfDay = $checkDate . ' 23:59:59';
         $paidToday = false;
         
-        $paidStmt = $conn->prepare("SELECT COUNT(*) FROM $collectedTable WHERE spacecode = ? AND DATE(collected_date) = ?");
-        $paidStmt->bind_param("ss", $spacecode, $checkDate);
+        $paidStmt = $conn->prepare("SELECT COUNT(*) FROM $collectedTable WHERE spacecode = ? AND collected_date BETWEEN ? AND ?");
+        $paidStmt->bind_param("sss", $spacecode, $startOfDay, $endOfDay);
         $paidStmt->execute();
         $paidStmt->bind_result($count);
         $paidStmt->fetch();

@@ -20,8 +20,10 @@ if (empty($username) || empty($branch)) {
     exit;
 }
 
-// Set the current date
+// Set the current date boundaries
 $currentDate = date('Y-m-d');
+$startOfDay = $currentDate . ' 00:00:00';
+$endOfDay = $currentDate . ' 23:59:59';
 
 // Determine the table based on the branch
 $table = '';
@@ -36,14 +38,14 @@ if ($branch === 'Sanko Market') {
 // Fetch duplicated transactions
 $query = "
     SELECT * FROM $table 
-    WHERE DATE(collected_date) = ? AND username = ? 
+    WHERE collected_date BETWEEN ? AND ? AND username = ? 
     AND spacecode IN (
         SELECT spacecode FROM $table 
-        WHERE DATE(collected_date) = ? AND username = ? 
+        WHERE collected_date BETWEEN ? AND ? AND username = ? 
         GROUP BY spacecode HAVING COUNT(*) > 1
     )";
 $stmt = $conn->prepare($query);
-$stmt->bind_param("ssss", $currentDate, $username, $currentDate, $username);
+$stmt->bind_param("ssssss", $startOfDay, $endOfDay, $username, $startOfDay, $endOfDay, $username);
 $stmt->execute();
 $result = $stmt->get_result();
 

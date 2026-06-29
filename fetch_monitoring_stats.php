@@ -5,6 +5,8 @@ header('Content-Type: application/json');
 if (isset($_GET['branch'])) {
     $branch = $_GET['branch'];
     $date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+    $startOfDay = $date . ' 00:00:00';
+    $endOfDay = $date . ' 23:59:59';
     
     $branchTable = '';
     $collectedTable = '';
@@ -30,7 +32,7 @@ if (isset($_GET['branch'])) {
         $totalCount = $resTotal->fetch_assoc()['total'];
         
         // Collected today (distinct spaces)
-        $resCollected = $conn->query("SELECT COUNT(DISTINCT spacecode) as collected FROM $collectedTable WHERE DATE(collected_date) = '$date'");
+        $resCollected = $conn->query("SELECT COUNT(DISTINCT spacecode) as collected FROM $collectedTable WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'");
         $collectedCount = $resCollected->fetch_assoc()['collected'];
         
         $conn->close();

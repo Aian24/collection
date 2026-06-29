@@ -4,9 +4,10 @@ include '../config.php';
 // Set timezone
 date_default_timezone_set('Asia/Manila');
 
-// Get today's date
+// Get today's date boundaries
 $today = date('Y-m-d');
-
+$startOfDay = $today . ' 00:00:00';
+$endOfDay = $today . ' 23:59:59';
 
 // Determine which tables to query based on branch filter
 $branch_filter = isset($_GET['branch']) ? $_GET['branch'] : '';
@@ -15,23 +16,23 @@ $queries = [];
 $count_queries = [];
 
 if ($branch_filter === 'Sanko Market') {
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE DATE(collected_date) = '$today')";
-    $count_queries[] = "SELECT transaction_number FROM collected WHERE DATE(collected_date) = '$today'";
+    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
+    $count_queries[] = "SELECT transaction_number FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
 } elseif ($branch_filter === 'Nova Market') {
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectednova' as source_table FROM collectednova WHERE DATE(collected_date) = '$today')";
-    $count_queries[] = "SELECT transaction_number FROM collectednova WHERE DATE(collected_date) = '$today'";
+    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectednova' as source_table FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
+    $count_queries[] = "SELECT transaction_number FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
 } elseif ($branch_filter === 'APM') {
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedapm' as source_table FROM collectedapm WHERE DATE(collected_date) = '$today')";
-    $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE DATE(collected_date) = '$today'";
+    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedapm' as source_table FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
+    $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
 } else {
     // All branches
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE DATE(collected_date) = '$today')";
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectednova' as source_table FROM collectednova WHERE DATE(collected_date) = '$today')";
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedapm' as source_table FROM collectedapm WHERE DATE(collected_date) = '$today')";
+    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
+    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectednova' as source_table FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
+    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedapm' as source_table FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
     
-    $count_queries[] = "SELECT transaction_number FROM collected WHERE DATE(collected_date) = '$today'";
-    $count_queries[] = "SELECT transaction_number FROM collectednova WHERE DATE(collected_date) = '$today'";
-    $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE DATE(collected_date) = '$today'";
+    $count_queries[] = "SELECT transaction_number FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
+    $count_queries[] = "SELECT transaction_number FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
+    $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
 }
 
 $query = implode(" UNION ALL ", $queries) . " ORDER BY collected_date DESC LIMIT 10";
