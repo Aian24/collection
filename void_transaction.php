@@ -4,7 +4,7 @@ include 'config.php';
 session_start();
 
 // Debug: Log page load
-error_log("Void transaction page loaded");
+// error_log("Void transaction page loaded");
 
 // Initialize variables
 $message = '';
@@ -30,12 +30,12 @@ $void_date = date('Y-m-d H:i:s');
 // Redirect after form submission to avoid resubmission
 if (isset($_POST['void_submit'])) {
     // Debug: Log form submission
-    error_log("Form submitted - void_submit detected");
-    error_log("POST data: " . print_r($_POST, true));
+    // error_log("Form submitted - void_submit detected");
+    // error_log("POST data: " . print_r($_POST, true));
     
     // Validate CSRF token
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        error_log("CSRF token validation failed");
+        // error_log("CSRF token validation failed");
         $_SESSION['void_transaction_message'] = 'Invalid form submission. Please try again.';
         $_SESSION['void_transaction_message_type'] = 'error';
         header("Location: void_transaction.php");
@@ -47,18 +47,18 @@ if (isset($_POST['void_submit'])) {
     $note = $_POST['note'];
     
     // Debug: Log the received values
-    error_log("Transaction Number: " . $transaction_number);
-    error_log("Branch: " . $branch);
-    error_log("Note: " . $note);
+    // error_log("Transaction Number: " . $transaction_number);
+    // error_log("Branch: " . $branch);
+    // error_log("Note: " . $note);
 
     // Validate branch selection and set table name dynamically
     $valid_branches = ['nova', 'sanko', 'apm'];
     if (!in_array($branch, $valid_branches)) {
-        error_log("Invalid branch selected: " . $branch);
+        // error_log("Invalid branch selected: " . $branch);
         $message = 'Invalid branch selected.';
         $message_type = 'error';
     } else {
-        error_log("Branch validation passed: " . $branch);
+        // error_log("Branch validation passed: " . $branch);
         
         // Dynamically create the correct table name based on the branch selected
         if ($branch === 'sanko') {
@@ -67,7 +67,7 @@ if (isset($_POST['void_submit'])) {
             $branch_table = 'collected' . $branch;
         }
         
-        error_log("Using table: " . $branch_table);
+        // error_log("Using table: " . $branch_table);
 
         // Start the transaction
         $conn->begin_transaction();
@@ -95,12 +95,12 @@ if (isset($_POST['void_submit'])) {
             $result = $stmt->get_result();
             $transaction = $result->fetch_assoc();
 
-            error_log("Query executed: " . $selectQuery . " with transaction_number: " . $transaction_number);
-            error_log("Transaction found: " . ($transaction ? 'Yes' : 'No'));
+            // error_log("Query executed: " . $selectQuery . " with transaction_number: " . $transaction_number);
+            // error_log("Transaction found: " . ($transaction ? 'Yes' : 'No'));
 
             if (!$transaction) {
                 // Transaction not found
-                error_log("Transaction not found in table: " . $branch_table);
+                // error_log("Transaction not found in table: " . $branch_table);
                 throw new Exception("Transaction not found.");
             }
 
@@ -117,8 +117,8 @@ if (isset($_POST['void_submit'])) {
             $tenantname = $transaction['tenantname'];
 
             // Debug: Log the charges value
-            error_log("Charges column exists: " . ($chargesColumnExists ? 'Yes' : 'No'));
-            error_log("Charges value from database: " . $charges);
+            // error_log("Charges column exists: " . ($chargesColumnExists ? 'Yes' : 'No'));
+            // error_log("Charges value from database: " . $charges);
             
             // Ensure charges is not null and convert to proper format
             if ($charges === null) {
@@ -128,7 +128,7 @@ if (isset($_POST['void_submit'])) {
             $charges = trim($charges);
 
             // Debug: Log the processed charges value
-            error_log("Processed charges value: " . $charges);
+            // error_log("Processed charges value: " . $charges);
 
             // Rollback in the collected table (collectednova, collectedapm, or collected for sanko)
             $stmt = $conn->prepare("UPDATE $branch_table SET rentbal = ?, runningbal = ? WHERE transaction_number = ?");
@@ -150,20 +150,20 @@ if (isset($_POST['void_submit'])) {
             $branch_name = ucfirst($branch) . ' Branch';
             
             // Debug: Log all values before insertion
-            error_log("Inserting into void table:");
-            error_log("Transaction Number: " . $transaction_number);
-            error_log("Branch: " . $branch_name);
-            error_log("Note: " . $note);
-            error_log("Rent: " . $rent);
-            error_log("Rentbal: " . $original_rentbal);
-            error_log("Runningbal: " . $original_runningbal);
-            error_log("Paidrent: " . $paidrent);
-            error_log("Paidbal: " . $paidbal);
-            error_log("Charges: " . $charges);
-            error_log("Collector: " . $collector);
-            error_log("Tenantname: " . $tenantname);
-            error_log("Spacecode: " . $spacecode);
-            error_log("Void Date: " . $void_date);
+            // error_log("Inserting into void table:");
+            // error_log("Transaction Number: " . $transaction_number);
+            // error_log("Branch: " . $branch_name);
+            // error_log("Note: " . $note);
+            // error_log("Rent: " . $rent);
+            // error_log("Rentbal: " . $original_rentbal);
+            // error_log("Runningbal: " . $original_runningbal);
+            // error_log("Paidrent: " . $paidrent);
+            // error_log("Paidbal: " . $paidbal);
+            // error_log("Charges: " . $charges);
+            // error_log("Collector: " . $collector);
+            // error_log("Tenantname: " . $tenantname);
+            // error_log("Spacecode: " . $spacecode);
+            // error_log("Void Date: " . $void_date);
             
             $stmt = $conn->prepare("INSERT INTO void (transaction_number, branch, note, rent, rentbal, runningbal, paidrent, paidbal, charges, collector, tenantname, spacecode, void_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             if (!$stmt) {
@@ -174,31 +174,31 @@ if (isset($_POST['void_submit'])) {
             $stmt->bind_param('sssdddddsssss', $transaction_number, $branch_name, $note, $rent, $original_rentbal, $original_runningbal, $paidrent, $paidbal, $charges, $collector, $tenantname, $spacecode, $void_date);
             
             // Debug: Log the bind_param string and charges value
-            error_log("Bind param string: sssdddddsssss");
-            error_log("Charges value being bound: " . $charges);
+            // error_log("Bind param string: sssdddddsssss");
+            // error_log("Charges value being bound: " . $charges);
             
             // Debug: Log all parameter values and types
-            error_log("Parameter values:");
-            error_log("1. transaction_number: " . $transaction_number . " (type: " . gettype($transaction_number) . ")");
-            error_log("2. branch_name: " . $branch_name . " (type: " . gettype($branch_name) . ")");
-            error_log("3. note: " . $note . " (type: " . gettype($note) . ")");
-            error_log("4. rent: " . $rent . " (type: " . gettype($rent) . ")");
-            error_log("5. original_rentbal: " . $original_rentbal . " (type: " . gettype($original_rentbal) . ")");
-            error_log("6. original_runningbal: " . $original_runningbal . " (type: " . gettype($original_runningbal) . ")");
-            error_log("7. paidrent: " . $paidrent . " (type: " . gettype($paidrent) . ")");
-            error_log("8. paidbal: " . $paidbal . " (type: " . gettype($paidbal) . ")");
-            error_log("9. charges: " . $charges . " (type: " . gettype($charges) . ")");
-            error_log("10. collector: " . $collector . " (type: " . gettype($collector) . ")");
-            error_log("11. tenantname: " . $tenantname . " (type: " . gettype($tenantname) . ")");
-            error_log("12. spacecode: " . $spacecode . " (type: " . gettype($spacecode) . ")");
-            error_log("13. void_date: " . $void_date . " (type: " . gettype($void_date) . ")");
+            // error_log("Parameter values:");
+            // error_log("1. transaction_number: " . $transaction_number . " (type: " . gettype($transaction_number) . ")");
+            // error_log("2. branch_name: " . $branch_name . " (type: " . gettype($branch_name) . ")");
+            // error_log("3. note: " . $note . " (type: " . gettype($note) . ")");
+            // error_log("4. rent: " . $rent . " (type: " . gettype($rent) . ")");
+            // error_log("5. original_rentbal: " . $original_rentbal . " (type: " . gettype($original_rentbal) . ")");
+            // error_log("6. original_runningbal: " . $original_runningbal . " (type: " . gettype($original_runningbal) . ")");
+            // error_log("7. paidrent: " . $paidrent . " (type: " . gettype($paidrent) . ")");
+            // error_log("8. paidbal: " . $paidbal . " (type: " . gettype($paidbal) . ")");
+            // error_log("9. charges: " . $charges . " (type: " . gettype($charges) . ")");
+            // error_log("10. collector: " . $collector . " (type: " . gettype($collector) . ")");
+            // error_log("11. tenantname: " . $tenantname . " (type: " . gettype($tenantname) . ")");
+            // error_log("12. spacecode: " . $spacecode . " (type: " . gettype($spacecode) . ")");
+            // error_log("13. void_date: " . $void_date . " (type: " . gettype($void_date) . ")");
             
             // Debug: Check if the insert was successful
             if (!$stmt->execute()) {
-                error_log("Insert failed: " . $stmt->error);
+                // error_log("Insert failed: " . $stmt->error);
                 throw new Exception("Insert failed: " . $stmt->error);
             } else {
-                error_log("Insert successful. Affected rows: " . $stmt->affected_rows);
+                // error_log("Insert successful. Affected rows: " . $stmt->affected_rows);
             }
 
             // Delete the transaction record from the respective collected table (collectednova, collectedsanko, collectedapm)
