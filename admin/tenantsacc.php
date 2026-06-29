@@ -164,9 +164,14 @@ if (!empty($branch) && in_array($branch, $allowedTables)) {
 }
 
 // Calculate totals (only if data is fetched)
-$totalDaily = array_sum(array_column($data, 'daily'));
-$totalRentBal = array_sum(array_column($data, 'rentbal'));
-$totalRunningBal = array_sum(array_column($data, 'runningbal'));
+$totalDaily = 0;
+$totalRentBal = 0;
+$totalRunningBal = 0;
+foreach ($data as $row) {
+    $totalDaily += (float)($row['daily'] ?? 0);
+    $totalRentBal += (float)($row['rentbal'] ?? 0);
+    $totalRunningBal += (float)($row['runningbal'] ?? 0);
+}
 
 // Get messages from session
 $successMessage = isset($_SESSION['successMessage']) ? $_SESSION['successMessage'] : '';
