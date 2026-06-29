@@ -81,8 +81,17 @@ $admin_log_size = file_exists($admin_error_log) ? filesize($admin_error_log) : 0
 // 6. Running PHP Processes (If shell_exec is allowed)
 $php_processes = 'N/A (Disabled)';
 if (function_exists('shell_exec') && !in_array('shell_exec', array_map('trim', explode(', ', ini_get('disable_functions'))))) {
-    $output = @shell_exec("ps aux | grep php | grep -v grep | wc -l 2>&1");
-    if ($output !== null) {
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        // Windows
+        $output = @shell_exec('tasklist /FI "IMAGENAME eq php-cgi.exe" 2>NUL | find /I /C "php-cgi.exe"');
+        if ($output === null || trim($output) === '') {
+            $output = @shell_exec('tasklist /FI "IMAGENAME eq httpd.exe" 2>NUL | find /I /C "httpd.exe"');
+        }
+    } else {
+        // Linux/Unix
+        $output = @shell_exec("ps aux | grep php | grep -v grep | wc -l 2>&1");
+    }
+    if ($output !== null && trim($output) !== '') {
         $php_processes = trim($output);
     }
 }
@@ -222,9 +231,12 @@ if ($result) {
                         <div class="p-3 <?php echo $log_icon_bg; ?> rounded-lg"><i class="fas fa-file-alt text-xl"></i></div>
                     </div>
                     <div class="flex gap-2 mt-4">
-                        <form method="POST" class="w-full">
-                            <button type="submit" name="clear_logs" class="w-full text-xs py-1 px-2 border border-red-200 text-red-600 rounded hover:bg-red-50 transition-colors">
-                                <i class="fas fa-trash-alt mr-1"></i> Clear Logs
+                        <a href="view_logs.php" class="w-1/2 text-center text-xs py-1 px-2 border border-blue-200 text-blue-600 rounded hover:bg-blue-50 transition-colors flex items-center justify-center font-semibold">
+                            <i class="fas fa-eye mr-1"></i> View
+                        </a>
+                        <form method="POST" class="w-1/2 m-0" onsubmit="return confirm('Are you sure you want to clear the logs?');">
+                            <button type="submit" name="clear_logs" class="w-full text-center text-xs py-1 px-2 border border-red-200 text-red-600 rounded hover:bg-red-50 transition-colors flex items-center justify-center font-semibold">
+                                <i class="fas fa-trash-alt mr-1"></i> Clear
                             </button>
                         </form>
                     </div>
@@ -251,7 +263,13 @@ if ($result) {
                 $user = get_current_user();
                 // We must run the kill command in the background with a delay (sleep 2).
                 // Otherwise, it instantly kills THIS script before it can send the webpage, causing a 503 Service Unavailable error.
-                $kill_cmd = "nohup sh -c 'sleep 2; pkill -u $user -f php; killall -9 -u $user lsphp; killall -9 -u $user php-cgi; killall -9 -u $user php' > /dev/null 2>&1 &";
+                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                    // On Windows (XAMPP), killing processes might shut down the entire Apache server.
+                    // Instead, we just clear runaway PHP-CGI processes if they exist.
+                    $kill_cmd = 'start /b cmd /c "ping 127.0.0.1 -n 3 > nul & taskkill /F /IM php-cgi.exe"';
+                } else {
+                    $kill_cmd = "nohup sh -c 'sleep 2; pkill -u $user -f php; killall -9 -u $user lsphp; killall -9 -u $user php-cgi; killall -9 -u $user php' > /dev/null 2>&1 &";
+                }
                 @shell_exec($kill_cmd);
                 
                 echo '<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
