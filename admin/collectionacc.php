@@ -133,8 +133,7 @@ $total_balance = 0;
 $processedTransactionNumbers = []; // To avoid double counting totals for the same transaction
 
 // Fetch all rows into an array first to apply PHP-side filters and calculate counts/totals
-$allRows = mysqli_fetch_all($result, MYSQLI_ASSOC);
-mysqli_free_result($result); // Free the result set memory
+
 
 // Initialize count arrays for badges (based on initial SQL results)
 $tenantCounts = [];
@@ -143,7 +142,7 @@ $spaceCounts = [];
 $collectorCounts = [];
 
 // Process the fetched data to calculate counts for badges (counts from initial SQL results)
-foreach ($allRows as $row) {
+while ($row = mysqli_fetch_assoc($result)) {
     // Count for tenants
     $tenantCode = $row['tenantcode'];
     $tenantCounts[$tenantCode] = isset($tenantCounts[$tenantCode]) ? $tenantCounts[$tenantCode] + 1 : 1;
@@ -172,12 +171,9 @@ foreach ($allRows as $row) {
     if ((float)$row['paidbal'] > 0) {
         $chargeCounts['Paid Balance'] = isset($chargeCounts['Paid Balance']) ? $chargeCounts['Paid Balance'] + 1 : 1;
     }
-}
 
+    // --- CONTINUING TO PART 2 (Filtered Data Processing) ---
 
-// Process the fetched data AGAIN to apply PHP-side filtering and calculate DISPLAYED totals
-// (totals for the *filtered* data)
-foreach ($allRows as $row) {
      // Re-extract charge values for calculation for this specific row
      $charges = explode(', ', $row['charges']);
     $aircon = $cusa = $electricity = $water = $table_tennis = $pay_toilet = $pay_parking = $ice_water =
@@ -296,10 +292,10 @@ foreach ($allRows as $row) {
             'photocopy' => number_format($photocopy, 2),
             'tenant_id' => number_format($tenant_id, 2),
             'function_room' => number_format($function_room, 2),
-            'tables_chairs' => number_format($tables_chairs, 2),
-            'overnight_works' => number_format($overnight_works, 2),
-            'vendo_sale' => number_format($vendo_sale, 2),
-            'zumba' => number_format($zumba, 2),
+            'tables_chairs' => number_format($total_tables_chairs, 2),
+            'overnight_works' => number_format($total_overnight_works, 2),
+            'vendo_sale' => number_format($total_vendo_sale, 2),
+            'zumba' => number_format($total_zumba, 2),
             'secdep' => number_format($secdep, 2),
             'utilitydep' => number_format($utilitydep, 2),
             'meterdep' => number_format($meterdep, 2),
@@ -447,10 +443,10 @@ if ($isAjax) {
             'photocopy' => number_format($total_photocopy, 2),
             'tenant_id' => number_format($total_tenant_id, 2),
             'function_room' => number_format($total_function_room, 2),
-            'tables_chairs' => number_format($tables_chairs, 2),
-            'overnight_works' => number_format($overnight_works, 2),
-            'vendo_sale' => number_format($vendo_sale, 2),
-            'zumba' => number_format($zumba, 2),
+            'tables_chairs' => number_format($total_tables_chairs, 2),
+            'overnight_works' => number_format($total_overnight_works, 2),
+            'vendo_sale' => number_format($total_vendo_sale, 2),
+            'zumba' => number_format($total_zumba, 2),
              'secdep' => number_format($total_secdep, 2),
              'utilitydep' => number_format($total_utilitydep, 2),
              'meterdep' => number_format($total_meterdep, 2),
