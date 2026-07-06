@@ -23,20 +23,25 @@ if (isset($_POST['search']) && isset($_POST['branch'])) {
     
     // If a valid table name is determined
     if ($table !== '') {
-        // Modify the SQL query to select from the appropriate table
-        $sql = "SELECT spacecode FROM $table WHERE spacecode LIKE '%$search%' LIMIT 5";
+        // Modify the SQL query to select from the appropriate table using prepared statements
+        $stmt = $conn->prepare("SELECT spacecode FROM $table WHERE spacecode LIKE ? LIMIT 5");
+        $searchParam = "%" . $search . "%";
+        $stmt->bind_param("s", $searchParam);
+        $stmt->execute();
+        $result = $stmt->get_result();
         
-        $result = $conn->query($sql);
         $suggestions = [];
         if ($result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
                 $suggestions[] = $row["spacecode"];
             }
         }
+        $stmt->close();
         echo json_encode($suggestions);
     } else {
         // Invalid branch selected
         echo json_encode([]); // Return empty array
     }
 }
+$conn->close();
 ?>

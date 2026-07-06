@@ -19,6 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['spacecode']) && isset(
             break;
         default:
             echo json_encode(['success' => false]);
+            $conn->close();
             exit();
     }
 
@@ -75,8 +76,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['spacecode']) && isset(
     }
 
     $stmt->close();
-    $conn->close();
 } else {
     echo json_encode(['success' => false]);
+}
+if (isset($conn) && $conn) {
+    $conn->close();
 }
 ?>

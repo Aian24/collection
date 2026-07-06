@@ -4,14 +4,14 @@ include '../config.php';
 
 // Get request parameters from DataTables
 $draw = $_POST['draw'];
-$start = $_POST['start'];
-$length = $_POST['length'];
-$searchValue = $_POST['search']['value'];
-$orderColumnIndex = $_POST['order'][0]['column'];
-$orderDirection = $_POST['order'][0]['dir'];
-$branchFilter = $_POST['branchFilter'];
-$fromDate = $_POST['fromDate'];
-$toDate = $_POST['toDate'];
+$start = intval($_POST['start']);
+$length = intval($_POST['length']);
+$searchValue = isset($_POST['search']['value']) ? mysqli_real_escape_string($conn, $_POST['search']['value']) : '';
+$orderColumnIndex = intval($_POST['order'][0]['column']);
+$orderDirection = (isset($_POST['order'][0]['dir']) && strtolower($_POST['order'][0]['dir']) === 'desc') ? 'DESC' : 'ASC';
+$branchFilter = isset($_POST['branchFilter']) ? mysqli_real_escape_string($conn, $_POST['branchFilter']) : '';
+$fromDate = isset($_POST['fromDate']) ? mysqli_real_escape_string($conn, $_POST['fromDate']) : '';
+$toDate = isset($_POST['toDate']) ? mysqli_real_escape_string($conn, $_POST['toDate']) : '';
 
 // Define columns
 $columns = [
