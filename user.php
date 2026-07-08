@@ -51,6 +51,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $spacecode = $_POST['spacecode'];
     $tenantname = $_POST['tenantname'];
     $collected_date = $_POST['collected_date']; // Capture the collected date
+    $payment_method = !empty($_POST['payment_method']) ? $_POST['payment_method'] : null;
+    $cheque_number = $_POST['cheque_number'] ?? null;
+    $cheque_payee = $_POST['cheque_payee'] ?? null;
 
     // Remove commas and format numeric values properly
     $rent = !empty($_POST['rent']) ? floatval(str_replace(',', '', $_POST['rent'])) : 0;
@@ -94,17 +97,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $chargesString = implode(', ', $charges);
 
     // Prepare the INSERT statement for the main table
-    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date" .
-        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
+    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, payment_method, cheque_number, cheque_payee" .
+        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
         (!empty($chargesString) ? ", ?" : "") . ")";
 
     $insertStmt = $conn->prepare($query);
 
     // Bind parameters for insertion
     if (!empty($chargesString)) {
-        $insertStmt->bind_param("dssssssddddssssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date, $chargesString);
+        $insertStmt->bind_param("dssssssddddsssssssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date, $payment_method, $cheque_number, $cheque_payee, $chargesString);
     } else {
-        $insertStmt->bind_param("dssssssddddsssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date);
+        $insertStmt->bind_param("dssssssddddssssssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date, $payment_method, $cheque_number, $cheque_payee);
     }
 
     // Execute the INSERT statement
@@ -691,6 +694,30 @@ $conn->close();
                     </label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                         class="pos-input w-full" id="paidbal" type="text" name="paidbal" placeholder="0.00" inputmode="decimal">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="pos-label" for="payment_method">
+                    <i class="fas fa-wallet"></i>Payment Method
+                </label>
+                <select class="pos-input w-full" id="payment_method" name="payment_method" onchange="toggleChequeInput()" required>
+                    <option value="Cash" selected>Cash</option>
+                    <option value="Cheque">Cheque</option>
+                </select>
+            </div>
+            <div id="cheque_container" class="hidden grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="pos-label" for="cheque_number">
+                        <i class="fas fa-money-check"></i>Cheque Number
+                    </label>
+                    <input class="pos-input w-full" id="cheque_number" type="text" name="cheque_number" placeholder="Enter Cheque Number">
+                </div>
+                <div>
+                    <label class="pos-label" for="cheque_payee">
+                        <i class="fas fa-user-tag"></i>Payee Name
+                    </label>
+                    <input class="pos-input w-full" id="cheque_payee" type="text" name="cheque_payee" placeholder="Enter Payee Name">
                 </div>
             </div>
 
@@ -1698,6 +1725,25 @@ $conn->close();
             // Clicking anywhere else closes all menus
             document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
         });
+
+        function toggleChequeInput() {
+            const paymentMethod = document.getElementById('payment_method').value;
+            const chequeContainer = document.getElementById('cheque_container');
+            const chequeInput = document.getElementById('cheque_number');
+            const payeeInput = document.getElementById('cheque_payee');
+            
+            if (paymentMethod === 'Cheque') {
+                chequeContainer.classList.remove('hidden');
+                chequeInput.required = true;
+                payeeInput.required = true;
+            } else {
+                chequeContainer.classList.add('hidden');
+                chequeInput.required = false;
+                payeeInput.required = false;
+                chequeInput.value = '';
+                payeeInput.value = '';
+            }
+        }
     </script>
     
     <!-- Flatpickr JS -->

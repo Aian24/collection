@@ -270,6 +270,9 @@ while ($row = mysqli_fetch_assoc($result)) {
             'collector' => $row['collector'],
             'tenantcode' => $row['tenantcode'],
             'tenantname' => $row['tenantname'],
+            'payment_method' => $row['payment_method'],
+            'cheque_number' => $row['cheque_number'] ?? null,
+            'cheque_payee' => $row['cheque_payee'] ?? null,
             // Store raw values for calculation, formatted for display
             // Note: DataTables will use the raw values if columns.data points to raw keys for sorting/filtering
             'paidrent' => number_format((float)$row['paidrent'], 2),
@@ -874,6 +877,9 @@ if ($isAjax) {
                             <th>Space Code</th> <th>Collector</th>
                             <th>Tenant Code</th>
                             <th>Tenant Name</th>
+                            <th>Payment Method</th>
+                            <th>Cheque #</th>
+                            <th>Payee</th>
                             <th>Paid Rent</th>
                             <th>Paid Bal</th>
                             <th>Aircon</th>
@@ -1477,35 +1483,35 @@ if ($isAjax) {
             function isColumnAllZeroOrEmpty(columnIndex, data) {
                 // Map column index to raw data field name
                 var rawFieldMap = {
-                    7: 'raw_paidrent',
-                    8: 'raw_paidbal',
-                    9: 'raw_aircon',
-                    10: 'raw_cusa',
-                    11: 'raw_electricity',
-                    12: 'raw_water',
-                    13: 'raw_table_tennis',
-                    14: 'raw_pay_toilet',
-                    15: 'raw_pay_parking',
-                    16: 'raw_ice_water',
-                    17: 'raw_ulam_vendor',
-                    18: 'raw_gas',
-                    19: 'raw_famylihan',
-                    20: 'raw_garbage_haul',
-                    21: 'raw_photocopy',
-                    22: 'raw_tenant_id',
-                    23: 'raw_function_room',
-                    24: 'raw_tables_chairs',
-                    25: 'raw_overnight_works',
-                    26: 'raw_vendo_sale',
-                    27: 'raw_zumba',
-                    28: 'raw_secdep',
-                    29: 'raw_utilitydep',
-                    30: 'raw_meterdep',
-                    31: 'raw_miscellaneous',
-                    32: 'raw_forfeited_items',
-                    33: 'raw_total',
-                    34: 'raw_rent_balance',
-                    35: 'raw_arrear_balance'
+                    10: 'raw_paidrent',
+                    11: 'raw_paidbal',
+                    12: 'raw_aircon',
+                    13: 'raw_cusa',
+                    14: 'raw_electricity',
+                    15: 'raw_water',
+                    16: 'raw_table_tennis',
+                    17: 'raw_pay_toilet',
+                    18: 'raw_pay_parking',
+                    19: 'raw_ice_water',
+                    20: 'raw_ulam_vendor',
+                    21: 'raw_gas',
+                    22: 'raw_famylihan',
+                    23: 'raw_garbage_haul',
+                    24: 'raw_photocopy',
+                    25: 'raw_tenant_id',
+                    26: 'raw_function_room',
+                    27: 'raw_tables_chairs',
+                    28: 'raw_overnight_works',
+                    29: 'raw_vendo_sale',
+                    30: 'raw_zumba',
+                    31: 'raw_secdep',
+                    32: 'raw_utilitydep',
+                    33: 'raw_meterdep',
+                    34: 'raw_miscellaneous',
+                    35: 'raw_forfeited_items',
+                    36: 'raw_total',
+                    37: 'raw_rent_balance',
+                    37: 'raw_arrear_balance'
                 };
                 
                 // If we have a raw field mapping, use raw values for checking
@@ -1569,8 +1575,8 @@ if ($isAjax) {
                             var data = json.data;
                             
                             if (data && data.length > 0) {
-                                // Check each column (skip first 7 columns: branch, date, transaction_number, spacecode, collector, tenantcode, tenantname)
-                                for (var colIndex = 7; colIndex < table.columns().header().length; colIndex++) {
+                                // Check each column (skip first 10 columns: branch, date, transaction_number, spacecode, collector, tenantcode, tenantname)
+                                for (var colIndex = 10; colIndex < table.columns().header().length; colIndex++) {
                                     var allZeroOrEmpty = isColumnAllZeroOrEmpty(colIndex, data);
                                     table.column(colIndex).visible(!allZeroOrEmpty, false);
                                 }
@@ -1626,6 +1632,9 @@ if ($isAjax) {
                     { data: 'collector' },
                     { data: 'tenantcode' },
                     { data: 'tenantname' },
+                    { data: 'payment_method' },
+                    { data: 'cheque_number' },
+                    { data: 'cheque_payee' },
                     { data: 'paidrent', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_paidrent : data; } },
                     { data: 'paidbal', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_paidbal : data; } },
                     { data: 'aircon', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_aircon : data; } },
@@ -1925,8 +1934,8 @@ if ($isAjax) {
                         var data = json.data;
                         
                         if (data && data.length > 0) {
-                            // Check each column (skip first 7 columns: branch, date, transaction_number, spacecode, collector, tenantcode, tenantname)
-                            for (var colIndex = 7; colIndex < table.columns().header().length; colIndex++) {
+                            // Check each column (skip first 10 columns: branch, date, transaction_number, spacecode, collector, tenantcode, tenantname)
+                            for (var colIndex = 10; colIndex < table.columns().header().length; colIndex++) {
                                 var allZeroOrEmpty = isColumnAllZeroOrEmpty(colIndex, data);
                                 table.column(colIndex).visible(!allZeroOrEmpty, false);
                             }
@@ -1967,8 +1976,8 @@ if ($isAjax) {
                     // Show all columns after reset
                     setTimeout(function() {
                         var table = $('#dataTable').DataTable();
-                        // Show all columns (skip first 7 columns: branch, date, transaction_number, spacecode, collector, tenantcode, tenantname)
-                        for (var colIndex = 7; colIndex < table.columns().header().length; colIndex++) {
+                        // Show all columns (skip first 10 columns: branch, date, transaction_number, spacecode, collector, tenantcode, tenantname)
+                        for (var colIndex = 10; colIndex < table.columns().header().length; colIndex++) {
                             table.column(colIndex).visible(true, false);
                         }
                         table.columns.adjust().draw(false);

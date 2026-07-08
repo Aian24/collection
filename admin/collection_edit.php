@@ -107,6 +107,9 @@ if ($isAjax && $action === 'getTransaction') {
             'collector' => $row['collector'],
             'tenantcode' => $row['tenantcode'],
             'tenantname' => $row['tenantname'],
+            'payment_method' => $row['payment_method'],
+            'cheque_number' => $row['cheque_number'] ?? null,
+            'cheque_payee' => $row['cheque_payee'] ?? null,
             'newbalance' => isset($row['newbalance']) ? (float)$row['newbalance'] : 0,
             'newrentbalance' => isset($row['newrentbalance']) ? (float)$row['newrentbalance'] : 0,
         ],
@@ -317,6 +320,9 @@ foreach ($allRows as $row) {
         'collector' => $row['collector'],
         'tenantcode' => $row['tenantcode'],
         'tenantname' => $row['tenantname'],
+            'payment_method' => $row['payment_method'],
+            'cheque_number' => $row['cheque_number'] ?? null,
+            'cheque_payee' => $row['cheque_payee'] ?? null,
         'paidrent' => number_format($row['paidrent'], 2),
         'paidbal' => number_format($row['paidbal'], 2),
         'charges_display' => $charges_display,
@@ -460,6 +466,9 @@ if ($isAjax && $action === 'list') {
                         <th>Collector</th>
                         <th>Tenant Code</th>
                         <th>Tenant Name</th>
+                            <th>Payment Method</th>
+                            <th>Cheque #</th>
+                            <th>Payee</th>
                         <th>Paid Rent</th>
                         <th>Paid Bal</th>
                         <th>Charges</th>
@@ -677,6 +686,9 @@ $(function(){
             { data: 'collector' },
             { data: 'tenantcode' },
             { data: 'tenantname' },
+                    { data: 'payment_method' },
+                    { data: 'cheque_number' },
+                    { data: 'cheque_payee' },
             { data: 'paidrent' },
             { data: 'paidbal' },
             { data: 'charges_display' },

@@ -15,7 +15,7 @@ $toDate = isset($_POST['toDate']) ? mysqli_real_escape_string($conn, $_POST['toD
 
 // Define columns
 $columns = [
-    'branch', 'collected_date', 'transaction_number', 'spacecode', 'collector', 'tenantcode', 'tenantname',
+    'branch', 'collected_date', 'transaction_number', 'spacecode', 'collector', 'tenantcode', 'tenantname', 'payment_method', 'cheque_number', 'cheque_payee',
     'paidrent', 'paidbal', 'aircon', 'cusa', 'electricity', 'water', 'table_tennis', 'pay_toilet', 'pay_parking',
     'ice_water', 'ulam_vendor', 'gas', 'famylihan', 'garbage_haul', 'photocopy', 'tenant_id', 'function_room',
     'tables_chairs', 'overnight_works', 'vendo_sale', 'zumba', 'secdep', 'meterdep', 'miscellaneous', 'total', 'balance'
