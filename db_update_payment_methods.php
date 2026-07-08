@@ -2,6 +2,7 @@
 // Display errors for debugging
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+set_time_limit(0); // Prevent timeout on large tables
 
 include 'config.php';
 
@@ -20,18 +21,26 @@ foreach ($tables as $table) {
     
     if ($result->num_rows == 0) {
         $add_col = "ALTER TABLE `$table` ADD `payment_method` VARCHAR(50) NULL DEFAULT NULL";
-        if ($conn->query($add_col) === TRUE) {
-            echo "<li>Added `payment_method` column successfully.</li>";
-        } else {
-            echo "<li>Error adding `payment_method`: " . $conn->error . "</li>";
+        try {
+            if ($conn->query($add_col) === TRUE) {
+                echo "<li>Added `payment_method` column successfully.</li>";
+            } else {
+                echo "<li>Error adding `payment_method`: " . $conn->error . "</li>";
+            }
+        } catch (Exception $e) {
+            echo "<li>Notice (payment_method): " . $e->getMessage() . "</li>";
         }
     } else {
         // If it exists, ensure it allows NULL and has no default 'Cash'
         $modify_col = "ALTER TABLE `$table` MODIFY `payment_method` VARCHAR(50) NULL DEFAULT NULL";
-        if ($conn->query($modify_col) === TRUE) {
-            echo "<li>Modified `payment_method` to allow NULL values.</li>";
-        } else {
-            echo "<li>Error modifying `payment_method`: " . $conn->error . "</li>";
+        try {
+            if ($conn->query($modify_col) === TRUE) {
+                echo "<li>Modified `payment_method` to allow NULL values.</li>";
+            } else {
+                echo "<li>Error modifying `payment_method`: " . $conn->error . "</li>";
+            }
+        } catch (Exception $e) {
+             echo "<li>Notice (modify payment_method): " . $e->getMessage() . "</li>";
         }
     }
     
@@ -41,10 +50,14 @@ foreach ($tables as $table) {
     
     if ($result->num_rows == 0) {
         $add_col = "ALTER TABLE `$table` ADD `cheque_number` VARCHAR(100) NULL DEFAULT NULL";
-        if ($conn->query($add_col) === TRUE) {
-            echo "<li>Added `cheque_number` column successfully.</li>";
-        } else {
-            echo "<li>Error adding `cheque_number`: " . $conn->error . "</li>";
+        try {
+            if ($conn->query($add_col) === TRUE) {
+                echo "<li>Added `cheque_number` column successfully.</li>";
+            } else {
+                echo "<li>Error adding `cheque_number`: " . $conn->error . "</li>";
+            }
+        } catch (Exception $e) {
+            echo "<li>Notice (cheque_number): " . $e->getMessage() . "</li>";
         }
     } else {
         echo "<li>`cheque_number` column already exists.</li>";
@@ -56,10 +69,14 @@ foreach ($tables as $table) {
     
     if ($result->num_rows == 0) {
         $add_col = "ALTER TABLE `$table` ADD `cheque_payee` VARCHAR(255) NULL DEFAULT NULL";
-        if ($conn->query($add_col) === TRUE) {
-            echo "<li>Added `cheque_payee` column successfully.</li>";
-        } else {
-            echo "<li>Error adding `cheque_payee`: " . $conn->error . "</li>";
+        try {
+            if ($conn->query($add_col) === TRUE) {
+                echo "<li>Added `cheque_payee` column successfully.</li>";
+            } else {
+                echo "<li>Error adding `cheque_payee`: " . $conn->error . "</li>";
+            }
+        } catch (Exception $e) {
+            echo "<li>Notice (cheque_payee): " . $e->getMessage() . "</li>";
         }
     } else {
         echo "<li>`cheque_payee` column already exists.</li>";
