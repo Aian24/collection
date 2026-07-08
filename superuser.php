@@ -442,6 +442,8 @@ $conn->close();
                             <option value="Vendo Sale">Vendo Sale</option>
                             <option value="Zumba">Zumba</option>
                             <option value="Sec Dep">Sec Dep</option>
+                            <option value="Scrap">Scrap</option>
+                            <option value="Hasang">Hasang</option>
                         </select>
                     </div>
 
@@ -955,6 +957,8 @@ $conn->close();
                     <option value="Vendo Sale">Vendo Sale</option>
                     <option value="Zumba">Zumba</option>
                     <option value="Sec Dep">Sec Dep</option>
+                    <option value="Scrap">Scrap</option>
+                    <option value="Hasang">Hasang</option>
             </select>
         </div>
         <div class="flex-1">

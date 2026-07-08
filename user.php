@@ -1599,7 +1599,8 @@ $conn->close();
             "Table Tennis", "Pay Toilet", "Pay Parking", "Ice & Water", "Ulam Vendor",
             "Gas", "Famylihan", "Garbage Haul", "Photocopy", "Tenant ID",
             "Function Room", "Tables & Chairs", "Overnight Works", "Vendo Sale",
-            "Zumba", "Sec Dep", "Meter Dep", "Utility Dep", "Miscellaneous", "Forfeited Items"
+            "Zumba", "Sec Dep", "Meter Dep", "Utility Dep", "Miscellaneous", "Forfeited Items",
+            "Scrap", "Hasang"
         ];
 
         window.openCustomSelect = function(inputEl) {
