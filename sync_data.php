@@ -61,16 +61,21 @@ if ($items != null) {
 }
 
 // Fetch all items from online database to send back
-$items_from_db = array();
 $sql_select_all = "SELECT * FROM items";
 $result_all = $conn->query($sql_select_all);
 
-if ($result_all->num_rows > 0) {
+echo "[";
+if ($result_all && $result_all->num_rows > 0) {
+    $first = true;
     while ($row = $result_all->fetch_assoc()) {
-        $items_from_db[] = $row;
+        if (!$first) {
+            echo ",";
+        }
+        echo json_encode($row);
+        $first = false;
     }
 }
+echo "]";
 
 $conn->close();
-echo json_encode($items_from_db);
 ?>
