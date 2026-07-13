@@ -46,11 +46,16 @@ $latestTransactionNumber = $latestTransactionRow['max_transaction'] ?? 0; // Use
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Retrieve form data
-    $collector = $_POST['collector'];
-    $tenantcode = $_POST['tenantcode'];
-    $spacecode = $_POST['spacecode'];
-    $tenantname = $_POST['tenantname'];
-    $collected_date = $_POST['collected_date']; // Capture the collected date
+    $collector = $_POST['collector'] ?? '';
+    $tenantcode = $_POST['tenantcode'] ?? '';
+    $spacecode = $_POST['spacecode'] ?? '';
+    $tenantname = $_POST['tenantname'] ?? '';
+    $collected_date = $_POST['collected_date'] ?? ''; // Capture the collected date
+
+    if (empty($collector) || empty($spacecode)) {
+        echo "Error: Required fields are missing. Please submit the form correctly.";
+        exit();
+    }
     $payment_method = !empty($_POST['payment_method']) ? $_POST['payment_method'] : null;
     $cheque_number = $_POST['cheque_number'] ?? null;
     $cheque_payee = $_POST['cheque_payee'] ?? null;
