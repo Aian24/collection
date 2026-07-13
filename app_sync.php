@@ -63,23 +63,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       $batchSize = 100; // Process 100 rows at a time
       $batchData = [];
       
+      // Fetch existing item numbers to prevent duplicates
+      $existing_items = [];
+      $result = $conn->query("SELECT item_number FROM items");
+      if ($result) {
+        while ($db_row = $result->fetch_assoc()) {
+          $existing_items[$db_row['item_number']] = true;
+        }
+      }
+
       // Send initial progress
       sendProgress(0, $totalRows);
       
       foreach ($csvData as $index => $row) {
         if (count($row) == 7) {
           $item_number = trim($row[0]);
-          $style_code = trim($row[1]);
-          $style_name = trim($row[2]);
-          $color = trim($row[3]);
-          $size = trim($row[4]);
-          $quantity = intval(trim($row[5]));
-          $srp = floatval(trim($row[6]));
           
-          $batchData[] = [$item_number, $style_code, $style_name, $color, $size, $quantity, $srp];
-          
-          // Process batch when it reaches batch size or at the end
-          if (count($batchData) >= $batchSize || $index == $totalRows - 1) {
+          if (isset($existing_items[$item_number])) {
+            $duplicateCount++;
+          } else {
+            $existing_items[$item_number] = true;
+            
+            $style_code = trim($row[1]);
+            $style_name = trim($row[2]);
+            $color = trim($row[3]);
+            $size = trim($row[4]);
+            $quantity = intval(trim($row[5]));
+            $srp = floatval(trim($row[6]));
+            
+            $batchData[] = [$item_number, $style_code, $style_name, $color, $size, $quantity, $srp];
+          }
+        }
+        
+        // Process batch when it reaches batch size or at the end
+        if (count($batchData) >= $batchSize || $index == $totalRows - 1) {
+          if (count($batchData) > 0) {
             $currentBatchSize = count($batchData);
             $placeholders = str_repeat('(?,?,?,?,?,?,?),', $currentBatchSize);
             $placeholders = rtrim($placeholders, ',');
@@ -100,8 +118,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->execute();
             
             $batchInserted = $stmt->affected_rows;
-            $insertedCount += $batchInserted;
-            $duplicateCount += ($currentBatchSize - $batchInserted);
+            if ($batchInserted > 0) {
+              $insertedCount += $batchInserted;
+            }
             
             $stmt->close();
             
@@ -113,6 +132,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             // Small delay to make progress visible
             usleep(50000); // 0.05 second delay
+          } else if ($index == $totalRows - 1) {
+            // Ensure final progress update is sent even if last batch is empty
+            sendProgress($insertedCount, $totalRows, $duplicateCount);
           }
         }
       }
@@ -146,9 +168,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       $error_flag = false;
       $errorMessage = '';
       $row_count = 0;
+      $duplicate_count = 0;
+      
+      // Fetch existing item numbers
+      $existing_items = [];
+      $result = $conn->query("SELECT item_number FROM items");
+      if ($result) {
+        while ($db_row = $result->fetch_assoc()) {
+          $existing_items[$db_row['item_number']] = true;
+        }
+      }
+
       foreach ($csvData as $row) {
         if (count($row) == 7) {
+          $row_count++;
           $item_number = $conn->real_escape_string(trim($row[0]));
+          
+          if (isset($existing_items[$item_number])) {
+            $duplicate_count++;
+            continue;
+          }
+          $existing_items[$item_number] = true;
+          
           $style_code = $conn->real_escape_string(trim($row[1]));
           $style_name = $conn->real_escape_string(trim($row[2]));
           $color = $conn->real_escape_string(trim($row[3]));
@@ -157,7 +198,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           $srp = floatval(trim($row[6]));
           $values[] = "('$item_number', '$style_code', '$style_name', '$color', '$size', $quantity, $srp)";
           $inserted_items[] = $item_number;
-          $row_count++;
         } else {
           $error_flag = true;
           $errorMessage = 'CSV data does not match expected columns.';
@@ -169,7 +209,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql = "INSERT IGNORE INTO items (item_number, style_code, style_name, color, size, quantity, srp) VALUES " . implode(',', $values);
         if ($conn->query($sql)) {
           $success_insert_count = $conn->affected_rows;
-          $duplicate_count = $row_count - $success_insert_count;
+          if ($success_insert_count >= 0 && $success_insert_count < count($values)) {
+            $duplicate_count += (count($values) - $success_insert_count);
+          }
 
           // Get the total item count after upload
           $count_sql = "SELECT COUNT(*) AS item_count FROM items";
@@ -195,6 +237,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
       } else if ($error_flag) {
         echo json_encode(['status' => 'error', 'message' => $errorMessage]);
+      } else if ($duplicate_count > 0 && $duplicate_count == $row_count) {
+        // Handle case where all valid rows were duplicates
+        $count_sql = "SELECT COUNT(*) AS item_count FROM items";
+        $count_result = $conn->query($count_sql);
+        $item_count = ($count_result->num_rows > 0) ? $count_result->fetch_assoc()['item_count'] : 0;
+        echo json_encode([
+          'status' => 'success', 
+          'message' => "CSV data uploaded successfully. {$duplicate_count} duplicate items were skipped.", 
+          'inserted_count' => 0, 
+          'inserted_items' => [], 
+          'item_count' => $item_count
+        ]);
       } else {
         echo json_encode(['status' => 'error', 'message' => 'No valid data to insert.']);
       }
