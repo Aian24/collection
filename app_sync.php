@@ -396,7 +396,70 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
       echo json_encode(['status' => 'error', 'message' => 'Could not retrieve item count.']);
     }
-  }
+    } elseif ($action == 'fetch_items_datatable') {
+    $draw = isset($_POST['draw']) ? intval($_POST['draw']) : 1;
+    $start = isset($_POST['start']) ? intval($_POST['start']) : 0;
+    $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
+    $searchValue = isset($_POST['search']['value']) ? $conn->real_escape_string($_POST['search']['value']) : '';
+    
+    // Sort logic
+    $orderColumnIndex = isset($_POST['order'][0]['column']) ? intval($_POST['order'][0]['column']) : 0;
+    $orderDir = isset($_POST['order'][0]['dir']) && $_POST['order'][0]['dir'] === 'asc' ? 'ASC' : 'DESC';
+    
+    $columns = ['item_number', 'style_code', 'style_name', 'color', 'size', 'quantity', 'srp'];
+    $orderBy = "CAST(item_number AS UNSIGNED) DESC, item_number DESC"; // Default
+    if (isset($columns[$orderColumnIndex])) {
+        if ($columns[$orderColumnIndex] == 'item_number') {
+            $orderBy = "CAST(item_number AS UNSIGNED) $orderDir, item_number $orderDir";
+        } else {
+            $orderBy = $columns[$orderColumnIndex] . " " . $orderDir;
+        }
+    }
+
+    // Base query
+    $whereClause = "";
+    if (!empty($searchValue)) {
+        $whereClause = "WHERE item_number LIKE '%$searchValue%' OR style_code LIKE '%$searchValue%' OR style_name LIKE '%$searchValue%' OR color LIKE '%$searchValue%' OR size LIKE '%$searchValue%'";
+    }
+
+    // Get total records without filter
+    $totalResult = $conn->query("SELECT COUNT(*) as count FROM items");
+    $recordsTotal = $totalResult->fetch_assoc()['count'];
+
+    // Get total records with filter
+    $recordsFiltered = $recordsTotal;
+    if (!empty($whereClause)) {
+        $filteredResult = $conn->query("SELECT COUNT(*) as count FROM items $whereClause");
+        $recordsFiltered = $filteredResult->fetch_assoc()['count'];
+    }
+
+    // Fetch data
+    $data = [];
+    $sql = "SELECT * FROM items $whereClause ORDER BY $orderBy LIMIT $start, $length";
+    $result = $conn->query($sql);
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $data[] = [
+                $row['item_number'],
+                $row['style_code'],
+                $row['style_name'],
+                $row['color'],
+                $row['size'],
+                $row['quantity'],
+                $row['srp']
+            ];
+        }
+    }
+
+    echo json_encode([
+        "draw" => $draw,
+        "recordsTotal" => intval($recordsTotal),
+        "recordsFiltered" => intval($recordsFiltered),
+        "data" => $data
+    ]);
+    $conn->close();
+    exit;
+}
    else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action.']);
   }
@@ -483,6 +546,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       padding: 20px;
       overflow-y: auto;
       flex-grow: 1;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px 12px;
+      margin-left: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .dataTables_wrapper .dataTables_filter input:focus {
+      border-color: #667eea;
+    }
+    .dataTables_wrapper .dataTables_length select {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 6px;
+      outline: none;
+    }
+    table.dataTable thead th {
+      border-bottom: 2px solid #e2e8f0;
+      color: #334155;
+      font-weight: 600;
+    }
+    table.dataTable tbody td {
+      border-bottom: 1px solid #f1f5f9;
+      color: #475569;
+      vertical-align: middle;
+    }
+    .dt-modal-close {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px;
+    }
+    .dt-modal-close svg {
+      width: 28px;
+      height: 28px;
+      fill: currentColor;
+    }
+    .dt-modal-close:hover {
+      color: #ef4444;
     }
     .view-btn {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -1117,7 +1226,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="dt-modal-content">
       <div class="dt-modal-header">
         <h2 class="dt-modal-title">Database Items</h2>
-        <button class="dt-modal-close" id="close_dt_modal">&times;</button>
+        <button class="dt-modal-close" id="close_dt_modal"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
       <div class="dt-modal-body">
         <table id="itemsTable" class="display" style="width:100%">
