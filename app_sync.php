@@ -482,6 +482,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       margin-top: 15px;
       font-family: 'Poppins', sans-serif;
     }
+    
+    /* Fix the white label text for Search and Show Entries */
+    .dataTables_wrapper label {
+      color: #334155 !important;
+      text-shadow: none !important;
+      font-weight: 500;
+      letter-spacing: normal;
+    }
+    
+    /* Enhance the sort icons with dark, visible SVGs */
+    table.dataTable thead .sorting {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>') !important;
+      background-size: 16px;
+      background-position: right 8px center !important;
+    }
+    table.dataTable thead .sorting_asc {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15l5 5 5-5"/></svg>') !important;
+      background-size: 16px;
+      background-position: right 8px center !important;
+    }
+    table.dataTable thead .sorting_desc {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5"/></svg>') !important;
+      background-size: 16px;
+      background-position: right 8px center !important;
+    }
     .dataTables_wrapper .dataTables_paginate .paginate_button.current {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white !important;
