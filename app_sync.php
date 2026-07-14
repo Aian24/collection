@@ -922,11 +922,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
     
     <div class="form-group">
-      <label for="csv_file">📄 Upload CSV File (No Header):</label>
+      <label for="csv_file">Upload CSV File (No Header):</label>
       <div class="file-input-container" id="file-input-container">
         <input type="file" id="csv_file" name="csv_file" accept=".csv">
         <div class="file-input-label" id="file-input-label">
-          <div class="file-icon">📎</div>
+          <div class="file-icon"><svg viewBox="0 0 24 24" width="32" height="32"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div>Drag & Drop or Click to Select CSV File</div>
           <small>Supports CSV files with 7 columns</small>
         </div>
@@ -1009,7 +1009,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       <button id="upload_button" class="action-btn" disabled>
         <!-- Upload SVG icon -->
         <svg viewBox="0 0 24 24"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        🚀 Upload CSV with Progress
+        Upload CSV with Progress
       </button>
     </div>
     
@@ -1017,7 +1017,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       <button id="delete_all_button" class="action-btn">
         <!-- Trash SVG icon -->
         <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        🗑️ Delete All Items
+        Delete All Items
       </button>
     </div>
   </div>
@@ -1119,10 +1119,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         uploadButton.disabled = true;
         uploadButton.innerHTML = `
           <svg viewBox="0 0 24 24"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          🚀 Upload CSV with Progress
+          Upload CSV with Progress
         `;
         fileInputLabel.innerHTML = `
-          <div class="file-icon">📎</div>
+          <div class="file-icon"><svg viewBox="0 0 24 24" width="32" height="32"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div>Drag & Drop or Click to Select CSV File</div>
           <small>Supports CSV files with 7 columns</small>
         `;
@@ -1148,7 +1148,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       });
 
       deleteButton.addEventListener('click', function() {
-        if (confirm('⚠️ Are you sure you want to delete ALL items from the database?\n\nThis action cannot be undone!')) {
+        if (confirm('Are you sure you want to delete ALL items from the database?\n\nThis action cannot be undone!')) {
           deleteAllItemsWithProgress();
         }
       });
@@ -1182,7 +1182,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         uploadButton.disabled = true;
         uploadButton.innerHTML = `
           <svg viewBox="0 0 24 24" class="animate-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-          🔄 Processing...
+          Processing...
         `;
         liveStatus.textContent = 'Starting upload...';
         liveStatus.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
@@ -1230,7 +1230,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           uploadButton.disabled = false;
           uploadButton.innerHTML = `
             <svg viewBox="0 0 24 24"><path d="M12 16V4M12 4L7 9M12 4l5 5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            🚀 Retry Upload
+            Retry Upload
           `;
           showModal('Error', 'An error occurred during upload: ' + error.message, 'error');
         });
@@ -1283,7 +1283,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         deleteButton.disabled = true;
         deleteButton.innerHTML = `
           <svg viewBox="0 0 24 24" class="animate-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-          🔄 Deleting...
+          Deleting...
         `;
         deleteLiveStatus.textContent = 'Starting deletion...';
         deleteLiveStatus.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
@@ -1330,7 +1330,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           deleteButton.disabled = false;
           deleteButton.innerHTML = `
             <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            🚀 Retry Delete
+            Retry Delete
           `;
           showModal('Error', 'An error occurred during deletion: ' + error.message, 'error');
         });
@@ -1376,7 +1376,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               deleteButton.disabled = false;
               deleteButton.innerHTML = `
                 <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                🗑️ Delete All Items
+                Delete All Items
               `;
               deleteProgressBar.style.width = '0%';
               deletedCount.textContent = '0';
