@@ -275,12 +275,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           }
 
           echo json_encode(['status' => 'success', 'message' => $message, 'inserted_count' => $success_insert_count, 'inserted_items' => $inserted_items, 'item_count' => $item_count]);
-        } else {
-          $error_flag = true;
-          $errorMessage = 'Error inserting data: ' . $conn->error;
-          error_log("Error inserting data: " . $conn->error);
-          echo json_encode(['status' => 'error', 'message' => $errorMessage]);
-        }
       } else if ($error_flag) {
         echo json_encode(['status' => 'error', 'message' => $errorMessage]);
       } else if ($duplicate_count > 0 && $duplicate_count == $row_count) {
