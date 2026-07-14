@@ -496,16 +496,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>') !important;
       background-size: 16px;
       background-position: right 8px center !important;
+      background-repeat: no-repeat !important;
     }
     table.dataTable thead .sorting_asc {
       background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15l5 5 5-5"/></svg>') !important;
       background-size: 16px;
       background-position: right 8px center !important;
+      background-repeat: no-repeat !important;
     }
     table.dataTable thead .sorting_desc {
       background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5"/></svg>') !important;
       background-size: 16px;
       background-position: right 8px center !important;
+      background-repeat: no-repeat !important;
     }
     .dataTables_wrapper .dataTables_paginate .paginate_button.current {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
