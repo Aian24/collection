@@ -487,6 +487,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     .view-btn {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     }
+  </style>
   <style>
     body {
       font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1102,6 +1103,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         Delete All Items
       </button>
     </div>
+    
+    <div class="form-group">
+      <button id="view_data_button" class="action-btn view-btn">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        View Inserted Data
+      </button>
+    </div>
+  </div>
+
+  <!-- DataTable Modal -->
+  <div id="datatable_modal">
+    <div class="dt-modal-content">
+      <div class="dt-modal-header">
+        <h2 class="dt-modal-title">Database Items</h2>
+        <button class="dt-modal-close" id="close_dt_modal">&times;</button>
+      </div>
+      <div class="dt-modal-body">
+        <table id="itemsTable" class="display" style="width:100%">
+          <thead>
+            <tr>
+              <th>Item No.</th>
+              <th>Style Code</th>
+              <th>Style Name</th>
+              <th>Color</th>
+              <th>Size</th>
+              <th>Quantity</th>
+              <th>SRP</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- Message Modal -->
@@ -1113,6 +1146,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
   </div>
 
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
             const viewDataButton = document.getElementById('view_data_button');
