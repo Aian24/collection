@@ -408,7 +408,85 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html>
 <head>
   <title>PCOUNT APP</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <style>
+    /* DataTables Overrides */
+    .dataTables_wrapper {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      margin-top: 15px;
+      font-family: 'Poppins', sans-serif;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white !important;
+      border: none;
+      border-radius: 8px;
+    }
+    
+    /* DataTable Modal */
+    #datatable_modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    #datatable_modal.active {
+      display: flex;
+    }
+    .dt-modal-content {
+      background: #f8fafc;
+      width: 90%;
+      max-width: 1200px;
+      max-height: 90vh;
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .dt-modal-header {
+      padding: 20px 30px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dt-modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0;
+    }
+    .dt-modal-close {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: #64748b;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .dt-modal-close:hover {
+      color: #ef4444;
+    }
+    .dt-modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+    .view-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
   <style>
     body {
       font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1037,6 +1115,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+            const viewDataButton = document.getElementById('view_data_button');
+      const dtModal = document.getElementById('datatable_modal');
+      const closeDtModal = document.getElementById('close_dt_modal');
+      let dataTableInstance = null;
+
+      viewDataButton.addEventListener('click', function() {
+        dtModal.classList.add('active');
+        if (!dataTableInstance) {
+          dataTableInstance = $('#itemsTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+              url: 'app_sync.php',
+              type: 'POST',
+              data: function (d) {
+                d.action = 'fetch_items_datatable';
+              }
+            },
+            order: [[0, 'desc']], // largest to lowest based on item no.
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100, 500],
+            language: {
+              search: "Search Items:",
+              lengthMenu: "Show _MENU_ entries"
+            }
+          });
+        } else {
+          dataTableInstance.ajax.reload(null, false);
+        }
+      });
+
+      closeDtModal.addEventListener('click', function() {
+        dtModal.classList.remove('active');
+      });
+      dtModal.addEventListener('click', function(e) {
+        if (e.target === dtModal) dtModal.classList.remove('active');
+      });
       const uploadButton = document.getElementById('upload_button');
       const deleteButton = document.getElementById('delete_all_button');
       const csvFile = document.getElementById('csv_file');
