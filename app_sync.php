@@ -55,12 +55,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == 0) {
       $file = $_FILES['csv_file']['tmp_name'];
-      $csvData = array_map('str_getcsv', file($file));
       
-      $totalRows = count($csvData);
+      // Determine total rows without loading entire file into memory
+      $totalRows = 0;
+      $handle = fopen($file, 'r');
+      if ($handle !== false) {
+          while (fgetcsv($handle) !== false) {
+              $totalRows++;
+          }
+          fclose($handle);
+      }
+      
       $insertedCount = 0;
       $duplicateCount = 0;
-      $batchSize = 100; // Process 100 rows at a time
+      $batchSize = 250; // Process 250 rows at a time
       $batchData = [];
       
       // Fetch existing item numbers to prevent duplicates
@@ -75,68 +83,80 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       // Send initial progress
       sendProgress(0, $totalRows);
       
-      foreach ($csvData as $index => $row) {
-        if (count($row) == 7) {
-          $item_number = trim($row[0]);
-          
-          if (isset($existing_items[$item_number])) {
-            $duplicateCount++;
-          } else {
-            $existing_items[$item_number] = true;
-            
-            $style_code = trim($row[1]);
-            $style_name = trim($row[2]);
-            $color = trim($row[3]);
-            $size = trim($row[4]);
-            $quantity = intval(trim($row[5]));
-            $srp = floatval(trim($row[6]));
-            
-            $batchData[] = [$item_number, $style_code, $style_name, $color, $size, $quantity, $srp];
-          }
-        }
-        
-        // Process batch when it reaches batch size or at the end
-        if (count($batchData) >= $batchSize || $index == $totalRows - 1) {
-          if (count($batchData) > 0) {
-            $currentBatchSize = count($batchData);
-            $placeholders = str_repeat('(?,?,?,?,?,?,?),', $currentBatchSize);
-            $placeholders = rtrim($placeholders, ',');
-            
-            $stmt = $conn->prepare("INSERT IGNORE INTO items (item_number, style_code, style_name, color, size, quantity, srp) VALUES $placeholders");
-            
-            // Flatten the batch data for binding
-            $flatData = [];
-            $types = '';
-            foreach ($batchData as $rowData) {
-              foreach ($rowData as $value) {
-                $flatData[] = $value;
-                $types .= is_int($value) || is_float($value) ? (is_float($value) ? 'd' : 'i') : 's';
+      // Process file using stream to save memory
+      $handle = fopen($file, 'r');
+      if ($handle !== false) {
+          $index = 0;
+          while (($row = fgetcsv($handle)) !== false) {
+              if (count($row) >= 7) {
+                  $item_number = trim($row[0]);
+                  
+                  if (isset($existing_items[$item_number])) {
+                      $duplicateCount++;
+                  } else {
+                      $existing_items[$item_number] = true;
+                      
+                      $style_code = trim($row[1]);
+                      $style_name = trim($row[2]);
+                      $color = trim($row[3]);
+                      $size = trim($row[4]);
+                      $quantity = intval(trim($row[5]));
+                      $srp = floatval(trim($row[6]));
+                      
+                      $batchData[] = [$item_number, $style_code, $style_name, $color, $size, $quantity, $srp];
+                  }
               }
-            }
-            
-            $stmt->bind_param($types, ...$flatData);
-            $stmt->execute();
-            
-            $batchInserted = $stmt->affected_rows;
-            if ($batchInserted > 0) {
-              $insertedCount += $batchInserted;
-            }
-            
-            $stmt->close();
-            
-            // Send progress update
-            sendProgress($insertedCount, $totalRows, $duplicateCount);
-            
-            // Clear batch
-            $batchData = [];
-            
-            // Small delay to make progress visible
-            usleep(50000); // 0.05 second delay
-          } else if ($index == $totalRows - 1) {
-            // Ensure final progress update is sent even if last batch is empty
-            sendProgress($insertedCount, $totalRows, $duplicateCount);
+              
+              // Process batch when it reaches batch size or at the end
+              if (count($batchData) >= $batchSize || $index == $totalRows - 1) {
+                  if (count($batchData) > 0) {
+                      $currentBatchSize = count($batchData);
+                      $placeholders = str_repeat('(?,?,?,?,?,?,?),', $currentBatchSize);
+                      $placeholders = rtrim($placeholders, ',');
+                      
+                      $stmt = $conn->prepare("INSERT IGNORE INTO items (item_number, style_code, style_name, color, size, quantity, srp) VALUES $placeholders");
+                      if (!$stmt) {
+                          error_log("Prepare failed: " . $conn->error);
+                      } else {
+                          // Flatten the batch data for binding
+                          $flatData = [];
+                          $types = '';
+                          foreach ($batchData as $rowData) {
+                              foreach ($rowData as $value) {
+                                  $flatData[] = $value;
+                                  $types .= is_int($value) || is_float($value) ? (is_float($value) ? 'd' : 'i') : 's';
+                              }
+                          }
+                          
+                          $stmt->bind_param($types, ...$flatData);
+                          if (!$stmt->execute()) {
+                              error_log("Execute failed: " . $stmt->error);
+                          }
+                          
+                          $batchInserted = $stmt->affected_rows;
+                          if ($batchInserted > 0) {
+                              $insertedCount += $batchInserted;
+                          }
+                          
+                          $stmt->close();
+                      }
+                      
+                      // Send progress update
+                      sendProgress($insertedCount, $totalRows, $duplicateCount);
+                      
+                      // Clear batch
+                      $batchData = [];
+                      
+                      // Very small delay to allow buffer flushing
+                      usleep(10000); // 0.01 second delay
+                  } else if ($index == $totalRows - 1) {
+                      // Ensure final progress update is sent even if last batch is empty
+                      sendProgress($insertedCount, $totalRows, $duplicateCount);
+                  }
+              }
+              $index++;
           }
-        }
+          fclose($handle);
       }
       
       // Get final item count
@@ -155,21 +175,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       ];
       echo json_encode($response) . "\n";
     } else {
-      echo json_encode(['status' => 'error', 'message' => 'File upload error.']);
+      $err = isset($_FILES['csv_file']) ? "Error code: " . $_FILES['csv_file']['error'] : "No file uploaded";
+      error_log("Upload error: " . $err);
+      echo json_encode(['status' => 'error', 'message' => "File upload error. " . $err]) . "\n";
     }
     
   } elseif ($action == 'upload_csv') {
     if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == 0) {
       $file = $_FILES['csv_file']['tmp_name'];
-      $csvData = array_map('str_getcsv', file($file));
 
-      $values = [];
-      $inserted_items = [];
-      $error_flag = false;
-      $errorMessage = '';
-      $row_count = 0;
-      $duplicate_count = 0;
-      
       // Fetch existing item numbers
       $existing_items = [];
       $result = $conn->query("SELECT item_number FROM items");
@@ -179,39 +193,71 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
       }
 
-      foreach ($csvData as $row) {
-        if (count($row) == 7) {
-          $row_count++;
-          $item_number = $conn->real_escape_string(trim($row[0]));
-          
-          if (isset($existing_items[$item_number])) {
-            $duplicate_count++;
-            continue;
+      $inserted_items = [];
+      $error_flag = false;
+      $errorMessage = '';
+      $row_count = 0;
+      $duplicate_count = 0;
+      $success_insert_count = 0;
+      
+      $batchSize = 500;
+      $batchValues = [];
+      
+      $handle = fopen($file, 'r');
+      if ($handle !== false) {
+          while (($row = fgetcsv($handle)) !== false) {
+              if (count($row) >= 7) {
+                  $row_count++;
+                  $item_number = $conn->real_escape_string(trim($row[0]));
+                  
+                  if (isset($existing_items[$item_number])) {
+                      $duplicate_count++;
+                      continue;
+                  }
+                  $existing_items[$item_number] = true;
+                  
+                  $style_code = $conn->real_escape_string(trim($row[1]));
+                  $style_name = $conn->real_escape_string(trim($row[2]));
+                  $color = $conn->real_escape_string(trim($row[3]));
+                  $size = $conn->real_escape_string(trim($row[4]));
+                  $quantity = intval(trim($row[5]));
+                  $srp = floatval(trim($row[6]));
+                  
+                  $batchValues[] = "('$item_number', '$style_code', '$style_name', '$color', '$size', $quantity, $srp)";
+                  $inserted_items[] = $item_number;
+                  
+                  if (count($batchValues) >= $batchSize) {
+                      $sql = "INSERT IGNORE INTO items (item_number, style_code, style_name, color, size, quantity, srp) VALUES " . implode(',', $batchValues);
+                      if ($conn->query($sql)) {
+                          $success_insert_count += $conn->affected_rows;
+                      } else {
+                          $error_flag = true;
+                          $errorMessage = 'Error inserting data: ' . $conn->error;
+                          error_log("Error inserting batch: " . $conn->error);
+                          break;
+                      }
+                      $batchValues = [];
+                  }
+              }
           }
-          $existing_items[$item_number] = true;
           
-          $style_code = $conn->real_escape_string(trim($row[1]));
-          $style_name = $conn->real_escape_string(trim($row[2]));
-          $color = $conn->real_escape_string(trim($row[3]));
-          $size = $conn->real_escape_string(trim($row[4]));
-          $quantity = intval(trim($row[5]));
-          $srp = floatval(trim($row[6]));
-          $values[] = "('$item_number', '$style_code', '$style_name', '$color', '$size', $quantity, $srp)";
-          $inserted_items[] = $item_number;
-        } else {
-          $error_flag = true;
-          $errorMessage = 'CSV data does not match expected columns.';
-          break;
-        }
+          if (!$error_flag && count($batchValues) > 0) {
+              $sql = "INSERT IGNORE INTO items (item_number, style_code, style_name, color, size, quantity, srp) VALUES " . implode(',', $batchValues);
+              if ($conn->query($sql)) {
+                  $success_insert_count += $conn->affected_rows;
+              } else {
+                  $error_flag = true;
+                  $errorMessage = 'Error inserting data: ' . $conn->error;
+                  error_log("Error inserting batch: " . $conn->error);
+              }
+          }
+          fclose($handle);
       }
 
-      if (!$error_flag && count($values) > 0) {
-        $sql = "INSERT IGNORE INTO items (item_number, style_code, style_name, color, size, quantity, srp) VALUES " . implode(',', $values);
-        if ($conn->query($sql)) {
-          $success_insert_count = $conn->affected_rows;
-          if ($success_insert_count >= 0 && $success_insert_count < count($values)) {
-            $duplicate_count += (count($values) - $success_insert_count);
-          }
+      if (!$error_flag && $row_count > 0) {
+          // Calculate duplicates logic based on successful inserts
+          // since INSERT IGNORE might skip rows that were somehow inserted between SELECT and INSERT
+          $duplicate_count = $row_count - $success_insert_count;
 
           // Get the total item count after upload
           $count_sql = "SELECT COUNT(*) AS item_count FROM items";
@@ -1197,6 +1243,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       }
 
       function updateProgress(data) {
+        if (data.status === 'error') {
+          liveStatus.textContent = data.message;
+          liveStatus.style.background = 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)';
+          showModal('Error', data.message, 'error');
+          return;
+        }
         if (data.error) {
           liveStatus.textContent = data.error;
           liveStatus.style.background = 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)';
