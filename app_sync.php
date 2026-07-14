@@ -71,12 +71,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       $batchSize = 250; // Process 250 rows at a time
       $batchData = [];
       
-      // Fetch existing item numbers to prevent duplicates
+      // Fetch existing items using composite keys to prevent true duplicates
       $existing_items = [];
-      $result = $conn->query("SELECT item_number FROM items");
+      $result = $conn->query("SELECT item_number, style_code, color, size FROM items");
       if ($result) {
         while ($db_row = $result->fetch_assoc()) {
-          $existing_items[$db_row['item_number']] = true;
+          $key = $db_row['item_number'] . '_' . $db_row['style_code'] . '_' . $db_row['color'] . '_' . $db_row['size'];
+          $existing_items[$key] = true;
         }
       }
 
@@ -90,18 +91,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           while (($row = fgetcsv($handle)) !== false) {
               if (count($row) >= 7) {
                   $item_number = trim($row[0]);
+                  $style_code = trim($row[1]);
+                  $style_name = trim($row[2]);
+                  $color = trim($row[3]);
+                  $size = trim($row[4]);
+                  $quantity = intval(trim($row[5]));
+                  $srp = floatval(trim($row[6]));
                   
-                  if (isset($existing_items[$item_number])) {
+                  $key = $item_number . '_' . $style_code . '_' . $color . '_' . $size;
+                  
+                  if (isset($existing_items[$key])) {
                       $duplicateCount++;
                   } else {
-                      $existing_items[$item_number] = true;
-                      
-                      $style_code = trim($row[1]);
-                      $style_name = trim($row[2]);
-                      $color = trim($row[3]);
-                      $size = trim($row[4]);
-                      $quantity = intval(trim($row[5]));
-                      $srp = floatval(trim($row[6]));
+                      $existing_items[$key] = true;
                       
                       $batchData[] = [$item_number, $style_code, $style_name, $color, $size, $quantity, $srp];
                   }
@@ -184,12 +186,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == 0) {
       $file = $_FILES['csv_file']['tmp_name'];
 
-      // Fetch existing item numbers
+      // Fetch existing items using composite keys
       $existing_items = [];
-      $result = $conn->query("SELECT item_number FROM items");
+      $result = $conn->query("SELECT item_number, style_code, color, size FROM items");
       if ($result) {
         while ($db_row = $result->fetch_assoc()) {
-          $existing_items[$db_row['item_number']] = true;
+          $key = $db_row['item_number'] . '_' . $db_row['style_code'] . '_' . $db_row['color'] . '_' . $db_row['size'];
+          $existing_items[$key] = true;
         }
       }
 
@@ -209,19 +212,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               if (count($row) >= 7) {
                   $row_count++;
                   $item_number = $conn->real_escape_string(trim($row[0]));
-                  
-                  if (isset($existing_items[$item_number])) {
-                      $duplicate_count++;
-                      continue;
-                  }
-                  $existing_items[$item_number] = true;
-                  
                   $style_code = $conn->real_escape_string(trim($row[1]));
                   $style_name = $conn->real_escape_string(trim($row[2]));
                   $color = $conn->real_escape_string(trim($row[3]));
                   $size = $conn->real_escape_string(trim($row[4]));
                   $quantity = intval(trim($row[5]));
                   $srp = floatval(trim($row[6]));
+
+                  $key = $item_number . '_' . $style_code . '_' . $color . '_' . $size;
+                  
+                  if (isset($existing_items[$key])) {
+                      $duplicate_count++;
+                      continue;
+                  }
+                  $existing_items[$key] = true;
                   
                   $batchValues[] = "('$item_number', '$style_code', '$style_name', '$color', '$size', $quantity, $srp)";
                   $inserted_items[] = $item_number;
