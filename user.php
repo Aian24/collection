@@ -598,7 +598,7 @@ $conn->close();
                     <div style="position:relative; display:flex; align-items:center;">
                         <input type="text" id="collected_date_part"
                             value="<?php echo date('Y-m-d'); ?>"
-                            onchange="updateDateTime()" style="padding-right:30px; cursor:pointer;" readonly>
+                            onchange="updateDateTime(true)" style="padding-right:30px; cursor:pointer;" readonly>
                         <i class="far fa-calendar" style="position:absolute; right:10px; color:#fff; pointer-events:none;"></i>
                     </div>
                 </div>
@@ -1008,7 +1008,7 @@ $conn->close();
         // (Legacy transaction table loader removed - table replaced with modern card modal)
 
         // Function to update the combined datetime field
-        function updateDateTime() {
+        function updateDateTime(isDateChange = false) {
             const datePart = document.getElementById('collected_date_part').value;
             const timePart = document.getElementById('collected_time_part').value;
             
@@ -1016,10 +1016,12 @@ $conn->close();
                 const combinedValue = `${datePart}T${timePart}`;
                 document.getElementById('collected_date').value = combinedValue;
                 
-                // Re-fetch tenant details if spacecode is already filled
-                var spacecode = document.getElementById("spacecode-input").value;
-                if (spacecode && spacecode !== "") {
-                    fetchTenantDetails(spacecode);
+                // Only re-fetch tenant details if the date actually changed manually
+                if (isDateChange) {
+                    var spacecode = document.getElementById("spacecode-input").value;
+                    if (spacecode && spacecode !== "") {
+                        fetchTenantDetails(spacecode);
+                    }
                 }
             }
         }
@@ -1486,11 +1488,14 @@ $conn->close();
         }
 
         // Suggest Space Code and Auto Complete
+        let suggestTimeout;
         function suggestSpaceCode(value) {
-            var branch = document.getElementById("branch").value;
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "suggest_spacecode.php", true);
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            clearTimeout(suggestTimeout);
+            suggestTimeout = setTimeout(function() {
+                var branch = document.getElementById("branch").value;
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "suggest_spacecode.php", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4 && xhr.status === 200) {
                     var suggestions = JSON.parse(xhr.responseText);
@@ -1527,6 +1532,7 @@ $conn->close();
                 }
             };
             xhr.send("search=" + encodeURIComponent(value) + "&branch=" + encodeURIComponent(branch));
+            }, 300);
         }
 
         // Close suggestions when clicking outside
