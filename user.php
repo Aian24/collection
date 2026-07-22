@@ -1489,11 +1489,14 @@ $conn->close();
 
         // Suggest Space Code and Auto Complete
         let suggestTimeout;
+        let suggestXHR = null;
         function suggestSpaceCode(value) {
             clearTimeout(suggestTimeout);
             suggestTimeout = setTimeout(function() {
                 var branch = document.getElementById("branch").value;
-                var xhr = new XMLHttpRequest();
+                if (suggestXHR) suggestXHR.abort();
+                suggestXHR = new XMLHttpRequest();
+                var xhr = suggestXHR;
                 xhr.open("POST", "suggest_spacecode.php", true);
                 xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onreadystatechange = function () {
@@ -1544,10 +1547,13 @@ $conn->close();
         });
 
         // Function to fetch tenant details
+        let fetchTenantXHR = null;
         function fetchTenantDetails(spacecode) {
             var branch = document.getElementById("branch").value;
             var selectedDate = document.getElementById("collected_date_part").value;
-            var xhr = new XMLHttpRequest();
+            if (fetchTenantXHR) fetchTenantXHR.abort();
+            fetchTenantXHR = new XMLHttpRequest();
+            var xhr = fetchTenantXHR;
             xhr.open("POST", "get_tenant_details.php", true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.onreadystatechange = function () {
