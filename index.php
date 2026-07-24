@@ -72,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     header("Location: superuser.php");
                     exit();
                 } elseif ($user_type === "adminapm") {
-                    header("Location: admin/collectionapm.php");
+                    header("Location: admin/adminapm.php");
                     exit();
                 } elseif ($user_type === "collection_viewer") {
                     header("Location: admin/collectiononly.php");

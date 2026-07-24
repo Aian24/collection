@@ -60,15 +60,19 @@ foreach ($required_fields as $field) {
 $lname = $_SESSION["lname"];
 date_default_timezone_set('Asia/Manila'); // Set timezone
 
+// Release session lock ASAP - this dashboard page does very heavy DB processing
+// and holding the lock blocks ALL other requests from this user (causes infinite loading)
+session_write_close();
+
 // Get selected start and end dates from GET parameters
-// Default to today's date for both start and end if not specified
-$start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-d');
-$end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-d');
+// Default to current month if not specified
+$start_date = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
+$end_date = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
 
 // Validate and format the dates
 if (!strtotime($start_date) || !strtotime($end_date)) {
-    $start_date = date('Y-m-d');
-    $end_date = date('Y-m-d');
+    $start_date = date('Y-m-01');
+    $end_date = date('Y-m-t');
     error_log("Invalid date range provided: start=$start_date, end=$end_date");
 }
 
@@ -76,7 +80,7 @@ if (!strtotime($start_date) || !strtotime($end_date)) {
 $end_date_time = date('Y-m-d 23:59:59', strtotime($end_date));
 $start_date_time = date('Y-m-d 00:00:00', strtotime($start_date));
 
-// Get selected branch from GET parameters (Locked to APM)
+// Get selected branch from GET parameters
 $branch = 'APM';
 
 // Fetch branches
@@ -846,134 +850,146 @@ if ($result_users) {
 }
 
 
-// --- Data for Charts (Monthly and Yearly Collection including Charges) ---
+// --- Data for New Dynamic Charts ---
 
-// Prepare data for Monthly Chart (Last 12 months)
-$monthly_labels = [];
-$monthly_data = [];
+$chart_dates = [];
+$chart_collections = [];
+$chart_transactions = [];
+$chart_branches = [];
+$chart_types = [
+    'Rent' => 0,
+    'Balance' => 0,
+    'Charges' => 0
+];
 
-// Get the last 12 months
-$end_month = new DateTime();
-$start_month = clone $end_month;
-$start_month->modify('-11 months');
+// To group by date (Y-m-d)
+$daily_data = [];
 
-// Initialize the arrays with zeros for all months
-for ($i = 0; $i < 12; $i++) {
-    $monthly_labels[] = $start_month->format('M Y');
-    $monthly_data[] = 0;
-    $start_month->modify('+1 month');
+// Aggregate the already fetched $transactions in memory
+foreach ($transactions as $t) {
+    // Date grouping
+    $date = date('Y-m-d', strtotime($t['collected_date']));
+    if (!isset($daily_data[$date])) {
+        $daily_data[$date] = ['collection' => 0, 'count' => 0];
+    }
+    
+    $paid_rent = floatval($t['paidrent'] ?? 0);
+    $paid_bal = floatval($t['paidbal'] ?? 0);
+    $charges_amount = extractCharges($t['charges'] ?? '');
+    
+    $total_amount = $paid_rent + $paid_bal + $charges_amount;
+    
+    $daily_data[$date]['collection'] += $total_amount;
+    $daily_data[$date]['count'] += 1;
+    
+    // Type grouping
+    $chart_types['Rent'] += $paid_rent;
+    $chart_types['Balance'] += $paid_bal;
+    $chart_types['Charges'] += $charges_amount;
+    
+    // Branch/Tenant grouping
+    // If a branch is selected, group by tenant. Otherwise, group by branch.
+    $group_key = $branch ? (!empty($t['tenantname']) ? $t['tenantname'] : (!empty($t['tenantcode']) ? $t['tenantcode'] : 'Unknown')) : (!empty($t['branch']) ? $t['branch'] : 'Unknown');
+    if (!isset($chart_branches[$group_key])) {
+        $chart_branches[$group_key] = 0;
+    }
+    $chart_branches[$group_key] += $total_amount;
 }
 
-// Query to get monthly totals
+// Sort dates sequentially
+ksort($daily_data);
+
+foreach ($daily_data as $date => $data) {
+    $chart_dates[] = date('M d', strtotime($date));
+    $chart_collections[] = $data['collection'];
+    $chart_transactions[] = $data['count'];
+}
+
+// Sort branches/tenants by collection amount descending and take top 5
+arsort($chart_branches);
+$top_branches_labels = array_slice(array_keys($chart_branches), 0, 5);
+$top_branches_data = array_slice(array_values($chart_branches), 0, 5);
+// Sum the rest as 'Others'
+$others_amount = array_sum(array_slice(array_values($chart_branches), 5));
+if ($others_amount > 0) {
+    $top_branches_labels[] = 'Others';
+    $top_branches_data[] = $others_amount;
+}
+
+// --- Data for Daily and Yearly Fixed Cards ---
+
+// 1. Daily Collection (Last 7 Days)
+$daily_labels = [];
+$daily_data = [];
+$start_daily = new DateTime('-6 days');
+for ($i = 0; $i < 7; $i++) {
+    $daily_labels[] = $start_daily->format('M d');
+    $daily_data[$start_daily->format('Y-m-d')] = 0;
+    $start_daily->modify('+1 day');
+}
+
 if ($branch) {
-    $monthly_query = "SELECT 
-        DATE_FORMAT(collected_date, '%Y-%m') as month,
-        (paidrent + paidbal) as base_total,
-        charges
-        FROM $table 
-        WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        AND branch = '$escaped_branch'";
+    $daily_q = "SELECT DATE(collected_date) as date, (paidrent + paidbal) as base_total, charges FROM $table WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND branch = '$escaped_branch'";
 } else {
-    $monthly_query = "
-        SELECT 
-            DATE_FORMAT(collected_date, '%Y-%m') as month,
-            (paidrent + paidbal) as base_total,
-            charges
-        FROM collected 
-        WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        UNION ALL
-        SELECT 
-            DATE_FORMAT(collected_date, '%Y-%m') as month,
-            (paidrent + paidbal) as base_total,
-            charges
-        FROM collectednova
-        WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-        UNION ALL
-        SELECT 
-            DATE_FORMAT(collected_date, '%Y-%m') as month,
-            (paidrent + paidbal) as base_total,
-            charges
-        FROM collectedapm
-        WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)";
+    $daily_q = "SELECT DATE(collected_date) as date, (paidrent + paidbal) as base_total, charges FROM collected WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        UNION ALL SELECT DATE(collected_date) as date, (paidrent + paidbal) as base_total, charges FROM collectednova WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        UNION ALL SELECT DATE(collected_date) as date, (paidrent + paidbal) as base_total, charges FROM collectedapm WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)";
 }
-
-$monthly_result = mysqli_query($conn, $monthly_query);
-
-if ($monthly_result) {
-    while ($row = mysqli_fetch_assoc($monthly_result)) {
-        $month_date = new DateTime($row['month'] . '-01');
-        $month_index = array_search($month_date->format('M Y'), $monthly_labels);
-        if ($month_index !== false) {
-            $total = (float)$row['base_total'] + extractCharges($row['charges']);
-            $monthly_data[$month_index] += $total;
+$res_daily = mysqli_query($conn, $daily_q);
+$daily_total_today = 0;
+$today_str = date('Y-m-d');
+if ($res_daily) {
+    while ($row = mysqli_fetch_assoc($res_daily)) {
+        $d = $row['date'];
+        if (isset($daily_data[$d])) {
+            $amt = floatval($row['base_total']) + extractCharges($row['charges']);
+            $daily_data[$d] += $amt;
+            if ($d === $today_str) {
+                $daily_total_today += $amt;
+            }
         }
     }
-    mysqli_free_result($monthly_result);
 }
 
-// Prepare data for Yearly Chart (Last 5 years)
+// 2. Yearly Collection (Current Year by Month)
 $yearly_labels = [];
 $yearly_data = [];
-
-// Get the last 5 years
-$current_year = date('Y');
-for ($i = 4; $i >= 0; $i--) {
-    $year = $current_year - $i;
-    $yearly_labels[] = $year;
-    $yearly_data[] = 0;
+$start_yearly = new DateTime(date('Y-01-01'));
+for ($i = 0; $i < 12; $i++) {
+    $yearly_labels[] = $start_yearly->format('M');
+    $yearly_data[$start_yearly->format('Y-m')] = 0;
+    $start_yearly->modify('+1 month');
 }
 
-// Query to get yearly totals
 if ($branch) {
-    $yearly_query = "SELECT 
-        YEAR(collected_date) as year,
-        (paidrent + paidbal) as base_total,
-        charges
-        FROM $table 
-        WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4
-        AND branch = '$escaped_branch'";
+    $yearly_q = "SELECT DATE_FORMAT(collected_date, '%Y-%m') as month, (paidrent + paidbal) as base_total, charges FROM $table WHERE YEAR(collected_date) = YEAR(CURDATE()) AND branch = '$escaped_branch'";
 } else {
-    $yearly_query = "
-        SELECT 
-            YEAR(collected_date) as year,
-            (paidrent + paidbal) as base_total,
-            charges
-        FROM collected
-        WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4
-        UNION ALL
-        SELECT 
-            YEAR(collected_date) as year,
-            (paidrent + paidbal) as base_total,
-            charges
-        FROM collectednova
-        WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4
-        UNION ALL
-        SELECT 
-            YEAR(collected_date) as year,
-            (paidrent + paidbal) as base_total,
-            charges
-        FROM collectedapm
-        WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4";
+    $yearly_q = "SELECT DATE_FORMAT(collected_date, '%Y-%m') as month, (paidrent + paidbal) as base_total, charges FROM collected WHERE YEAR(collected_date) = YEAR(CURDATE())
+        UNION ALL SELECT DATE_FORMAT(collected_date, '%Y-%m') as month, (paidrent + paidbal) as base_total, charges FROM collectednova WHERE YEAR(collected_date) = YEAR(CURDATE())
+        UNION ALL SELECT DATE_FORMAT(collected_date, '%Y-%m') as month, (paidrent + paidbal) as base_total, charges FROM collectedapm WHERE YEAR(collected_date) = YEAR(CURDATE())";
 }
-
-$yearly_result = mysqli_query($conn, $yearly_query);
-
-if ($yearly_result) {
-    while ($row = mysqli_fetch_assoc($yearly_result)) {
-        $year_index = array_search($row['year'], $yearly_labels);
-        if ($year_index !== false) {
-            $total = (float)$row['base_total'] + extractCharges($row['charges']);
-            $yearly_data[$year_index] += $total;
+$res_yearly = mysqli_query($conn, $yearly_q);
+$yearly_total_this_year = 0;
+if ($res_yearly) {
+    while ($row = mysqli_fetch_assoc($res_yearly)) {
+        $m = $row['month'];
+        if (isset($yearly_data[$m])) {
+            $amt = floatval($row['base_total']) + extractCharges($row['charges']);
+            $yearly_data[$m] += $amt;
+            $yearly_total_this_year += $amt;
         }
     }
-    mysqli_free_result($yearly_result);
 }
 
 mysqli_close($conn);
 
 // Prepare chart data as JSON
-$monthly_chart_data = json_encode(['labels' => $monthly_labels, 'data' => $monthly_data]);
-$yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_data]);
+$trend_chart_data = json_encode(['labels' => $chart_dates, 'collections' => $chart_collections, 'transactions' => $chart_transactions]);
+$pie_branch_data = json_encode(['labels' => $top_branches_labels, 'data' => $top_branches_data]);
+$pie_type_data = json_encode(['labels' => array_keys($chart_types), 'data' => array_values($chart_types)]);
+$is_branch_selected = json_encode($branch !== '');
+$daily_chart_json = json_encode(['labels' => $daily_labels, 'data' => array_values($daily_data)]);
+$yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_values($yearly_data)]);
 
 ?>
 
@@ -1008,7 +1024,7 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
 
     <div id="wrapper" class="blur-when-loading">
 
-                <ul class="navbar-nav sidebar sidebar-dark accordion" id="accordionSidebar">
+        <ul class="navbar-nav sidebar sidebar-dark accordion" id="accordionSidebar">
 
             <a class="sidebar-brand d-flex align-items-center" href="adminapm.php">
                 <div class="sidebar-brand-icon">
@@ -1028,6 +1044,7 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
                     <span class="dashboard-text">Dashboard</span>
                 </a>
             </li>
+
             <hr class="sidebar-divider">
 
             <div class="sidebar-heading">
@@ -1070,6 +1087,7 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
             </li>
 
             <hr class="sidebar-divider d-none d-md-block">
+
         </ul>
         <div id="content-wrapper" class="d-flex flex-column">
 
@@ -1271,7 +1289,7 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
                     <i class="fas fa-building"></i>
                     <div>
                         <div class="filter-label">Branch Filter</div>
-                        <select disabled style="background-color: #e2e8f0; cursor: not-allowed; opacity: 0.7;">
+                                                <select disabled style="background-color: #e2e8f0; cursor: not-allowed; opacity: 0.7; width: 100%; border: none; padding: 5px; border-radius: 5px;">
                             <option value="APM" selected>APM</option>
                         </select>
                         <input type="hidden" id="branch" name="branch" value="APM">
@@ -1285,100 +1303,173 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
         </form>
     </div>
 
-    <!-- Metric Cards -->
-    <div class="metrics-grid">
-        
-        <!-- Total Collection -->
-        <div class="metric-card blue-grad">
-            <div class="metric-icon">
-                <i class="fas fa-wallet"></i>
+    <!-- New Dynamic Dark Cards Grid -->
+    <style>
+        .dashboard-dark-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-dark-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .dark-card {
+            background: #151b2b;
+            border-radius: 12px;
+            padding: 24px;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .dark-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+        .dark-card-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .dark-card-title i {
+            background: rgba(255,255,255,0.08);
+            padding: 8px;
+            border-radius: 8px;
+            color: #cbd5e1;
+            font-size: 1rem;
+        }
+        .dark-card-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dark-card-subtitle {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .dark-chart-container {
+            position: relative;
+            height: 220px;
+            width: 100%;
+            flex-grow: 1;
+        }
+        .badge-pill-dark {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+    </style>
+
+    <div class="dashboard-dark-grid">
+        <!-- Card 1: Total Collection Trend (Formerly Sales/Collection) -->
+        <div class="dark-card">
+            <div class="dark-card-header">
+                <div class="dark-card-title">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>COLLECTION FROM <?php echo strtoupper(date('M d', strtotime($start_date))); ?> TO <?php echo strtoupper(date('M d', strtotime($end_date))); ?></span>
+                </div>
             </div>
-            <div class="metric-label">Total Collection</div>
-            <div class="metric-value total-collection">
-                <?php
+            <div class="dark-card-value">
+                <?php 
                     $totalCollection = $totalPaidRent + $totalPaidBal + $totalCharges;
-                    echo '₱' . number_format($totalCollection, 2);
+                    echo '₱' . number_format($totalCollection, 2); 
                 ?>
             </div>
-        </div>
-
-        <!-- Transactions -->
-        <div class="metric-card purple-grad">
-            <div class="metric-icon">
-                <i class="fas fa-receipt"></i>
+            <div class="dark-card-subtitle">TOTAL AMOUNT</div>
+            <div class="dark-chart-container" style="height: 250px;">
+                <canvas id="collectionLineChart"></canvas>
             </div>
-            <div class="metric-label">Transactions</div>
-            <div class="metric-value total-transactions"><?php echo count($transactions); ?></div>
         </div>
 
-        <!-- Total Users -->
-        <div class="metric-card emerald-grad">
-            <div class="metric-icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="metric-label">Total Users</div>
-            <div class="metric-value total-users"><?php echo $totalUsers; ?></div>
-        </div>
-
-        <!-- No Transactions -->
-        <div class="metric-card rose-grad" style="cursor:pointer;" id="missingTransactionsCard">
-            <div class="metric-icon">
-                <i class="fas fa-user-times"></i>
-            </div>
-            <div class="metric-label">No Transactions</div>
-            <div class="metric-value"><?php echo $tenants_no_transactions; ?></div>
-            <button id="viewMissingTransactionsBtn" class="metric-action" title="View details">
-                <i class="fas fa-arrow-right"></i>
-            </button>
-        </div>
-
-    </div>
-
-    <!-- Charts -->
-    <div class="charts-grid">
-        
-        <!-- Monthly Chart -->
-        <div class="chart-card">
-            <div class="chart-card-header">
-                <div class="chart-title-wrapper">
-                    <div class="chart-icon-box bg-indigo-soft">
-                        <i class="fas fa-chart-bar text-indigo"></i>
-                    </div>
-                    <div>
-                        <h2>Monthly Collection</h2>
-                        <div class="chart-badge">
-                            <span class="status-dot bg-indigo"></span> Trailing 12 months
-                        </div>
-                    </div>
+        <!-- Card 2: Total Transactions Trend -->
+        <div class="dark-card">
+            <div class="dark-card-header">
+                <div class="dark-card-title">
+                    <i class="fas fa-box"></i>
+                    <span>TOTAL QTY / TRANSACTIONS</span>
                 </div>
-                <button class="chart-menu"><i class="fas fa-ellipsis-h"></i></button>
             </div>
-            <div class="chart-area">
-                <canvas id="monthlyBarChart"></canvas>
+            <div class="dark-card-value">
+                <?php echo number_format(count($transactions)); ?>
+            </div>
+            <div class="dark-card-subtitle">QUANTITY SOLD</div>
+            <div class="dark-chart-container" style="height: 250px;">
+                <canvas id="transactionsLineChart"></canvas>
             </div>
         </div>
 
-        <!-- Yearly Chart -->
-        <div class="chart-card">
-            <div class="chart-card-header">
-                <div class="chart-title-wrapper">
-                    <div class="chart-icon-box bg-purple-soft">
-                        <i class="fas fa-chart-line text-purple"></i>
-                    </div>
-                    <div>
-                        <h2>Yearly Collection</h2>
-                        <div class="chart-badge">
-                            <span class="status-dot bg-purple"></span> Last 5 years overview
-                        </div>
-                    </div>
+        <!-- Card 3: Daily Collection Trend -->
+        <div class="dark-card">
+            <div class="dark-card-header">
+                <div class="dark-card-title">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>DAILY COLLECTION</span>
                 </div>
-                <button class="chart-menu"><i class="fas fa-ellipsis-h"></i></button>
             </div>
-            <div class="chart-area">
+            <div class="dark-card-value">
+                <?php echo '₱' . number_format($daily_total_today, 2); ?>
+            </div>
+            <div class="dark-card-subtitle">TODAY'S TOTAL</div>
+            <div class="dark-chart-container" style="height: 250px;">
+                <canvas id="dailyLineChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Card 4: Yearly Collection Trend -->
+        <div class="dark-card">
+            <div class="dark-card-header">
+                <div class="dark-card-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>YEARLY COLLECTION (<?php echo date('Y'); ?>)</span>
+                </div>
+            </div>
+            <div class="dark-card-value">
+                <?php echo '₱' . number_format($yearly_total_this_year, 2); ?>
+            </div>
+            <div class="dark-card-subtitle">THIS YEAR'S TOTAL</div>
+            <div class="dark-chart-container" style="height: 250px;">
                 <canvas id="yearlyLineChart"></canvas>
             </div>
         </div>
 
+        <!-- Card 5: Collection by Type (Breakdown) -->
+        <div class="dark-card">
+            <div class="dark-card-header">
+                <div class="dark-card-title">
+                    <i class="fas fa-crown"></i>
+                    <span>COLLECTION BREAKDOWN</span>
+                </div>
+            </div>
+            <div class="dark-card-value">
+                <span class="badge-pill-dark" style="font-size: 0.9rem;">QTY: <?php echo number_format(count($transactions)); ?></span>
+                <?php echo '₱' . number_format($totalCollection, 2); ?>
+            </div>
+            <div class="dark-card-subtitle">OVERALL TOTAL</div>
+            <div class="dark-chart-container">
+                <canvas id="typePieChart"></canvas>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -1715,8 +1806,12 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
         }
 
         // Pass PHP data to JavaScript as JSON strings
-        const monthlyChartData = <?php echo json_encode(['labels' => $monthly_labels, 'data' => $monthly_data]); ?>;
-        const yearlyChartData = <?php echo json_encode(['labels' => $yearly_labels, 'data' => $yearly_data]); ?>;
+        const trendChartData = <?php echo $trend_chart_data; ?>;
+        const pieBranchData = <?php echo $pie_branch_data; ?>;
+        const pieTypeData = <?php echo $pie_type_data; ?>;
+        const isBranchSelected = <?php echo $is_branch_selected; ?>;
+        const dailyChartData = <?php echo $daily_chart_json; ?>;
+        const yearlyChartData = <?php echo $yearly_chart_json; ?>;
 
         $(document).ready(function() {
             // Hide the page loader when the page is fully loaded
@@ -1758,165 +1853,254 @@ $yearly_chart_data = json_encode(['labels' => $yearly_labels, 'data' => $yearly_
                 }, 4000); // 4 seconds
             }
             
-            // Change the color of the "Tenants Without Transactions" card to red
-            const tenantsCard = $(".text-xs:contains('Tenants Without Transactions')").closest('.card');
-            if (tenantsCard.length > 0) {
-                tenantsCard.removeClass('border-left-info').addClass('border-left-danger');
-                tenantsCard.find('.icon-circle').removeClass('bg-info').addClass('bg-danger');
-                tenantsCard.find('.text-info').removeClass('text-info').addClass('text-danger');
-                tenantsCard.find('.btn-info').removeClass('btn-info').addClass('btn-danger');
-            }
+            // --- New Dynamic Charts ---
             
-            // Monthly Bar Chart
-            var ctxMonthly = document.getElementById("monthlyBarChart");
-            if (ctxMonthly) {
-                var monthlyGradient = ctxMonthly.getContext('2d').createLinearGradient(0, 0, 0, 400);
-                monthlyGradient.addColorStop(0, 'rgba(99, 102, 241, 0.85)');
-                monthlyGradient.addColorStop(1, 'rgba(139, 92, 246, 0.2)');
+            // Common chart options
+            const darkTooltipOptions = {
+                backgroundColor: '#1e293b',
+                titleFontColor: '#fff',
+                bodyFontColor: '#e2e8f0',
+                borderColor: '#334155',
+                borderWidth: 1,
+                cornerRadius: 8,
+                padding: 12,
+                displayColors: true,
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        var label = data.datasets[tooltipItem.datasetIndex].label || '';
+                        var value = tooltipItem.yLabel || data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (value > 1000 || String(value).indexOf('.') !== -1) {
+                            return label + '₱' + number_format(value, 2);
+                        } else {
+                            return label + number_format(value);
+                        }
+                    }
+                }
+            };
+            
+            const darkGridOptions = {
+                color: 'rgba(255, 255, 255, 0.05)',
+                zeroLineColor: 'rgba(255, 255, 255, 0.1)',
+                drawBorder: false,
+                borderDash: [5, 5]
+            };
 
-                new Chart(ctxMonthly, {
-                    type: 'bar',
+
+            // 2. Type Pie Chart
+            var ctxType = document.getElementById("typePieChart");
+            if (ctxType) {
+                new Chart(ctxType, {
+                    type: 'doughnut',
                     data: {
-                        labels: monthlyChartData.labels,
+                        labels: pieTypeData.labels,
                         datasets: [{
-                            label: "Collection (₱)",
-                            backgroundColor: monthlyGradient,
-                            hoverBackgroundColor: "rgba(99, 102, 241, 1)",
-                            borderColor: "rgba(99, 102, 241, 1)",
+                            data: pieTypeData.data,
+                            backgroundColor: ['#6366f1', '#14b8a6', '#f43f5e'],
                             borderWidth: 0,
-                            data: monthlyChartData.data,
-                            borderRadius: 8,
-                            maxBarThickness: 32,
+                            hoverOffset: 4
                         }]
                     },
                     options: {
                         maintainAspectRatio: false,
-                        layout: { padding: { left: 5, right: 10, top: 10, bottom: 5 } },
+                        cutoutPercentage: 75,
+                        legend: { position: 'right', labels: { fontColor: '#94a3b8', padding: 15, boxWidth: 12, usePointStyle: true } },
+                        tooltips: darkTooltipOptions
+                    }
+                });
+            }
+
+            // 3. Collection Line Chart
+            var ctxCollection = document.getElementById("collectionLineChart");
+            if (ctxCollection) {
+                var gradientCol = ctxCollection.getContext('2d').createLinearGradient(0, 0, 0, 300);
+                gradientCol.addColorStop(0, 'rgba(168, 85, 247, 0.5)');
+                gradientCol.addColorStop(1, 'rgba(168, 85, 247, 0.05)');
+
+                new Chart(ctxCollection, {
+                    type: 'line',
+                    data: {
+                        labels: trendChartData.labels,
+                        datasets: [{
+                            label: "Collection",
+                            data: trendChartData.collections,
+                            borderColor: '#a855f7',
+                            backgroundColor: gradientCol,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#151b2b',
+                            pointBorderColor: '#a855f7',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            lineTension: 0.4
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
                         legend: { display: false },
+                        tooltips: darkTooltipOptions,
                         scales: {
-                            yAxes: [{
-                                gridLines: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
-                                ticks: {
+                            xAxes: [{ gridLines: { display: false, drawBorder: false }, ticks: { fontColor: '#64748b', maxRotation: 45 } }],
+                            yAxes: [{ 
+                                gridLines: darkGridOptions, 
+                                ticks: { 
+                                    fontColor: '#64748b', 
                                     beginAtZero: true,
-                                    fontColor: '#94a3b8',
-                                    fontSize: 11,
-                                    fontFamily: 'Inter',
-                                    padding: 8,
                                     callback: function(value) {
                                         if (value >= 1000000) return '₱' + (value/1000000).toFixed(1) + 'M';
                                         if (value >= 1000) return '₱' + (value/1000).toFixed(0) + 'K';
                                         return '₱' + value;
                                     }
-                                }
-                            }],
-                            xAxes: [{
-                                gridLines: { display: false, drawBorder: false },
-                                ticks: {
-                                    fontColor: '#94a3b8',
-                                    fontSize: 10,
-                                    fontFamily: 'Inter',
-                                    maxRotation: 45,
-                                    minRotation: 0
-                                }
+                                } 
                             }]
-                        },
-                        tooltips: {
-                            backgroundColor: '#1e293b',
-                            titleFontColor: '#fff',
-                            bodyFontColor: '#e2e8f0',
-                            titleFontSize: 12,
-                            bodyFontSize: 12,
-                            titleFontFamily: 'Inter',
-                            bodyFontFamily: 'Inter',
-                            borderWidth: 0,
-                            cornerRadius: 8,
-                            xPadding: 12,
-                            yPadding: 10,
-                            displayColors: false,
-                            callbacks: {
-                                label: function(tooltipItem) {
-                                    return '₱' + number_format(tooltipItem.yLabel);
-                                }
-                            }
                         }
                     }
                 });
             }
 
-            // Yearly Line Chart
+            // 4. Transactions Line Chart
+            var ctxTrans = document.getElementById("transactionsLineChart");
+            if (ctxTrans) {
+                var gradientTrans = ctxTrans.getContext('2d').createLinearGradient(0, 0, 0, 300);
+                gradientTrans.addColorStop(0, 'rgba(56, 189, 248, 0.5)');
+                gradientTrans.addColorStop(1, 'rgba(56, 189, 248, 0.05)');
+
+                new Chart(ctxTrans, {
+                    type: 'line',
+                    data: {
+                        labels: trendChartData.labels,
+                        datasets: [{
+                            label: "Transactions",
+                            data: trendChartData.transactions,
+                            borderColor: '#38bdf8',
+                            backgroundColor: gradientTrans,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#151b2b',
+                            pointBorderColor: '#38bdf8',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            lineTension: 0.4
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        legend: { display: false },
+                        tooltips: {
+                            backgroundColor: '#1e293b',
+                            titleFontColor: '#fff',
+                            bodyFontColor: '#e2e8f0',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            displayColors: true
+                        },
+                        scales: {
+                            xAxes: [{ gridLines: { display: false, drawBorder: false }, ticks: { fontColor: '#64748b', maxRotation: 45 } }],
+                            yAxes: [{ gridLines: darkGridOptions, ticks: { fontColor: '#64748b', beginAtZero: true, precision: 0 } }]
+                        }
+                    }
+                });
+            }
+
+            // 5. Daily Collection Line Chart
+            var ctxDaily = document.getElementById("dailyLineChart");
+            if (ctxDaily) {
+                var gradientDaily = ctxDaily.getContext('2d').createLinearGradient(0, 0, 0, 300);
+                gradientDaily.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); // emerald green
+                gradientDaily.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
+
+                new Chart(ctxDaily, {
+                    type: 'line',
+                    data: {
+                        labels: dailyChartData.labels,
+                        datasets: [{
+                            label: "Collection",
+                            data: dailyChartData.data,
+                            borderColor: '#10b981',
+                            backgroundColor: gradientDaily,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#151b2b',
+                            pointBorderColor: '#10b981',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            lineTension: 0.4
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        legend: { display: false },
+                        tooltips: darkTooltipOptions,
+                        scales: {
+                            xAxes: [{ gridLines: { display: false, drawBorder: false }, ticks: { fontColor: '#64748b' } }],
+                            yAxes: [{ 
+                                gridLines: darkGridOptions, 
+                                ticks: { 
+                                    fontColor: '#64748b', 
+                                    beginAtZero: true,
+                                    callback: function(value) {
+                                        if (value >= 1000000) return '₱' + (value/1000000).toFixed(1) + 'M';
+                                        if (value >= 1000) return '₱' + (value/1000).toFixed(0) + 'K';
+                                        return '₱' + value;
+                                    }
+                                } 
+                            }]
+                        }
+                    }
+                });
+            }
+
+            // 6. Yearly Collection Line Chart
             var ctxYearly = document.getElementById("yearlyLineChart");
             if (ctxYearly) {
-                var yearlyGradient = ctxYearly.getContext('2d').createLinearGradient(0, 0, 0, 400);
-                yearlyGradient.addColorStop(0, 'rgba(99, 102, 241, 0.25)');
-                yearlyGradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
+                var gradientYearly = ctxYearly.getContext('2d').createLinearGradient(0, 0, 0, 300);
+                gradientYearly.addColorStop(0, 'rgba(245, 158, 11, 0.5)'); // amber
+                gradientYearly.addColorStop(1, 'rgba(245, 158, 11, 0.05)');
 
                 new Chart(ctxYearly, {
                     type: 'line',
                     data: {
                         labels: yearlyChartData.labels,
                         datasets: [{
-                            label: "Collection (₱)",
-                            lineTension: 0.4,
-                            backgroundColor: yearlyGradient,
-                            borderColor: "rgba(99, 102, 241, 1)",
-                            pointRadius: 5,
-                            pointBackgroundColor: "#ffffff",
-                            pointBorderColor: "rgba(99, 102, 241, 1)",
-                            pointHoverRadius: 7,
-                            pointHoverBackgroundColor: "rgba(99, 102, 241, 1)",
-                            pointHoverBorderColor: "#ffffff",
-                            pointHitRadius: 10,
-                            pointBorderWidth: 3,
-                            data: yearlyChartData.data
+                            label: "Collection",
+                            data: yearlyChartData.data,
+                            borderColor: '#f59e0b',
+                            backgroundColor: gradientYearly,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#151b2b',
+                            pointBorderColor: '#f59e0b',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            lineTension: 0.4
                         }]
                     },
                     options: {
                         maintainAspectRatio: false,
-                        layout: { padding: { left: 5, right: 10, top: 10, bottom: 5 } },
                         legend: { display: false },
+                        tooltips: darkTooltipOptions,
                         scales: {
-                            yAxes: [{
-                                gridLines: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
-                                ticks: {
+                            xAxes: [{ gridLines: { display: false, drawBorder: false }, ticks: { fontColor: '#64748b' } }],
+                            yAxes: [{ 
+                                gridLines: darkGridOptions, 
+                                ticks: { 
+                                    fontColor: '#64748b', 
                                     beginAtZero: true,
-                                    fontColor: '#94a3b8',
-                                    fontSize: 11,
-                                    fontFamily: 'Inter',
-                                    padding: 8,
                                     callback: function(value) {
                                         if (value >= 1000000) return '₱' + (value/1000000).toFixed(1) + 'M';
                                         if (value >= 1000) return '₱' + (value/1000).toFixed(0) + 'K';
                                         return '₱' + value;
                                     }
-                                }
-                            }],
-                            xAxes: [{
-                                gridLines: { display: false, drawBorder: false },
-                                ticks: {
-                                    fontColor: '#94a3b8',
-                                    fontSize: 11,
-                                    fontFamily: 'Inter'
-                                }
+                                } 
                             }]
-                        },
-                        tooltips: {
-                            backgroundColor: '#1e293b',
-                            titleFontColor: '#fff',
-                            bodyFontColor: '#e2e8f0',
-                            titleFontSize: 12,
-                            bodyFontSize: 12,
-                            titleFontFamily: 'Inter',
-                            bodyFontFamily: 'Inter',
-                            borderWidth: 0,
-                            cornerRadius: 8,
-                            xPadding: 12,
-                            yPadding: 10,
-                            displayColors: false,
-                            callbacks: {
-                                label: function(tooltipItem) {
-                                    return '₱' + number_format(tooltipItem.yLabel);
-                                }
-                            }
                         }
                     }
                 });
