@@ -1413,13 +1413,13 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             <div class="dark-card-header">
                 <div class="dark-card-title">
                     <i class="fas fa-box"></i>
-                    <span>TOTAL QTY / TRANSACTIONS</span>
+                    <span>TOTAL TRANSACTIONS</span>
                 </div>
             </div>
             <div class="dark-card-value">
                 <?php echo number_format(count($transactions)); ?>
             </div>
-            <div class="dark-card-subtitle">QUANTITY SOLD</div>
+            <div class="dark-card-subtitle">TRANSACTIONS</div>
             <div class="dark-chart-container" style="height: 250px;">
                 <canvas id="transactionsLineChart"></canvas>
             </div>
@@ -3352,3 +3352,4 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
 
 </html>
 <?php ob_end_flush(); // End output buffering and flush output ?>
+
