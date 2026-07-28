@@ -534,7 +534,7 @@ $selectedBranch = "APM";
     window.addEventListener('load', function() {
         // Hide the page loader when everything is fully loaded
         setTimeout(function() {
-            .page-loader, #loader-overlay.fadeOut();
+            $('.page-loader, #loader-overlay').fadeOut();
         }, 500);
     });
     
