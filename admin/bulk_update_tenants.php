@@ -193,6 +193,26 @@ $headerColMap = [
 ];
 $processedTenants = []; // Track processed tenants to avoid duplicates
 
+// Function to clean currency amounts with support for accounting (101.57), negative numbers, and dashes
+$cleanAmount = function($val) {
+    if ($val === null || $val === '') return '0.00';
+    $s = trim((string)$val);
+    if ($s === '-' || $s === '--' || $s === '') return '0.00';
+    $isNeg = false;
+    if (preg_match('/^\((.+)\)$/', $s, $m)) {
+        $isNeg = true;
+        $s = $m[1];
+    } elseif (strpos($s, '-') === 0) {
+        $isNeg = true;
+        $s = substr($s, 1);
+    }
+    $s = preg_replace('/[^\d.]/', '', $s);
+    if (!is_numeric($s) || $s === '') return '0.00';
+    $num = (float)$s;
+    if ($isNeg) $num = -$num;
+    return number_format($num, 2, '.', '');
+};
+
 foreach ($fileData as $line) {
     $lineNumber++;
     
@@ -308,26 +328,6 @@ foreach ($fileData as $line) {
         }
         $processedTenants[$tenantKey] = $lineNumber;
 
-        // Clean currency amounts with support for accounting (101.57), negative numbers, and dashes
-        $cleanAmount = function($val) {
-            if ($val === null || $val === '') return '0.00';
-            $s = trim((string)$val);
-            if ($s === '-' || $s === '--' || $s === '') return '0.00';
-            $isNeg = false;
-            if (preg_match('/^\((.+)\)$/', $s, $m)) {
-                $isNeg = true;
-                $s = $m[1];
-            } elseif (strpos($s, '-') === 0) {
-                $isNeg = true;
-                $s = substr($s, 1);
-            }
-            $s = preg_replace('/[^\d.]/', '', $s);
-            if (!is_numeric($s) || $s === '') return '0.00';
-            $num = (float)$s;
-            if ($isNeg) $num = -$num;
-            return number_format($num, 2, '.', '');
-        };
-
         $elecbal = $cleanAmount($elecbal);
         $elecarrear = $cleanAmount($elecarrear);
 
@@ -342,7 +342,7 @@ foreach ($fileData as $line) {
         if ($existingTenant) {
             $updateQuery = "UPDATE $tableName SET elecbal = ?, elecarrear = ? WHERE id = ?";
             $updateStmt = $conn->prepare($updateQuery);
-            $updateStmt->bind_param("ddi", $elecbal, $elecarrear, $existingTenant['id']);
+            $updateStmt->bind_param("ssi", $elecbal, $elecarrear, $existingTenant['id']);
             if ($updateStmt->execute()) {
                 $updated++;
                 if (function_exists('logTenantHistory')) {
@@ -439,7 +439,7 @@ foreach ($fileData as $line) {
         if ($existingTenant) {
             $updateQuery = "UPDATE $tableName SET waterbal = ?, waterarrear = ? WHERE id = ?";
             $updateStmt = $conn->prepare($updateQuery);
-            $updateStmt->bind_param("ddi", $waterbal, $waterarrear, $existingTenant['id']);
+            $updateStmt->bind_param("ssi", $waterbal, $waterarrear, $existingTenant['id']);
             if ($updateStmt->execute()) {
                 $updated++;
                 if (function_exists('logTenantHistory')) {
