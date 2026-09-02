@@ -845,7 +845,7 @@ $conn->close();
                     <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="elecarrear" type="text" name="elecarrear" placeholder="0.00" readonly>
                 </div>
                 <div class="pos-field">
-                    <label class="pos-label" for="elecbal">Electricity Bal</label>
+                    <label class="pos-label" for="elecbal">Elec Bal</label>
                     <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="elecbal" type="text" name="elecbal" placeholder="0.00" readonly>
                 </div>
                 <div class="pos-field">
