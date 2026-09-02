@@ -43,11 +43,23 @@ if ($result->num_rows > 0) {
     $dailyRent = $row["rent"];
     $runningBalance = $row["runningbal"];
     $rentbal = $row["rentbal"];
-    $paidrent = $row["paidrent"];
-    $paidbal = $row["paidbal"];
-    $total = $row["total"];
-    $newbalance = $row["newbalance"];
-    $newrentbalance = $row["newrentbalance"];
+    $elecarrear = $row["elecarrear"] ?? 0;
+    $elecbal = $row["elecbal"] ?? 0;
+    $waterarrear = $row["waterarrear"] ?? 0;
+    $waterbal = $row["waterbal"] ?? 0;
+    $newelecarrear = $row["newelecarrear"] ?? 0;
+    $newwaterarrear = $row["newwaterarrear"] ?? 0;
+    $paidrent = $row["paidrent"] ?? 0;
+    $paidbal = $row["paidbal"] ?? 0;
+    $paidelec = $row["paidelec"] ?? 0;
+    $paidelecarrear = $row["paidelecarrear"] ?? 0;
+    $paidwater = $row["paidwater"] ?? 0;
+    $paidwaterarrear = $row["paidwaterarrear"] ?? 0;
+    $total = $row["total"] ?? 0;
+    $newbalance = $row["newbalance"] ?? 0;
+    $newrentbalance = $row["newrentbalance"] ?? 0;
+    $newelecbal = $row["newelecbal"] ?? 0;
+    $newwaterbal = $row["newwaterbal"] ?? 0;
 
     // Close the statement for the latest transaction fetch
     $stmt->close();
@@ -197,10 +209,22 @@ if ($result->num_rows > 0) {
 
             <div class="mb-1 flex justify-between text-xs">
                 <div>
-                    <p class="font-semibold">Arrear Balance: <?php echo number_format($runningBalance, 2); ?></p>
+                    <p class="font-semibold">Rent Balance: <?php echo number_format($rentbal, 2); ?></p>
                 </div>
                 <div>
-                    <p class="font-semibold">Rent Balance: <?php echo number_format($rentbal, 2); ?></p>
+                    <p class="font-semibold">Elec Balance: <?php echo number_format((float)$elecbal, 2); ?></p>
+                </div>
+            </div>
+
+            <div class="mb-1 flex justify-between text-xs">
+                <div>
+                    <p class="font-semibold">Water Balance: <?php echo number_format((float)$waterbal, 2); ?></p>
+                </div>
+                <?php 
+                $totalCombinedArrears = (float)$runningBalance + (float)$elecarrear + (float)$waterarrear;
+                ?>
+                <div>
+                    <p class="font-semibold">Total Arrears: <?php echo number_format($totalCombinedArrears, 2); ?></p>
                 </div>
             </div>
 
@@ -260,10 +284,54 @@ if ($result->num_rows > 0) {
             <div class="mb-1 flex justify-between text-xs">
                 <?php if ($paidbal > 0) { ?>
                     <div>
-                        <p class="font-semibold">Amount Paid (Balance):</p>
+                        <p class="font-semibold">Amount Paid (Rent Arrear):</p>
                     </div>
                     <div>
                         <p class="font-semibold"><?php echo number_format($paidbal, 2); ?></p>
+                    </div>
+                <?php } ?>
+            </div>
+
+            <div class="mb-1 flex justify-between text-xs">
+                <?php if ($paidelec > 0) { ?>
+                    <div>
+                        <p class="font-semibold">Amount Paid (Elec Bal):</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold"><?php echo number_format($paidelec, 2); ?></p>
+                    </div>
+                <?php } ?>
+            </div>
+
+            <div class="mb-1 flex justify-between text-xs">
+                <?php if ($paidelecarrear > 0) { ?>
+                    <div>
+                        <p class="font-semibold">Amount Paid (Elec Arrear):</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold"><?php echo number_format($paidelecarrear, 2); ?></p>
+                    </div>
+                <?php } ?>
+            </div>
+
+            <div class="mb-1 flex justify-between text-xs">
+                <?php if ($paidwater > 0) { ?>
+                    <div>
+                        <p class="font-semibold">Amount Paid (Water Bal):</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold"><?php echo number_format($paidwater, 2); ?></p>
+                    </div>
+                <?php } ?>
+            </div>
+
+            <div class="mb-1 flex justify-between text-xs">
+                <?php if ($paidwaterarrear > 0) { ?>
+                    <div>
+                        <p class="font-semibold">Amount Paid (Water Arrear):</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold"><?php echo number_format($paidwaterarrear, 2); ?></p>
                     </div>
                 <?php } ?>
             </div>
@@ -281,19 +349,40 @@ if ($result->num_rows > 0) {
 
             <div class="mb-1 flex justify-between text-xs">
                 <div>
-                    <p class="font-semibold">Running Arrear Balance:</p>
+                    <p class="font-semibold">Running Rent Balance:</p>
                 </div>
                 <div>
-                    <p class="font-semibold"><?php echo number_format($newbalance, 2); ?></p>
+                    <p class="font-semibold"><?php echo number_format($newrentbalance, 2); ?></p>
                 </div>
             </div>
 
             <div class="mb-1 flex justify-between text-xs">
                 <div>
-                    <p class="font-semibold">Running Rent Balance:</p>
+                    <p class="font-semibold">Running Elec Balance:</p>
                 </div>
                 <div>
-                    <p class="font-semibold"><?php echo number_format($newrentbalance, 2); ?></p>
+                    <p class="font-semibold"><?php echo number_format((float)$newelecbal, 2); ?></p>
+                </div>
+            </div>
+
+            <div class="mb-1 flex justify-between text-xs">
+                <div>
+                    <p class="font-semibold">Running Water Balance:</p>
+                </div>
+                <div>
+                    <p class="font-semibold"><?php echo number_format((float)$newwaterbal, 2); ?></p>
+                </div>
+            </div>
+
+            <?php 
+            $remTotalArrears = (float)$newbalance + (float)$newelecarrear + (float)$newwaterarrear;
+            ?>
+            <div class="mb-1 flex justify-between text-xs">
+                <div>
+                    <p class="font-semibold">Running Total Arrears:</p>
+                </div>
+                <div>
+                    <p class="font-semibold"><?php echo number_format($remTotalArrears, 2); ?></p>
                 </div>
             </div>
 

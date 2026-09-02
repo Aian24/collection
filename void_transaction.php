@@ -78,12 +78,8 @@ if (isset($_POST['void_submit'])) {
             $columnResult = $conn->query($checkColumnQuery);
             $chargesColumnExists = $columnResult && $columnResult->num_rows > 0;
             
-            // Build the SELECT query based on whether charges column exists
-            if ($chargesColumnExists) {
-                $selectQuery = "SELECT rentbal, runningbal, tenantcode, spacecode, rent, paidrent, paidbal, charges, collector, tenantname FROM $branch_table WHERE transaction_number = ?";
-            } else {
-                $selectQuery = "SELECT rentbal, runningbal, tenantcode, spacecode, rent, paidrent, paidbal, collector, tenantname FROM $branch_table WHERE transaction_number = ?";
-            }
+            // Build the SELECT query
+            $selectQuery = "SELECT rentbal, runningbal, tenantcode, spacecode, rent, paidrent, paidbal, elecbal, paidelec, paidelecarrear, waterbal, paidwater, paidwaterarrear, elecarrear, waterarrear, charges, collector, tenantname FROM $branch_table WHERE transaction_number = ?";
             
             // Fetch the original values from the respective branch table (collectednova, collectedapm, or collected for sanko)
             $stmt = $conn->prepare($selectQuery);
@@ -95,83 +91,54 @@ if (isset($_POST['void_submit'])) {
             $result = $stmt->get_result();
             $transaction = $result->fetch_assoc();
 
-            // error_log("Query executed: " . $selectQuery . " with transaction_number: " . $transaction_number);
-            // error_log("Transaction found: " . ($transaction ? 'Yes' : 'No'));
-
             if (!$transaction) {
-                // Transaction not found
-                // error_log("Transaction not found in table: " . $branch_table);
                 throw new Exception("Transaction not found.");
             }
 
             // Extract values
             $original_rentbal = $transaction['rentbal'];
             $original_runningbal = $transaction['runningbal'];
+            $original_elecbal = $transaction['elecbal'] ?? 0;
+            $original_waterbal = $transaction['waterbal'] ?? 0;
+            $original_elecarrear = $transaction['elecarrear'] ?? 0;
+            $original_waterarrear = $transaction['waterarrear'] ?? 0;
             $tenantcode = $transaction['tenantcode'];
             $spacecode = $transaction['spacecode'];
             $rent = $transaction['rent'];
             $paidrent = $transaction['paidrent'];
             $paidbal = $transaction['paidbal'];
-            $charges = $chargesColumnExists ? ($transaction['charges'] ?? '') : '';
+            $paidelec = $transaction['paidelec'] ?? 0;
+            $paidelecarrear = $transaction['paidelecarrear'] ?? 0;
+            $paidwater = $transaction['paidwater'] ?? 0;
+            $paidwaterarrear = $transaction['paidwaterarrear'] ?? 0;
+            $charges = $transaction['charges'] ?? '';
             $collector = $transaction['collector'];
             $tenantname = $transaction['tenantname'];
-
-            // Debug: Log the charges value
-            // error_log("Charges column exists: " . ($chargesColumnExists ? 'Yes' : 'No'));
-            // error_log("Charges value from database: " . $charges);
             
-            // Ensure charges is not null and convert to proper format
             if ($charges === null) {
                 $charges = '';
             }
-            // Don't convert to float since charges might be a string (comma-separated values)
             $charges = trim($charges);
 
-            // Debug: Log the processed charges value
-            // error_log("Processed charges value: " . $charges);
-
-            // Rollback in the collected table (collectednova, collectedapm, or collected for sanko)
-            $stmt = $conn->prepare("UPDATE $branch_table SET rentbal = ?, runningbal = ? WHERE transaction_number = ?");
+            // Revert balances in the tenant branch table (sanko, nova, apm)
+            $tenant_table = ($branch === 'sanko') ? 'sanko' : (($branch === 'apm') ? 'apm' : 'nova');
+            $stmt = $conn->prepare("UPDATE $tenant_table SET rentbal = ?, runningbal = ?, elecbal = ?, waterbal = ?, elecarrear = ?, waterarrear = ? WHERE spacecode = ?");
             if (!$stmt) {
                 throw new Exception("Prepare failed: " . $conn->error);
             }
-            $stmt->bind_param('dds', $original_rentbal, $original_runningbal, $transaction_number);
-            $stmt->execute();
-
-            // Rollback in the selected branch table (collectednova, collectedsanko, collectedapm)
-            $stmt = $conn->prepare("UPDATE $branch_table SET rentbal = ?, runningbal = ? WHERE tenantcode = ? AND spacecode = ?");
-            if (!$stmt) {
-                throw new Exception("Prepare failed: " . $conn->error);
-            }
-            $stmt->bind_param('ddss', $original_rentbal, $original_runningbal, $tenantcode, $spacecode);
+            $stmt->bind_param('dddddds', $original_rentbal, $original_runningbal, $original_elecbal, $original_waterbal, $original_elecarrear, $original_waterarrear, $spacecode);
             $stmt->execute();
 
             // Prepare to insert into void table
             $branch_name = ucfirst($branch) . ' Branch';
             
-            // Debug: Log all values before insertion
-            // error_log("Inserting into void table:");
-            // error_log("Transaction Number: " . $transaction_number);
-            // error_log("Branch: " . $branch_name);
-            // error_log("Note: " . $note);
-            // error_log("Rent: " . $rent);
-            // error_log("Rentbal: " . $original_rentbal);
-            // error_log("Runningbal: " . $original_runningbal);
-            // error_log("Paidrent: " . $paidrent);
-            // error_log("Paidbal: " . $paidbal);
-            // error_log("Charges: " . $charges);
-            // error_log("Collector: " . $collector);
-            // error_log("Tenantname: " . $tenantname);
-            // error_log("Spacecode: " . $spacecode);
-            // error_log("Void Date: " . $void_date);
-            
-            $stmt = $conn->prepare("INSERT INTO void (transaction_number, branch, note, rent, rentbal, runningbal, paidrent, paidbal, charges, collector, tenantname, spacecode, void_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO void (transaction_number, branch, note, rent, rentbal, runningbal, paidrent, paidbal, charges, collector, tenantname, spacecode, void_date, elecbal, paidelec, paidelecarrear, waterbal, paidwater, paidwaterarrear, elecarrear, waterarrear) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             if (!$stmt) {
                 throw new Exception("Prepare failed: " . $conn->error);
             }
 
             // Bind parameters with correct types
-            $stmt->bind_param('sssdddddsssss', $transaction_number, $branch_name, $note, $rent, $original_rentbal, $original_runningbal, $paidrent, $paidbal, $charges, $collector, $tenantname, $spacecode, $void_date);
+            $stmt->bind_param('sssdddddsssssdddddddd', $transaction_number, $branch_name, $note, $rent, $original_rentbal, $original_runningbal, $paidrent, $paidbal, $charges, $collector, $tenantname, $spacecode, $void_date, $original_elecbal, $paidelec, $paidelecarrear, $original_waterbal, $paidwater, $paidwaterarrear, $original_elecarrear, $original_waterarrear);
             
             // Debug: Log the bind_param string and charges value
             // error_log("Bind param string: sssdddddsssss");

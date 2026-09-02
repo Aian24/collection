@@ -50,11 +50,23 @@ if ($result->num_rows > 0) {
     $dailyRent = $row["rent"];
     $runningBalance = $row["runningbal"];
     $rentbal = $row["rentbal"];
-    $paidrent = $row["paidrent"];
-    $paidbal = $row["paidbal"];
-    $total = $row["total"];
-    $newbalance = $row["newbalance"];
-    $newrentbalance = $row["newrentbalance"];
+    $elecarrear = $row["elecarrear"] ?? 0;
+    $elecbal = $row["elecbal"] ?? 0;
+    $waterarrear = $row["waterarrear"] ?? 0;
+    $waterbal = $row["waterbal"] ?? 0;
+    $newelecarrear = $row["newelecarrear"] ?? 0;
+    $newwaterarrear = $row["newwaterarrear"] ?? 0;
+    $paidrent = $row["paidrent"] ?? 0;
+    $paidbal = $row["paidbal"] ?? 0;
+    $paidelec = $row["paidelec"] ?? 0;
+    $paidelecarrear = $row["paidelecarrear"] ?? 0;
+    $paidwater = $row["paidwater"] ?? 0;
+    $paidwaterarrear = $row["paidwaterarrear"] ?? 0;
+    $total = $row["total"] ?? 0;
+    $newbalance = $row["newbalance"] ?? 0;
+    $newrentbalance = $row["newrentbalance"] ?? 0;
+    $newelecbal = $row["newelecbal"] ?? 0;
+    $newwaterbal = $row["newwaterbal"] ?? 0;
     $stmt->close();
 
     // Fetch all charges
@@ -159,12 +171,23 @@ if ($result->num_rows > 0) {
                     <span class="font-black text-black"><?php echo number_format((float)$dailyRent, 2); ?></span>
                 </div>
                 <div class="flex justify-between border-b border-dotted border-gray-200">
-                    <span class="text-black uppercase font-semibold">Arrear Bal:</span>
-                    <span class="font-black text-black"><?php echo number_format((float)$runningBalance, 2); ?></span>
-                </div>
-                <div class="flex justify-between">
                     <span class="text-black uppercase font-semibold">Rent Bal:</span>
                     <span class="font-black text-black"><?php echo number_format((float)$rentbal, 2); ?></span>
+                </div>
+                <div class="flex justify-between border-b border-dotted border-gray-200">
+                    <span class="text-black uppercase font-semibold">Elec Bal:</span>
+                    <span class="font-black text-black"><?php echo isset($elecbal) ? number_format((float)$elecbal, 2) : '0.00'; ?></span>
+                </div>
+                <div class="flex justify-between border-b border-dotted border-gray-200">
+                    <span class="text-black uppercase font-semibold">Water Bal:</span>
+                    <span class="font-black text-black"><?php echo isset($waterbal) ? number_format((float)$waterbal, 2) : '0.00'; ?></span>
+                </div>
+                <?php 
+                $totalCombinedArrears = (float)($runningBalance ?? 0) + (float)($elecarrear ?? 0) + (float)($waterarrear ?? 0);
+                ?>
+                <div class="flex justify-between">
+                    <span class="text-black uppercase font-semibold">Total Arrears:</span>
+                    <span class="font-black text-black"><?php echo number_format($totalCombinedArrears, 2); ?></span>
                 </div>
             </div>
 
@@ -191,15 +214,27 @@ if ($result->num_rows > 0) {
                 }
 
                 $subTotalCharges = 0;
-                if (isset($paidrent) && $paidrent > 0) {
+                if (isset($paidrent) && (float)$paidrent > 0) {
                     echo '<div class="flex justify-between text-xs"><span>Daily Rent Payment</span><span class="font-bold">' . number_format((float)$paidrent, 2) . '</span></div>';
                 }
-                if (isset($paidbal) && $paidbal > 0) {
-                    echo '<div class="flex justify-between text-xs"><span>Arrear Balance Payment</span><span class="font-bold">' . number_format((float)$paidbal, 2) . '</span></div>';
+                if (isset($paidbal) && (float)$paidbal > 0) {
+                    echo '<div class="flex justify-between text-xs"><span>Rent Arrear Payment</span><span class="font-bold">' . number_format((float)$paidbal, 2) . '</span></div>';
                 }
-                $paidTotal = (isset($paidrent) ? (float)$paidrent : 0) + (isset($paidbal) ? (float)$paidbal : 0);
-                if ($paidTotal > 0) {
-                    echo '<div class="flex justify-between text-[10px] pt-1 border-t border-dotted border-gray-300 mb-2"><span class="text-black font-bold uppercase">Rent & Arrear Total:</span><span class="font-black text-black">(' . number_format($paidTotal, 2) . ')</span></div>';
+                if (isset($paidelec) && (float)$paidelec > 0) {
+                    echo '<div class="flex justify-between text-xs"><span>Electricity Bal Payment</span><span class="font-bold">' . number_format((float)$paidelec, 2) . '</span></div>';
+                }
+                if (isset($paidelecarrear) && (float)$paidelecarrear > 0) {
+                    echo '<div class="flex justify-between text-xs"><span>Electricity Arrear Payment</span><span class="font-bold">' . number_format((float)$paidelecarrear, 2) . '</span></div>';
+                }
+                if (isset($paidwater) && (float)$paidwater > 0) {
+                    echo '<div class="flex justify-between text-xs"><span>Water Bal Payment</span><span class="font-bold">' . number_format((float)$paidwater, 2) . '</span></div>';
+                }
+                if (isset($paidwaterarrear) && (float)$paidwaterarrear > 0) {
+                    echo '<div class="flex justify-between text-xs"><span>Water Arrear Payment</span><span class="font-bold">' . number_format((float)$paidwaterarrear, 2) . '</span></div>';
+                }
+                $paidTotal = (isset($paidrent) ? (float)$paidrent : 0) + (isset($paidbal) ? (float)$paidbal : 0) + (isset($paidelec) ? (float)$paidelec : 0) + (isset($paidelecarrear) ? (float)$paidelecarrear : 0) + (isset($paidwater) ? (float)$paidwater : 0) + (isset($paidwaterarrear) ? (float)$paidwaterarrear : 0);
+                if ($paidTotal > 0 && $result_charges->num_rows > 0) {
+                    echo '<div class="flex justify-between text-[10px] pt-1 border-t border-dotted border-gray-300 mb-2"><span class="text-black font-bold uppercase">Payments Subtotal:</span><span class="font-black text-black">(' . number_format($paidTotal, 2) . ')</span></div>';
                 }
 
                 if ($result_charges->num_rows > 0) {
@@ -229,12 +264,23 @@ if ($result->num_rows > 0) {
 
             <div class="border-t border-gray-200 pt-2 mt-2 space-y-1 bg-gray-50 p-2 rounded">
                 <div class="flex justify-between text-[10px] font-bold">
-                    <span class="text-black uppercase font-semibold">Remaining Arrear:</span>
-                    <span class="text-black font-black"><?php echo number_format((float)$newbalance, 2); ?></span>
+                    <span class="text-black uppercase font-semibold">Remaining Rent Bal:</span>
+                    <span class="font-black text-black">₱<?php echo number_format((float)$newrentbalance, 2); ?></span>
                 </div>
                 <div class="flex justify-between text-[10px] font-bold">
-                    <span class="text-black uppercase font-semibold">Remaining Rent Bal:</span>
-                    <span class="font-black text-black"><?php echo number_format((float)$newrentbalance, 2); ?></span>
+                    <span class="text-black uppercase font-semibold">Remaining Elec:</span>
+                    <span class="font-black text-black">₱<?php echo number_format((float)($newelecbal ?? 0), 2); ?></span>
+                </div>
+                <div class="flex justify-between text-[10px] font-bold">
+                    <span class="text-black uppercase font-semibold">Remaining Water:</span>
+                    <span class="font-black text-black">₱<?php echo number_format((float)($newwaterbal ?? 0), 2); ?></span>
+                </div>
+                <?php 
+                $remTotalArrears = (float)($newbalance ?? 0) + (float)($newelecarrear ?? 0) + (float)($newwaterarrear ?? 0);
+                ?>
+                <div class="flex justify-between text-[10px] font-bold">
+                    <span class="text-black uppercase font-semibold">Remaining Arrears:</span>
+                    <span class="font-black text-black">₱<?php echo number_format($remTotalArrears, 2); ?></span>
                 </div>
             </div>
 

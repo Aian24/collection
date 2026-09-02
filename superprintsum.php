@@ -26,15 +26,20 @@ $selected_branch = isset($_POST['selected_branch']) ? $_POST['selected_branch'] 
 $table = ($selected_branch === 'Sanko Market') ? 'collected' : (($selected_branch === 'APM') ? 'collectedapm' : 'collectednova');
 
 // Fetch totals for the selected date and branch
-$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, SUM(total) AS db_grand_total
+$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, (SUM(paidelec) + SUM(IFNULL(paidelecarrear,0))) AS total_elec, (SUM(paidwater) + SUM(IFNULL(paidwaterarrear,0))) AS total_water, SUM(total) AS db_grand_total
           FROM $table
           WHERE DATE(collected_date) = '$selected_date' AND username = '$username'";
 $result = $conn->query($query);
+
+$total_elec = 0;
+$total_water = 0;
 
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $total_rent = $row['total_rent'];
     $total_balance = $row['total_balance'];
+    $total_elec = $row['total_elec'];
+    $total_water = $row['total_water'];
     $db_grand_total = $row['db_grand_total'];
 }
 
@@ -168,6 +173,12 @@ $conn->close();
             <?php if ($total_rent !== null && $total_balance !== null): ?>
                 <p>Total Paid (Rent): <?php echo number_format($total_rent, 2); ?></p>
                 <p>Total Paid (Balance): <?php echo number_format($total_balance, 2); ?></p>
+                <?php if ((float)$total_elec > 0): ?>
+                    <p>Total Paid (Electricity): <?php echo number_format($total_elec, 2); ?></p>
+                <?php endif; ?>
+                <?php if ((float)$total_water > 0): ?>
+                    <p>Total Paid (Water): <?php echo number_format($total_water, 2); ?></p>
+                <?php endif; ?>
                 <p>Total Charges: <?php echo number_format($total_charges, 2); ?></p>
                 <p>Total: <?php echo number_format($total, 2); ?></p>
             <?php endif; ?>

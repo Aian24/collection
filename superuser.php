@@ -37,6 +37,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $paidrent = !empty($_POST['paidrent']) ? floatval(str_replace(',', '', $_POST['paidrent'])) : 0;
     $paidbal = !empty($_POST['paidbal']) ? floatval(str_replace(',', '', $_POST['paidbal'])) : 0;
     $total = !empty($_POST['total']) ? floatval(str_replace(',', '', $_POST['total'])) : 0;
+    $rent = !empty($_POST['rent']) ? floatval(str_replace(',', '', $_POST['rent'])) : 0;
+    $rentbal = !empty($_POST['rentbal']) ? floatval(str_replace(',', '', $_POST['rentbal'])) : 0;
+    $runningBal = !empty($_POST['runningbal']) ? floatval(str_replace(',', '', $_POST['runningbal'])) : 0;
+    $paidrent = !empty($_POST['paidrent']) ? floatval(str_replace(',', '', $_POST['paidrent'])) : 0;
+    $paidbal = !empty($_POST['paidbal']) ? floatval(str_replace(',', '', $_POST['paidbal'])) : 0;
+    $paidelec = !empty($_POST['paidelec']) ? floatval(str_replace(',', '', $_POST['paidelec'])) : 0;
+    $paidelecarrear = !empty($_POST['paidelecarrear']) ? floatval(str_replace(',', '', $_POST['paidelecarrear'])) : 0;
+    $paidwater = !empty($_POST['paidwater']) ? floatval(str_replace(',', '', $_POST['paidwater'])) : 0;
+    $paidwaterarrear = !empty($_POST['paidwaterarrear']) ? floatval(str_replace(',', '', $_POST['paidwaterarrear'])) : 0;
+    $elecbal = !empty($_POST['elecbal']) ? floatval(str_replace(',', '', $_POST['elecbal'])) : 0;
+    $elecarrear = !empty($_POST['elecarrear']) ? floatval(str_replace(',', '', $_POST['elecarrear'])) : 0;
+    $newelecbal = !empty($_POST['newelecbal']) ? floatval(str_replace(',', '', $_POST['newelecbal'])) : 0;
+    $newelecarrear = !empty($_POST['newelecarrear']) ? floatval(str_replace(',', '', $_POST['newelecarrear'])) : 0;
+    $waterbal = !empty($_POST['waterbal']) ? floatval(str_replace(',', '', $_POST['waterbal'])) : 0;
+    $waterarrear = !empty($_POST['waterarrear']) ? floatval(str_replace(',', '', $_POST['waterarrear'])) : 0;
+    $newwaterbal = !empty($_POST['newwaterbal']) ? floatval(str_replace(',', '', $_POST['newwaterbal'])) : 0;
+    $newwaterarrear = !empty($_POST['newwaterarrear']) ? floatval(str_replace(',', '', $_POST['newwaterarrear'])) : 0;
+    $total = !empty($_POST['total']) ? floatval(str_replace(',', '', $_POST['total'])) : 0;
     $newbalance = !empty($_POST['newbalance']) ? floatval(str_replace(',', '', $_POST['newbalance'])) : 0;
     $newrentbalance = !empty($_POST['newrentbalance']) ? floatval(str_replace(',', '', $_POST['newrentbalance'])) : 0;
 
@@ -46,7 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Get the latest transaction number
     $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM $tableName");
     $latestTransactionRow = $latestTransactionQuery->fetch_assoc();
-    $latestTransactionNumber = $latestTransactionRow['max_transaction'] ?? 0; // Use 0 as default if no transaction found
+    $latestTransactionNumber = $latestTransactionRow['max_transaction'] ?? 0;
 
     // Use the latest transaction number to generate the next one
     $nextTransactionNumber = $latestTransactionNumber + 1;
@@ -58,12 +76,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     if (!empty($_POST['chargeac'])) {
         $charges[] = "Aircon: " . floatval(str_replace(',', '', $_POST['chargeac']));
-    }
-    if (!empty($_POST['chargeelec'])) {
-        $charges[] = "Electricity: " . floatval(str_replace(',', '', $_POST['chargeelec']));
-    }
-    if (!empty($_POST['chargewater'])) {
-        $charges[] = "Water: " . floatval(str_replace(',', '', $_POST['chargewater']));
     }
 
     // Handle multiple 'chargeothers' and 'otheramount' entries
@@ -80,30 +92,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $chargesString = implode(', ', $charges);
 
     // Prepare the INSERT statement
-    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date" .
-        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
+    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, elecbal, paidelec, newelecbal, waterbal, paidwater, newwaterbal, elecarrear, waterarrear, newelecarrear, newwaterarrear, paidelecarrear, paidwaterarrear" .
+        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
         (!empty($chargesString) ? ", ?" : "") . ")";
 
     $insertStmt = $conn->prepare($query);
 
     // Bind parameters for insertion
     if (!empty($chargesString)) {
-        $insertStmt->bind_param("dssssssddddssssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date, $chargesString);
+        $insertStmt->bind_param("dsssssddddddddssdddddddddddds", 
+            $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, 
+            $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, 
+            $username, $collected_date,
+            $elecbal, $paidelec, $newelecbal, $waterbal, $paidwater, $newwaterbal, $elecarrear, $waterarrear, $newelecarrear, $newwaterarrear, $paidelecarrear, $paidwaterarrear,
+            $chargesString);
     } else {
-        $insertStmt->bind_param("dssssssddddsssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date);
+        $insertStmt->bind_param("dsssssddddddddssdddddddddddd", 
+            $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, 
+            $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, 
+            $username, $collected_date,
+            $elecbal, $paidelec, $newelecbal, $waterbal, $paidwater, $newwaterbal, $elecarrear, $waterarrear, $newelecarrear, $newwaterarrear, $paidelecarrear, $paidwaterarrear);
     }
 
     // Execute the INSERT statement
     if ($insertStmt->execute()) {
-        // Update running balance and rent balance based on branch
+        // Update running balance, rent balance, elec, water based on branch
         $updateTable = ($branch === 'Sanko Market') ? 'sanko' : (($branch === 'APM') ? 'apm' : 'nova');
-        $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ? WHERE spacecode = ?");
-        $updateStmt->bind_param("dds", $newbalance, $newrentbalance, $spacecode);
+        $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ?, elecbal = ?, waterbal = ?, elecarrear = ?, waterarrear = ? WHERE spacecode = ?");
+        $updateStmt->bind_param("dddddds", $newbalance, $newrentbalance, $newelecbal, $newwaterbal, $newelecarrear, $newwaterarrear, $spacecode);
 
         if ($updateStmt->execute()) {
-            include 'supermodalsuccess.php'; // Include modalsuccess.php to display the success modal
+            include 'supermodalsuccess.php';
         } else {
-            echo "Error updating running and rent balance: " . $conn->error;
+            echo "Error updating balances: " . $conn->error;
         }
 
         $updateStmt->close();
@@ -311,120 +332,200 @@ $conn->close();
             </div>
 
 
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="rent">
-                    Daily Rent
-                </label>
-                <input
-                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                    id="rent" type="text" name="rent" placeholder="Daily Rent">
-            </div>
-
-
-            <div class="mb-4 flex gap-4">
-                <div class="flex-1">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="rentbal">
+            <div class="mb-4 grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="rent">
+                        Daily Rent
+                    </label>
+                    <input
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="rent" type="text" name="rent" placeholder="0.00"
+                        oninput="calculateNewBalance()">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="rentbal">
                         Rent Balance
                     </label>
                     <input
-                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                        id="rentbal" type="text" name="rentbal" placeholder="Rent Balance"
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="rentbal" type="text" name="rentbal" placeholder="0.00"
                         oninput="calculateNewBalance()">
                 </div>
-
-                <div class="flex-1">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="runningbal">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="runningbal">
                         Arrear Balance
                     </label>
                     <input
-                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                        id="runningbal" type="text" name="runningbal" placeholder="Arrear Balance">
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="runningbal" type="text" name="runningbal" placeholder="0.00"
+                        oninput="calculateNewBalance()">
                 </div>
             </div>
 
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="paidrent">
-                    Amount Paid (Daily Rent)
-                </label>
-                <input oninput="formatNumberAndCalculateNewBalance(this)"
-                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                    id="paidrent" type="text" name="paidrent" placeholder="Enter amount paid rent" inputmode="decimal">
+            <!-- Electricity Details -->
+            <div class="flex items-center my-3">
+                <div class="flex-1 border-t border-yellow-400"></div>
+                <div class="px-3 uppercase text-yellow-700 text-xs font-bold tracking-wide">Electricity Details</div>
+                <div class="flex-1 border-t border-yellow-400"></div>
             </div>
 
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="paidbal">
-                    Amount Paid (Arrear Balance)
-                </label>
-                <input oninput="formatNumberAndCalculateNewBalance(this)"
-                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                    id="paidbal" type="text" name="paidbal" placeholder="Enter amount paid balance" inputmode="decimal">
+            <div class="mb-4 grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="elecarrear">
+                        Elec Arrears
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        id="elecarrear" type="text" name="elecarrear" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="elecbal">
+                        Elec Balance
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        id="elecbal" type="text" name="elecbal" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-yellow-800 text-xs font-bold mb-1" for="electotal">
+                        Total Bal
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-yellow-300 bg-yellow-50 font-bold rounded w-full py-2 px-3 text-sm text-yellow-800 leading-tight focus:outline-none focus:shadow-outline"
+                        id="electotal" type="text" name="electotal" placeholder="0.00">
+                </div>
             </div>
 
+            <!-- Water Details -->
+            <div class="flex items-center my-3">
+                <div class="flex-1 border-t border-blue-400"></div>
+                <div class="px-3 uppercase text-blue-700 text-xs font-bold tracking-wide">Water Details</div>
+                <div class="flex-1 border-t border-blue-400"></div>
+            </div>
 
+            <div class="mb-4 grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="waterarrear">
+                        Water Arrears
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        id="waterarrear" type="text" name="waterarrear" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="waterbal">
+                        Water Balance
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        id="waterbal" type="text" name="waterbal" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-blue-800 text-xs font-bold mb-1" for="watertotal">
+                        Total Bal
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-blue-300 bg-blue-50 font-bold rounded w-full py-2 px-3 text-sm text-blue-800 leading-tight focus:outline-none focus:shadow-outline"
+                        id="watertotal" type="text" name="watertotal" placeholder="0.00">
+                </div>
+            </div>
 
-
-            <div class="flex items-center">
+            <!-- Payment Section -->
+            <div class="flex items-center my-3">
                 <div class="flex-1 border-t border-gray-500"></div>
-                <div class="px-4 uppercase text-gray-600 text-lg font-bold tracking-wide">Charges</div>
+                <div class="px-3 uppercase text-gray-600 text-xs font-bold tracking-wide">Payment</div>
                 <div class="flex-1 border-t border-gray-500"></div>
             </div>
 
-
-
-            <div class="mb-4 flex gap-4">
-
-                <div class="flex-1">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargecusa">
-                        Cusa
+            <div class="mb-3 grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="paidrent">
+                        Rent
                     </label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                        id="chargecusa" type="text" name="chargecusa" placeholder="Enter amount" inputmode="decimal">
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="paidrent" type="text" name="paidrent" placeholder="0.00" inputmode="decimal">
                 </div>
-
-                <div class="flex-1">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargecusa">
-                        Aircon
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="paidbal">
+                        Rent Arrear
                     </label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                        id="chargeac" type="text" name="chargeac" placeholder="Enter amount" inputmode="decimal">
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="paidbal" type="text" name="paidbal" placeholder="0.00" inputmode="decimal">
                 </div>
             </div>
-
-
-            <div class="mb-4 flex gap-4">
-                <div class="flex-1">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargeelec">
+            <div class="mb-3 grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="paidelec">
                         Electricity
                     </label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                        id="chargeelec" type="text" name="chargeelec" placeholder="Enter amount" inputmode="decimal">
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="paidelec" type="text" name="paidelec" placeholder="0.00" inputmode="decimal">
                 </div>
-                <div class="flex-1">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="chargewater">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="paidelecarrear">
+                        Electricity Arrear
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="paidelecarrear" type="text" name="paidelecarrear" placeholder="0.00" inputmode="decimal">
+                </div>
+            </div>
+            <div class="mb-4 grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="paidwater">
                         Water
                     </label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                        id="chargewater" type="text" name="chargewater" placeholder="Enter amount " inputmode="decimal">
-
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="paidwater" type="text" name="paidwater" placeholder="0.00" inputmode="decimal">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="paidwaterarrear">
+                        Water Arrear
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="paidwaterarrear" type="text" name="paidwaterarrear" placeholder="0.00" inputmode="decimal">
                 </div>
             </div>
 
+            <div class="flex items-center">
+                <div class="flex-1 border-t border-gray-500"></div>
+                <div class="px-4 uppercase text-gray-600 text-xs font-bold tracking-wide">Charges</div>
+                <div class="flex-1 border-t border-gray-500"></div>
+            </div>
 
+            <div class="mb-4 flex gap-4 mt-2">
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="chargecusa">
+                        Cusa
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="chargecusa" type="text" name="chargecusa" placeholder="0.00" inputmode="decimal">
+                </div>
 
+                <div class="flex-1">
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="chargeac">
+                        Aircon
+                    </label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                        id="chargeac" type="text" name="chargeac" placeholder="0.00" inputmode="decimal">
+                </div>
+            </div>
 
-            <div class="mb-4 flex flex-col gap-4">
+            <div class="mb-4 flex flex-col gap-3">
                 <div class="flex gap-4 items-end">
                     <div class="flex-1">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="chargeothers">
+                        <label class="block text-gray-700 text-xs font-bold mb-1" for="chargeothers">
                             Others
                         </label>
                         <select id="chargeothers" name="chargeothers[]"
-                            class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500">
+                            class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500">
                             <option value="" selected>Select a type</option>
                             <option value="Table Tennis">Table Tennis</option>
                             <option value="Pay Toilet">Pay Toilet</option>
@@ -448,12 +549,12 @@ $conn->close();
                     </div>
 
                     <div class="flex-1">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="otheramount">
+                        <label class="block text-gray-700 text-xs font-bold mb-1" for="otheramount">
                             Amount for Others
                         </label>
                         <input oninput="formatNumberAndCalculateNewBalance(this)"
-                            class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                            id="otheramount" type="text" name="otheramount[]" placeholder="Enter amount"
+                            class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
+                            id="otheramount" type="text" name="otheramount[]" placeholder="0.00"
                             inputmode="decimal">
                     </div>
                 </div>
@@ -464,46 +565,65 @@ $conn->close();
 
                 <div class="flex justify-center">
                     <button type="button" id="addChargeButton"
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                        + Add
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1.5 px-4 text-xs rounded">
+                        + Add Charges
                     </button>
                 </div>
             </div>
 
-
-
-
             <div class="flex items-center mb-4">
+                <div class="flex-1 border-t border-gray-500"></div>
+                <div class="px-3 uppercase text-gray-600 text-xs font-bold tracking-wide">Summary</div>
                 <div class="flex-1 border-t border-gray-500"></div>
             </div>
 
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="total">
+            <div class="mb-3">
+                <label class="block text-gray-700 text-xs font-bold mb-1" for="total">
                     Total
                 </label>
                 <input readonly
-                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                    id="total" type="text" name="total" placeholder="Total">
+                    class="shadow appearance-none border border-black font-extrabold bg-blue-50 text-blue-900 rounded w-full py-2 px-3 text-base leading-tight focus:outline-none focus:shadow-outline"
+                    id="total" type="text" name="total" placeholder="0.00">
             </div>
 
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="balance">
-                    New Arrear Balance
-                </label>
-                <input readonly
-                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                    id="newbalance" type="text" name="newbalance" placeholder="New Balance">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="newrentbalance">
+                        New Rent Balance
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-green-700 font-bold leading-tight focus:outline-none focus:shadow-outline"
+                        id="newrentbalance" type="text" name="newrentbalance" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="newbalance">
+                        New Arrear Balance
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-black rounded w-full py-2 px-3 text-sm text-purple-700 font-bold leading-tight focus:outline-none focus:shadow-outline"
+                        id="newbalance" type="text" name="newbalance" placeholder="0.00">
+                </div>
             </div>
 
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="newrentbalance">
-                    New Rent Balance
-                </label>
-                <input readonly
-                    class="shadow appearance-none border border-black rounded w-full py-3 px-4 text-lg text-gray-700 leading-tight focus:outline-none focus:shadow-outline hover:border-blue-500"
-                    id="newrentbalance" type="text" name="newrentbalance" placeholder="New Rent Balance">
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="newelecbal">
+                        New Elec Balance
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-yellow-300 bg-yellow-50 rounded w-full py-2 px-3 text-sm text-yellow-800 font-bold leading-tight focus:outline-none focus:shadow-outline"
+                        id="newelecbal" type="text" name="newelecbal" placeholder="0.00">
+                    <input readonly hidden id="newelecarrear" type="text" name="newelecarrear" value="0">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-xs font-bold mb-1" for="newwaterbal">
+                        New Water Balance
+                    </label>
+                    <input readonly
+                        class="shadow appearance-none border border-blue-300 bg-blue-50 rounded w-full py-2 px-3 text-sm text-blue-800 font-bold leading-tight focus:outline-none focus:shadow-outline"
+                        id="newwaterbal" type="text" name="newwaterbal" placeholder="0.00">
+                    <input readonly hidden id="newwaterarrear" type="text" name="newwaterarrear" value="0">
+                </div>
             </div>
 
 
@@ -793,7 +913,7 @@ $conn->close();
         // Function to fetch tenant details based on the selected space code and branch
         let fetchTenantXHR = null;
         function fetchTenantDetails(spacecode) {
-            var branch = document.getElementById("branch").value; // Get selected branch value
+            var branch = document.getElementById("branch").value;
             if (fetchTenantXHR) fetchTenantXHR.abort();
             fetchTenantXHR = new XMLHttpRequest();
             var xhr = fetchTenantXHR;
@@ -806,122 +926,164 @@ $conn->close();
                         document.getElementById("tenantcode").value = response.tenantcode;
                         document.getElementById("tenantname").value = response.tenantname;
                         document.getElementById("rent").value = response.dailyRent;
-                        document.getElementById("rentbal").value = response.rentbal; // Update rentbal field
+                        document.getElementById("rentbal").value = response.rentbal;
                         document.getElementById("runningbal").value = response.runningbal;
+                        document.getElementById("elecarrear").value = response.elecarrear || "0.00";
+                        document.getElementById("elecbal").value = response.elecbal || "0.00";
+                        document.getElementById("electotal").value = response.electotal || "0.00";
+                        document.getElementById("waterarrear").value = response.waterarrear || "0.00";
+                        document.getElementById("waterbal").value = response.waterbal || "0.00";
+                        document.getElementById("watertotal").value = response.watertotal || "0.00";
 
-                        // Check if the spacecode is "Ambulant"
                         var isAmbulant = response.editable;
-
-                        // Set readonly attribute for input fields based on the condition
                         document.getElementById("tenantcode").readOnly = !isAmbulant;
                         document.getElementById("tenantname").readOnly = !isAmbulant;
                         document.getElementById("rent").readOnly = !isAmbulant;
-                        document.getElementById("rentbal").readOnly = !isAmbulant; // Update rentbal readonly
+                        document.getElementById("rentbal").readOnly = !isAmbulant;
                         document.getElementById("runningbal").readOnly = !isAmbulant;
+                        document.getElementById("elecarrear").readOnly = !isAmbulant;
+                        document.getElementById("elecbal").readOnly = !isAmbulant;
+                        document.getElementById("waterarrear").readOnly = !isAmbulant;
+                        document.getElementById("waterbal").readOnly = !isAmbulant;
+
+                        calculateNewBalance();
                     } else {
-                        // Handle error or clear fields
                         clearTenantDetails();
                     }
                 }
             };
-            xhr.send("spacecode=" + encodeURIComponent(spacecode) + "&branch=" + encodeURIComponent(branch)); // Pass branch value
+            xhr.send("spacecode=" + encodeURIComponent(spacecode) + "&branch=" + encodeURIComponent(branch));
         }
-
 
         // Function to clear tenant details
         function clearTenantDetails() {
+            document.getElementById("tenantcode").value = "";
             document.getElementById("tenantname").value = "";
             document.getElementById("rent").value = "";
             document.getElementById("rentbal").value = "";
             document.getElementById("runningbal").value = "";
-            // Clear readonly attributes
+            document.getElementById("elecarrear").value = "";
+            document.getElementById("elecbal").value = "";
+            document.getElementById("electotal").value = "";
+            document.getElementById("waterarrear").value = "";
+            document.getElementById("waterbal").value = "";
+            document.getElementById("watertotal").value = "";
+            document.getElementById("paidrent").value = "";
+            document.getElementById("paidbal").value = "";
+            document.getElementById("paidelec").value = "";
+            if (document.getElementById("paidelecarrear")) document.getElementById("paidelecarrear").value = "";
+            document.getElementById("paidwater").value = "";
+            if (document.getElementById("paidwaterarrear")) document.getElementById("paidwaterarrear").value = "";
+
+            document.getElementById("tenantcode").readOnly = false;
             document.getElementById("tenantname").readOnly = false;
             document.getElementById("rent").readOnly = false;
             document.getElementById("rentbal").readOnly = false;
             document.getElementById("runningbal").readOnly = false;
+            document.getElementById("elecarrear").readOnly = false;
+            document.getElementById("elecbal").readOnly = false;
+            document.getElementById("waterarrear").readOnly = false;
+            document.getElementById("waterbal").readOnly = false;
+
+            document.getElementById("total").value = "0.00";
+            document.getElementById("newbalance").value = "0.00";
+            document.getElementById("newrentbalance").value = "0.00";
+            document.getElementById("newelecbal").value = "0.00";
+            document.getElementById("newwaterbal").value = "0.00";
         }
 
         // Listen for input event on the space code input field
         document.getElementById("spacecode-input").addEventListener("input", function (event) {
             var value = event.target.value.trim();
             if (value === "") {
-                clearTenantDetails(); // Clear tenant details if the input field becomes empty
+                clearTenantDetails();
             } else {
-                suggestSpaceCode(value); // Suggest space code if the input field is not empty
+                suggestSpaceCode(value);
             }
         });
 
-
-
-
-
-
-
-
-
-
-
-
         // Function to calculate new running balance and new rent balance
         function calculateNewBalance() {
-            // Get the values from input fields and default to 0 if empty
             var dailyRent = parseFloat(document.getElementById("rent").value.replace(/,/g, '')) || 0;
             var paidRent = parseFloat(document.getElementById("paidrent").value.replace(/,/g, '')) || 0;
             var paidBalance = parseFloat(document.getElementById("paidbal").value.replace(/,/g, '')) || 0;
             var rentBalance = parseFloat(document.getElementById("rentbal").value.replace(/,/g, '')) || 0;
             var runningBalance = parseFloat(document.getElementById("runningbal").value.replace(/,/g, '')) || 0;
 
-            // Get the charges values from predefined inputs
+            // Electricity fields
+            var elecarrear = parseFloat(document.getElementById("elecarrear").value.replace(/,/g, '')) || 0;
+            var elecbal = parseFloat(document.getElementById("elecbal").value.replace(/,/g, '')) || 0;
+            var paidElec = parseFloat(document.getElementById("paidelec").value.replace(/,/g, '')) || 0;
+            var paidElecArrear = (document.getElementById("paidelecarrear") ? parseFloat(document.getElementById("paidelecarrear").value.replace(/,/g, '')) : 0) || 0;
+
+            // Water fields
+            var waterarrear = parseFloat(document.getElementById("waterarrear").value.replace(/,/g, '')) || 0;
+            var waterbal = parseFloat(document.getElementById("waterbal").value.replace(/,/g, '')) || 0;
+            var paidWater = parseFloat(document.getElementById("paidwater").value.replace(/,/g, '')) || 0;
+            var paidWaterArrear = (document.getElementById("paidwaterarrear") ? parseFloat(document.getElementById("paidwaterarrear").value.replace(/,/g, '')) : 0) || 0;
+
+            // Bypass / Normalization: Treat positive initial balances from database as negative debt
+            var baseRentBal = (rentBalance > 0) ? -rentBalance : rentBalance;
+            var baseRunningBal = (runningBalance > 0) ? -runningBalance : runningBalance;
+            var baseElecArrear = (elecarrear > 0) ? -elecarrear : elecarrear;
+            var baseElecBal = (elecbal > 0) ? -elecbal : elecbal;
+            var baseWaterArrear = (waterarrear > 0) ? -waterarrear : waterarrear;
+            var baseWaterBal = (waterbal > 0) ? -waterbal : waterbal;
+
+            var rawElecTotal = (elecarrear < 0 || elecbal < 0) ? (baseElecArrear + baseElecBal) : (elecarrear + elecbal);
+            document.getElementById("electotal").value = parseFloat(rawElecTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            var rawWaterTotal = (waterarrear < 0 || waterbal < 0) ? (baseWaterArrear + baseWaterBal) : (waterarrear + waterbal);
+            document.getElementById("watertotal").value = parseFloat(rawWaterTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            // Get charges (Cusa & Aircon)
             var chargecusa = parseFloat(document.getElementById("chargecusa").value.replace(/,/g, '')) || 0;
             var chargeac = parseFloat(document.getElementById("chargeac").value.replace(/,/g, '')) || 0;
-            var chargeelec = parseFloat(document.getElementById("chargeelec").value.replace(/,/g, '')) || 0;
-            var chargewater = parseFloat(document.getElementById("chargewater").value.replace(/,/g, '')) || 0;
+            var totalCharges = chargecusa + chargeac;
 
-            // Calculate total charges from predefined inputs
-            var totalCharges = chargecusa + chargeac + chargeelec + chargewater;
-
-            // Get the value from the predefined 'Others' inputs
+            // Get Others charge
             var otherAmount = parseFloat(document.getElementById("otheramount").value.replace(/,/g, '')) || 0;
-
-            // Check if there is a valid other type selected and amount is greater than 0
             var otherType = document.getElementById("chargeothers").value;
             if (otherType && otherAmount > 0) {
                 totalCharges += otherAmount;
             }
 
-            // Get dynamically added charges
-            var additionalCharges = document.querySelectorAll('#additionalChargesContainer .flex-1 input');
+            var additionalCharges = document.querySelectorAll('#additionalChargesContainer .flex-1 input[name="otheramount[]"]');
             additionalCharges.forEach(function (input) {
                 var amount = parseFloat(input.value.replace(/,/g, '')) || 0;
                 totalCharges += amount;
             });
 
             // Calculate total amount paid
-            var totalAmountPaid = paidRent + paidBalance;
+            var totalAmountPaid = paidRent + paidBalance + paidElec + paidElecArrear + paidWater + paidWaterArrear;
 
-            // Calculate rent balance based on paid rent
-            var rentBalanceRemaining = dailyRent - paidRent; // Remaining daily rent after payment
-            var newRentBalance = rentBalance + rentBalanceRemaining; // Add to existing rent balance
+            // Rent balance: Negative = debt, Positive/0 = advance/credit
+            var newRentBalance = baseRentBal + paidRent - dailyRent;
 
-            // Format the new rent balance with commas and two decimal places
-            var formattedNewRentBalance = newRentBalance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            // Running/Arrear balance
+            var newRunningBalance = baseRunningBal + paidBalance;
 
-            // Update the value of the new rent balance input field
-            document.getElementById("newrentbalance").value = formattedNewRentBalance;
+            // Elec balances (Negative = debt, Positive/0 = advance/overpay)
+            var newElecBal = baseElecBal + paidElec;
+            var newElecArrear = baseElecArrear + paidElecArrear;
+            var newElecTotal = newElecArrear + newElecBal;
 
-            // Calculate new running balance: running balance - paid balance
-            var newRunningBalance = runningBalance - paidBalance;
+            // Water balances (Negative = debt, Positive/0 = advance/overpay)
+            var newWaterBal = baseWaterBal + paidWater;
+            var newWaterArrear = baseWaterArrear + paidWaterArrear;
+            var newWaterTotal = newWaterArrear + newWaterBal;
 
-            // Format the new running balance with commas and two decimal places
-            var formattedNewRunningBalance = newRunningBalance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-            // Update the value of the new running balance input field
-            document.getElementById("newbalance").value = formattedNewRunningBalance;
-
-            // Update the total input field
+            // Total
             var total = totalAmountPaid + totalCharges;
-            var formattedTotal = total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            document.getElementById("total").value = formattedTotal;
+
+            // Update fields
+            document.getElementById("newrentbalance").value = parseFloat(newRentBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newbalance").value = parseFloat(newRunningBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newelecbal").value = parseFloat(newElecBal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newelecarrear").value = parseFloat(newElecArrear.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newwaterbal").value = parseFloat(newWaterBal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newwaterarrear").value = parseFloat(newWaterArrear.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("total").value = parseFloat(total.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
 
         // Function to format numbers with commas and trigger calculation

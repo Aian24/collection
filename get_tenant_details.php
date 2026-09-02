@@ -24,7 +24,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['spacecode']) && isset(
     }
 
     // Prepare the SQL statement
-    $stmt = $conn->prepare("SELECT tenantname, daily, rentbal, runningbal, tenantcode FROM $table WHERE spacecode = ?");
+    $stmt = $conn->prepare("SELECT tenantname, daily, rentbal, runningbal, tenantcode, elecbal, waterbal, elecarrear, waterarrear FROM $table WHERE spacecode = ?");
     $stmt->bind_param("s", $spacecode);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -59,14 +59,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['spacecode']) && isset(
         }
         $paidStmt->close();
 
-        // Format the response
+        // Parse numerical values for Elec and Water
+        $elecArrearVal = floatval(str_replace(',', '', $row['elecarrear'] ?? '0'));
+        $elecBalVal = floatval(str_replace(',', '', $row['elecbal'] ?? '0'));
+        $elecTotalVal = $elecArrearVal + $elecBalVal;
+
+        $waterArrearVal = floatval(str_replace(',', '', $row['waterarrear'] ?? '0'));
+        $waterBalVal = floatval(str_replace(',', '', $row['waterbal'] ?? '0'));
+        $waterTotalVal = $waterArrearVal + $waterBalVal;
+
+        $rentBalVal = floatval(str_replace(',', '', $row['rentbal'] ?? '0'));
+        $runningBalVal = floatval(str_replace(',', '', $row['runningbal'] ?? '0'));
+
+        // Format the response (keep natural values as in DB)
         $response = [
             'success' => true,
             'tenantcode' => $tenantcode,
             'tenantname' => $tenantname,
-            'dailyRent' => number_format($row['daily'], 2, '.', ',') ?? '0.00',
-            'rentbal' => !empty($row['rentbal']) ? number_format($row['rentbal'], 2, '.', ',') : '0.00',
-            'runningbal' => !empty($row['runningbal']) ? number_format($row['runningbal'], 2, '.', ',') : '0.00',
+            'dailyRent' => number_format((float)($row['daily'] ?? 0), 2, '.', ','),
+            'rentbal' => number_format($rentBalVal, 2, '.', ','),
+            'runningbal' => number_format($runningBalVal, 2, '.', ','),
+            'elecarrear' => number_format($elecArrearVal, 2, '.', ','),
+            'elecbal' => number_format($elecBalVal, 2, '.', ','),
+            'electotal' => number_format($elecTotalVal, 2, '.', ','),
+            'waterarrear' => number_format($waterArrearVal, 2, '.', ','),
+            'waterbal' => number_format($waterBalVal, 2, '.', ','),
+            'watertotal' => number_format($waterTotalVal, 2, '.', ','),
             'editable' => ($spacecode === 'Ambulant'),
             'paidToday' => $paidToday
         ];

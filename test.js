@@ -172,16 +172,11 @@
             // 2. Apply payments to respective balances independently
             // 3. Preserve negative balances as overpayments
             
-            // Calculate new rent balance
-            // When rentBalance is negative (overpayment), applying a payment should reduce the overpayment
-            // The overpayment amount is (paidRent - dailyRent) when paidRent > dailyRent
-            // New rent balance = Current rent balance - (Paid Rent - Daily Rent)
-            var overpayment = paidRent - dailyRent;
-            var newRentBalance = rentBalance - overpayment;
+            // Calculate new rent balance: Negative = debt, Positive/0 = advance/credit
+            var newRentBalance = rentBalance + paidRent - dailyRent;
             
             // Calculate new arrear balance
-            // New arrear balance = Current arrear balance - Amount paid toward arrear
-            var newRunningBalance = runningBalance - paidBalance;
+            var newRunningBalance = runningBalance + paidBalance;
 
             // Calculate total payment (amounts paid + charges)
             var total = totalAmountPaid + totalCharges;

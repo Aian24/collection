@@ -66,6 +66,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $runningBal = !empty($_POST['runningbal']) ? floatval(str_replace(',', '', $_POST['runningbal'])) : 0;
     $paidrent = !empty($_POST['paidrent']) ? floatval(str_replace(',', '', $_POST['paidrent'])) : 0;
     $paidbal = !empty($_POST['paidbal']) ? floatval(str_replace(',', '', $_POST['paidbal'])) : 0;
+    $paidelec = !empty($_POST['paidelec']) ? floatval(str_replace(',', '', $_POST['paidelec'])) : 0;
+    $paidelecarrear = !empty($_POST['paidelecarrear']) ? floatval(str_replace(',', '', $_POST['paidelecarrear'])) : 0;
+    $paidwater = !empty($_POST['paidwater']) ? floatval(str_replace(',', '', $_POST['paidwater'])) : 0;
+    $paidwaterarrear = !empty($_POST['paidwaterarrear']) ? floatval(str_replace(',', '', $_POST['paidwaterarrear'])) : 0;
+    $elecbal = !empty($_POST['elecbal']) ? floatval(str_replace(',', '', $_POST['elecbal'])) : 0;
+    $elecarrear = !empty($_POST['elecarrear']) ? floatval(str_replace(',', '', $_POST['elecarrear'])) : 0;
+    $newelecbal = !empty($_POST['newelecbal']) ? floatval(str_replace(',', '', $_POST['newelecbal'])) : 0;
+    $newelecarrear = !empty($_POST['newelecarrear']) ? floatval(str_replace(',', '', $_POST['newelecarrear'])) : 0;
+    $waterbal = !empty($_POST['waterbal']) ? floatval(str_replace(',', '', $_POST['waterbal'])) : 0;
+    $waterarrear = !empty($_POST['waterarrear']) ? floatval(str_replace(',', '', $_POST['waterarrear'])) : 0;
+    $newwaterbal = !empty($_POST['newwaterbal']) ? floatval(str_replace(',', '', $_POST['newwaterbal'])) : 0;
+    $newwaterarrear = !empty($_POST['newwaterarrear']) ? floatval(str_replace(',', '', $_POST['newwaterarrear'])) : 0;
     $total = !empty($_POST['total']) ? floatval(str_replace(',', '', $_POST['total'])) : 0;
     $newbalance = !empty($_POST['newbalance']) ? floatval(str_replace(',', '', $_POST['newbalance'])) : 0;
     $newrentbalance = !empty($_POST['newrentbalance']) ? floatval(str_replace(',', '', $_POST['newrentbalance'])) : 0;
@@ -73,19 +85,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Use the latest transaction number to generate the next one
     $nextTransactionNumber = $latestTransactionNumber + 1;
 
-    // Accumulate charges, if provided
+    // Accumulate charges, if provided (Electricity and Water are in main payment now)
     $charges = [];
     if (!empty($_POST['chargecusa'])) {
         $charges[] = "Cusa: " . floatval(str_replace(',', '', $_POST['chargecusa']));
     }
     if (!empty($_POST['chargeac'])) {
         $charges[] = "Aircon: " . floatval(str_replace(',', '', $_POST['chargeac']));
-    }
-    if (!empty($_POST['chargeelec'])) {
-        $charges[] = "Electricity: " . floatval(str_replace(',', '', $_POST['chargeelec']));
-    }
-    if (!empty($_POST['chargewater'])) {
-        $charges[] = "Water: " . floatval(str_replace(',', '', $_POST['chargewater']));
     }
 
     // Handle multiple 'chargeothers' and 'otheramount' entries
@@ -102,22 +108,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $chargesString = implode(', ', $charges);
 
     // Prepare the INSERT statement for the main table
-    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, payment_method, cheque_number, cheque_payee" .
-        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
+    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, payment_method, cheque_number, cheque_payee, elecbal, paidelec, newelecbal, waterbal, paidwater, newwaterbal, elecarrear, waterarrear, newelecarrear, newwaterarrear, paidelecarrear, paidwaterarrear" .
+        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
         (!empty($chargesString) ? ", ?" : "") . ")";
 
     $insertStmt = $conn->prepare($query);
 
     // Bind parameters for insertion
     if (!empty($chargesString)) {
-        $insertStmt->bind_param("dssssssddddsssssssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date, $payment_method, $cheque_number, $cheque_payee, $chargesString);
+        $insertStmt->bind_param("dsssssddddddddsssssdddddddddddds", 
+            $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, 
+            $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, 
+            $username, $collected_date, $payment_method, $cheque_number, $cheque_payee,
+            $elecbal, $paidelec, $newelecbal, $waterbal, $paidwater, $newwaterbal, $elecarrear, $waterarrear, $newelecarrear, $newwaterarrear, $paidelecarrear, $paidwaterarrear,
+            $chargesString);
     } else {
-        $insertStmt->bind_param("dssssssddddssssssss", $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, $username, $collected_date, $payment_method, $cheque_number, $cheque_payee);
+        $insertStmt->bind_param("dsssssddddddddsssssdddddddddddd", 
+            $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, 
+            $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, 
+            $username, $collected_date, $payment_method, $cheque_number, $cheque_payee,
+            $elecbal, $paidelec, $newelecbal, $waterbal, $paidwater, $newwaterbal, $elecarrear, $waterarrear, $newelecarrear, $newwaterarrear, $paidelecarrear, $paidwaterarrear);
     }
 
     // Execute the INSERT statement
     if ($insertStmt->execute()) {
-        // Update running balance and rent balance based on branch
+        // Update running balance, rent balance, electricity, and water balances based on branch
         $updateTable = '';
         if ($branch === 'Sanko Market') {
             $updateTable = 'sanko';
@@ -128,13 +143,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if (!empty($updateTable)) {
-            $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ? WHERE spacecode = ?");
-            $updateStmt->bind_param("dds", $newbalance, $newrentbalance, $spacecode);
+            $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ?, elecbal = ?, waterbal = ?, elecarrear = ?, waterarrear = ? WHERE spacecode = ?");
+            $updateStmt->bind_param("dddddds", $newbalance, $newrentbalance, $newelecbal, $newwaterbal, $newelecarrear, $newwaterarrear, $spacecode);
 
             if ($updateStmt->execute()) {
                 include 'modalsuccess.php'; // Include modalsuccess.php to display the success modal
             } else {
-                echo "Error updating running and rent balance: " . $conn->error;
+                echo "Error updating balances: " . $conn->error;
             }
 
             $updateStmt->close();
@@ -327,7 +342,7 @@ $conn->close();
         .status-paid { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
         .status-unpaid { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 
-        /* â”€â”€ FORM CARD â”€â”€ */
+        /* ── FORM CARD ── */
         .pos-card {
             background: var(--surface);
             border-radius: 16px;
@@ -335,13 +350,13 @@ $conn->close();
             overflow: hidden;
         }
 
-        /* â”€â”€ INPUTS â”€â”€ */
+        /* ── INPUTS & LABELS ── */
         .pos-input {
             width: 100%;
             border: 1.5px solid var(--border);
             border-radius: 10px;
-            padding: 13px 14px;
-            font-size: 16px;
+            padding: 10px 12px;
+            font-size: 14px;
             font-family: inherit;
             background: var(--surface);
             color: var(--text);
@@ -354,9 +369,49 @@ $conn->close();
             box-shadow: 0 0 0 3px rgba(37,99,235,.15);
         }
         .pos-input-small {
-            padding: 7px 10px !important;
-            font-size: 14px !important;
-            height: 38px !important;
+            padding: 6px 8px !important;
+            font-size: 13px !important;
+            height: 34px !important;
+        }
+
+        /* ── FIELD WITH LEFT-ALIGNED NOTCHED BORDER LABEL ── */
+        .pos-field {
+            position: relative;
+            margin-top: 8px;
+        }
+        .pos-field .pos-label {
+            position: absolute;
+            top: 0;
+            left: 10px;
+            transform: translateY(-50%);
+            background: var(--surface, #ffffff);
+            padding: 0 5px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-muted, #64748b);
+            white-space: nowrap;
+            z-index: 2;
+            pointer-events: none;
+            display: inline-flex;
+            align-items: center;
+            border-radius: 4px;
+            line-height: 1.2;
+            margin-bottom: 0;
+        }
+        .pos-field .pos-label i { font-size: 9px; }
+        .pos-field .pos-label-yellow { background: #fefce8 !important; }
+        .pos-field .pos-label-blue { background: #eff6ff !important; }
+
+        .pos-field .pos-input {
+            padding: 8px 10px 6px !important;
+            font-size: 13px;
+            text-align: left;
+        }
+        .pos-field select.pos-input {
+            text-align-last: left;
+            height: 38px;
         }
 
         .pos-label {
@@ -370,10 +425,115 @@ $conn->close();
         }
         .pos-label i { color: var(--primary); }
 
-        /* â”€â”€ SECTION DIVIDER â”€â”€ */
+        /* Modal Z-Index Overlap Fix */
+        #confirmationModal, #welcomeModal, #logoutConfirmModal, #viewTransactionsModal, #duplicatedTransactionsModal {
+            z-index: 99999 !important;
+        }
+
+        /* ── CUSTOM SEARCHABLE DROPDOWN ── */
+        .custom-select {
+            position: relative;
+        }
+        .custom-select .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            min-width: 240px;
+            max-width: 300px;
+            background: #ffffff;
+            border: 1.5px solid #93c5fd;
+            border-radius: 12px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18), 0 4px 10px rgba(0, 0, 0, 0.08);
+            z-index: 1050 !important;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .custom-select .dropdown-menu.hidden {
+            display: none !important;
+        }
+        .custom-select .search-box-wrap {
+            padding: 8px 10px;
+            background: #eff6ff;
+            border-bottom: 1px solid #dbeafe;
+            position: relative;
+        }
+        .custom-select .search-input {
+            width: 100%;
+            padding: 6px 10px;
+            font-size: 12px;
+            background: #ffffff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            outline: none;
+            color: #1e293b;
+            font-family: inherit;
+        }
+        .custom-select .search-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+        .custom-select .search-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: #60a5fa;
+            pointer-events: none;
+        }
+        .custom-select .dropdown-options {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+        .custom-select .dropdown-option {
+            padding: 9px 12px;
+            font-size: 12px;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #f8fafc;
+        }
+        .custom-select .dropdown-option:last-child {
+            border-bottom: none;
+        }
+        .custom-select .dropdown-option:hover,
+        .custom-select .dropdown-option:active {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        .custom-select .dropdown-option.selected {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 700;
+        }
+        .custom-select .dropdown-clear {
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #ef4444;
+            cursor: pointer;
+            background: #fff5f5;
+            border-bottom: 1px solid #fee2e2;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .custom-select .dropdown-clear:hover {
+            background: #fee2e2;
+        }
+
+        /* ── SECTION DIVIDER ── */
         .section-divider {
             display: flex; align-items: center;
-            margin: 18px 0 12px;
+            margin: 12px 0 6px;
         }
         .section-divider::before, .section-divider::after {
             content: ''; flex: 1;
@@ -620,37 +780,31 @@ $conn->close();
                 <div class="section-divider-label"><i class="fas fa-user-tag mr-2"></i>Tenant Information</div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="pos-label" for="spacecode">
-                        <i class="fas fa-map-marker-alt"></i>Space Code
-                    </label>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="spacecode-input">Space Code</label>
                     <div class="relative">
                         <input required autocomplete="off"
                             class="pos-input w-full"
-                            id="spacecode-input" type="text" name="spacecode" placeholder="Space Code"
+                            id="spacecode-input" type="text" name="spacecode" placeholder="Enter Space Code"
                             oninput="suggestSpaceCode(this.value)">
                         <span id="spacecode-error" class="text-red-500 text-sm"></span>
                         <div id="payment-status-container" class="hidden">
                             <i id="payment-status-icon" class="fas"></i>
                             <span id="payment-status-text"></span>
                         </div>
-                        <div id="spacecode-suggestions" class="hidden absolute z-10 bg-white rounded-lg mt-1 shadow-lg w-full"></div>
+                        <div id="spacecode-suggestions" class="hidden absolute z-30 bg-white rounded-lg mt-1 shadow-lg w-full"></div>
                     </div>
                 </div>
-                <div>
-                    <label class="pos-label" for="tenantcode">
-                        <i class="fas fa-id-card"></i>Tenant Code
-                    </label>
-                    <input required class="pos-input w-full" id="tenantcode" type="text" name="tenantcode" placeholder="Tenant Code">
+                <div class="pos-field">
+                    <label class="pos-label" for="tenantcode">Tenant Code</label>
+                    <input required class="pos-input w-full" id="tenantcode" type="text" name="tenantcode" placeholder="Enter Tenant Code">
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="pos-label" for="tenantname">
-                    <i class="fas fa-user"></i>Tenant Name
-                </label>
-                <input required class="pos-input w-full" id="tenantname" type="text" name="tenantname" placeholder="Tenant Name">
+            <div class="pos-field mb-2">
+                <label class="pos-label" for="tenantname">Tenant Name</label>
+                <input required class="pos-input w-full font-bold text-gray-800" id="tenantname" type="text" name="tenantname" placeholder="Enter Tenant Name">
             </div>
 
             <!-- Rent Details Section -->
@@ -658,25 +812,58 @@ $conn->close();
                 <div class="section-divider-label"><i class="fas fa-coins mr-2"></i>Rent Details</div>
             </div>
 
-            <div class="mb-3">
-                <label class="pos-label" for="rent">
-                    <i class="fas fa-money-bill"></i>Daily Rent
-                </label>
-                <input class="pos-input w-full" id="rent" type="text" name="rent" placeholder="Daily Rent">
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="rent">Daily Rent</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="rent" type="text" name="rent" placeholder="Enter Daily Rent" oninput="calculateNewBalance()">
+                </div>
+                <div class="pos-field">
+                    <label class="pos-label" for="rentbal">Rent Bal</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="rentbal" type="text" name="rentbal" placeholder="Enter Rent Bal" oninput="calculateNewBalance()">
+                </div>
+                <div class="pos-field">
+                    <label class="pos-label" for="runningbal">Arrear Bal</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="runningbal" type="text" name="runningbal" placeholder="Enter Arrear Bal" oninput="calculateNewBalance()">
+                </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="pos-label" for="rentbal">
-                        <i class="fas fa-balance-scale"></i>Rent Balance
-                    </label>
-                    <input class="pos-input w-full" id="rentbal" type="text" name="rentbal" placeholder="Rent Balance" oninput="calculateNewBalance()">
+            <!-- Electricity Details Section -->
+            <div class="section-divider">
+                <div class="section-divider-label"><i class="fas fa-bolt text-yellow-500 mr-2"></i>Electricity Details</div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="elecarrear">Arrears</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="elecarrear" type="text" name="elecarrear" placeholder="0.00" readonly>
                 </div>
-                <div>
-                    <label class="pos-label" for="runningbal">
-                        <i class="fas fa-exclamation-circle"></i>Arrear Balance
-                    </label>
-                    <input class="pos-input w-full" id="runningbal" type="text" name="runningbal" placeholder="Arrear Balance">
+                <div class="pos-field">
+                    <label class="pos-label" for="elecbal">Electricity Bal</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="elecbal" type="text" name="elecbal" placeholder="0.00" readonly>
+                </div>
+                <div class="pos-field">
+                    <label class="pos-label pos-label-yellow" for="electotal">Total Bal</label>
+                    <input class="pos-input w-full font-semibold text-xs sm:text-sm px-2 py-2 bg-yellow-50 text-yellow-800 border-yellow-200" id="electotal" type="text" name="electotal" placeholder="0.00" readonly>
+                </div>
+            </div>
+
+            <!-- Water Details Section -->
+            <div class="section-divider">
+                <div class="section-divider-label"><i class="fas fa-tint text-blue-500 mr-2"></i>Water Details</div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="waterarrear">Arrears</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="waterarrear" type="text" name="waterarrear" placeholder="0.00" readonly>
+                </div>
+                <div class="pos-field">
+                    <label class="pos-label" for="waterbal">Water Bal</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="waterbal" type="text" name="waterbal" placeholder="0.00" readonly>
+                </div>
+                <div class="pos-field">
+                    <label class="pos-label pos-label-blue" for="watertotal">Total Bal</label>
+                    <input class="pos-input w-full font-semibold text-xs sm:text-sm px-2 py-2 bg-blue-50 text-blue-800 border-blue-200" id="watertotal" type="text" name="watertotal" placeholder="0.00" readonly>
                 </div>
             </div>
 
@@ -685,44 +872,58 @@ $conn->close();
                 <div class="section-divider-label"><i class="fas fa-hand-holding-usd mr-2"></i>Payment</div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                    <label class="pos-label" for="paidrent">
-                        <i class="fas fa-money-bill-wave"></i>Payment (Rent)
-                    </label>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="paidrent">Rent</label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full" id="paidrent" type="text" name="paidrent" placeholder="0.00" inputmode="decimal">
+                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-green-700" id="paidrent" type="text" name="paidrent" placeholder="Enter Amount" inputmode="decimal">
                 </div>
-                <div>
-                    <label class="pos-label" for="paidbal">
-                        <i class="fas fa-money-check-alt"></i>Payment (Arrear)
-                    </label>
+                <div class="pos-field">
+                    <label class="pos-label" for="paidbal">Rent Arrear</label>
                     <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full" id="paidbal" type="text" name="paidbal" placeholder="0.00" inputmode="decimal">
+                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-purple-700" id="paidbal" type="text" name="paidbal" placeholder="Enter Amount" inputmode="decimal">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="paidelec">Electricity</label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-yellow-800" id="paidelec" type="text" name="paidelec" placeholder="Enter Amount" inputmode="decimal">
+                </div>
+                <div class="pos-field">
+                    <label class="pos-label" for="paidelecarrear">Electricity Arrear</label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-yellow-900" id="paidelecarrear" type="text" name="paidelecarrear" placeholder="Enter Amount" inputmode="decimal">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="paidwater">Water</label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-blue-800" id="paidwater" type="text" name="paidwater" placeholder="Enter Amount" inputmode="decimal">
+                </div>
+                <div class="pos-field">
+                    <label class="pos-label" for="paidwaterarrear">Water Arrear</label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-blue-900" id="paidwaterarrear" type="text" name="paidwaterarrear" placeholder="Enter Amount" inputmode="decimal">
                 </div>
             </div>
 
-            <div class="mb-4">
-                <label class="pos-label" for="payment_method">
-                    <i class="fas fa-wallet"></i>Payment Method
-                </label>
-                <select class="pos-input w-full" id="payment_method" name="payment_method" onchange="toggleChequeInput()" required>
+            <div class="pos-field mb-2">
+                <label class="pos-label" for="payment_method">Payment Method</label>
+                <select class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-semibold" id="payment_method" name="payment_method" onchange="toggleChequeInput()" required>
                     <option value="Cash" selected>Cash</option>
                     <option value="Cheque">Cheque</option>
                 </select>
             </div>
-            <div id="cheque_container" class="hidden grid grid-cols-2 gap-3 mb-4">
-                <div>
-                    <label class="pos-label" for="cheque_number">
-                        <i class="fas fa-money-check"></i>Cheque Number
-                    </label>
-                    <input class="pos-input w-full" id="cheque_number" type="text" name="cheque_number" placeholder="Enter Cheque Number">
+            <div id="cheque_container" class="hidden grid grid-cols-2 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="cheque_number">Cheque Number</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="cheque_number" type="text" name="cheque_number" placeholder="Enter Cheque Number">
                 </div>
-                <div>
-                    <label class="pos-label" for="cheque_payee">
-                        <i class="fas fa-user-tag"></i>Payee Name
-                    </label>
-                    <input class="pos-input w-full" id="cheque_payee" type="text" name="cheque_payee" placeholder="Enter Payee Name">
+                <div class="pos-field">
+                    <label class="pos-label" for="cheque_payee">Payee Name</label>
+                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="cheque_payee" type="text" name="cheque_payee" placeholder="Enter Payee Name">
                 </div>
             </div>
 
@@ -731,85 +932,55 @@ $conn->close();
                 <div class="section-divider-label"><i class="fas fa-file-invoice mr-2"></i>Additional Charges</div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="pos-label" for="chargecusa"><i class="fas fa-landmark"></i>Cusa</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full" id="chargecusa" type="text" name="chargecusa" placeholder="0.00" inputmode="decimal">
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="pos-field">
+                    <label class="pos-label" for="chargecusa">Cusa</label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="chargecusa" type="text" name="chargecusa" placeholder="Enter Amount" inputmode="decimal">
                 </div>
-                <div>
-                    <label class="pos-label" for="chargeac"><i class="fas fa-wind"></i>Aircon</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full" id="chargeac" type="text" name="chargeac" placeholder="0.00" inputmode="decimal">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="pos-label" for="chargeelec"><i class="fas fa-bolt"></i>Electricity</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full" id="chargeelec" type="text" name="chargeelec" placeholder="0.00" inputmode="decimal">
-                </div>
-                <div>
-                    <label class="pos-label" for="chargewater"><i class="fas fa-tint"></i>Water</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full" id="chargewater" type="text" name="chargewater" placeholder="0.00" inputmode="decimal">
+                <div class="pos-field">
+                    <label class="pos-label" for="chargeac">Aircon</label>
+                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="chargeac" type="text" name="chargeac" placeholder="Enter Amount" inputmode="decimal">
                 </div>
             </div>
 
-            <div class="mb-4 flex flex-col gap-3">
-                <div class="grid grid-cols-2 gap-3 items-end">
-                    <div>
-                        <label class="pos-label" for="chargeothers"><i class="fas fa-plus-circle"></i>Others</label>
-                    <div class="relative custom-select" id="initialChargeSelect">
-                        <input type="text" class="pos-input w-full cursor-pointer bg-white border-blue-200 focus:border-blue-500" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
-                        <input type="hidden" id="chargeothers" name="chargeothers[]">
-                        <div class="absolute z-50 w-full bg-white border border-blue-200 rounded-lg shadow-xl mt-1 hidden dropdown-menu flex-col overflow-hidden">
-                            <div class="p-2 border-b border-blue-100 bg-blue-50">
-                                <input type="text" class="w-full bg-white border border-blue-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" placeholder="Search charges...">
+            <div class="mb-3 flex flex-col gap-2">
+                <div class="grid grid-cols-2 gap-2 items-end">
+                    <div class="pos-field">
+                        <label class="pos-label" for="chargeothers">Others</label>
+                        <div class="relative custom-select" id="initialChargeSelect">
+                            <input type="text" class="pos-input w-full cursor-pointer bg-white text-xs sm:text-sm px-2 py-2" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
+                            <input type="hidden" id="chargeothers" name="chargeothers[]">
+                            <div class="dropdown-menu hidden">
+                                <div class="search-box-wrap">
+                                    <input type="text" class="search-input" placeholder="Search charges...">
+                                </div>
+                                <div class="dropdown-options"></div>
                             </div>
-                            <div class="max-h-48 overflow-y-auto dropdown-options"></div>
                         </div>
                     </div>
-                </div>
-                <div>
-                        <label class="pos-label" for="otheramount"><i class="fas fa-money-bill-alt"></i>Amount</label>
-                        <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full" id="otheramount" type="text" name="otheramount[]" placeholder="0.00" inputmode="decimal">
+                    <div class="pos-field">
+                        <label class="pos-label" for="otheramount">Amount</label>
+                        <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="otheramount" type="text" name="otheramount[]" placeholder="Enter Amount" inputmode="decimal">
                     </div>
                 </div>
                 <div id="additionalChargesContainer" class="flex flex-col gap-2"></div>
                 <div class="flex justify-center">
-                    <button type="button" id="addChargeButton" class="pos-button bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-4 text-sm font-semibold border-none shadow transition-all rounded-lg">
+                    <button type="button" id="addChargeButton" class="pos-button bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-4 text-xs font-semibold border-none shadow transition-all rounded-lg">
                         <i class="fas fa-plus mr-1.5"></i>Add Charges
                     </button>
                 </div>
             </div>
 
-            <!-- Summary Section -->
-            <div class="section-divider">
-                <div class="section-divider-label"><i class="fas fa-calculator mr-2"></i>Summary</div>
-            </div>
+            <!-- Hidden Calculated Inputs for Form Submission -->
+            <input readonly hidden id="total" type="text" name="total" value="0">
+            <input readonly hidden id="newrentbalance" type="text" name="newrentbalance" value="0">
+            <input readonly hidden id="newbalance" type="text" name="newbalance" value="0">
+            <input readonly hidden id="newelecbal" type="text" name="newelecbal" value="0">
+            <input readonly hidden id="newelecarrear" type="text" name="newelecarrear" value="0">
+            <input readonly hidden id="newwaterbal" type="text" name="newwaterbal" value="0">
+            <input readonly hidden id="newwaterarrear" type="text" name="newwaterarrear" value="0">
 
-            <div class="grid grid-cols-3 gap-2 mb-4">
-                <div class="info-box" style="flex-direction:column;align-items:flex-start;padding:12px">
-                    <div class="info-label" style="margin-bottom:4px">Total</div>
-                    <div class="info-value" style="font-size:16px;color:#2563eb">
-                        &#x20B1;<span id="total-display">0.00</span>
-                    </div>
-                    <input readonly hidden id="total" type="text" name="total" value="0">
-                </div>
-                <div class="info-box" style="flex-direction:column;align-items:flex-start;padding:12px">
-                    <div class="info-label" style="margin-bottom:4px">Arrear Bal</div>
-                    <div class="info-value" style="font-size:16px;color:#7c3aed">
-                        &#x20B1;<span id="newbalance-display">0.00</span>
-                    </div>
-                    <input readonly hidden id="newbalance" type="text" name="newbalance" value="0">
-                </div>
-                <div class="info-box" style="flex-direction:column;align-items:flex-start;padding:12px">
-                    <div class="info-label" style="margin-bottom:4px">Rent Bal</div>
-                    <div class="info-value" style="font-size:16px;color:#16a34a">
-                        &#x20B1;<span id="newrentbalance-display">0.00</span>
-                    </div>
-                    <input readonly hidden id="newrentbalance" type="text" name="newrentbalance" value="0">
-                </div>
-            </div>
-
-            <button class="submit-btn mb-2" type="submit" id="submitButton">
+            <button class="submit-btn mt-2 mb-2" type="submit" id="submitButton">
                 <i class="fas fa-paper-plane"></i> Submit Payment
             </button>
         </form>
@@ -853,26 +1024,27 @@ $conn->close();
 
 
     <!-- Confirmation Modal -->
-    <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
-        <div class="mobile-modal bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-            <div class="text-center mb-4">
-                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
-                    <i class="fas fa-receipt text-blue-600 text-2xl"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800">Payment Summary</h2>
-                <p class="text-gray-600">Please double check the amount before confirming</p>
+    <div id="confirmationModal" style="z-index: 99999;" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 max-w-sm w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-gray-100 animate-fadeIn">
+            <!-- Modal Header -->
+            <div class="text-center pb-2 border-b border-gray-100 flex-shrink-0">
+                <h2 class="text-base sm:text-lg font-black text-gray-900 flex items-center justify-center gap-2">
+                    <i class="fas fa-receipt text-blue-600"></i> Payment Summary
+                </h2>
             </div>
             
-            <div id="confirmationSummary" class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <!-- Scrollable Content -->
+            <div id="confirmationSummary" class="my-2.5 overflow-y-auto pr-1 flex-1 space-y-2 text-xs">
                 <!-- Dynamic content will be inserted here -->
             </div>
             
-            <div class="flex justify-between gap-4">
-                <button id="cancelButton" class="pos-button bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-lg flex-1 flex items-center justify-center">
-                    <i class="fas fa-times mr-2"></i> Cancel
+            <!-- Action Buttons -->
+            <div class="flex justify-between gap-2.5 pt-2 border-t border-gray-100 flex-shrink-0">
+                <button type="button" id="cancelButton" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 px-3 rounded-xl flex-1 flex items-center justify-center text-xs transition active:scale-95">
+                    <i class="fas fa-arrow-left mr-1"></i> Edit
                 </button>
-                <button id="confirmButton" class="pos-button bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg flex-1 flex items-center justify-center">
-                    <i class="fas fa-check mr-2"></i> Confirm
+                <button type="button" id="confirmButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl flex-1 flex items-center justify-center text-xs shadow-md shadow-blue-500/20 transition active:scale-95">
+                    <i class="fas fa-check mr-1"></i> Confirm & Submit
                 </button>
             </div>
         </div>
@@ -1057,73 +1229,99 @@ $conn->close();
             var rentBalance = parseFloat(document.getElementById("rentbal").value.replace(/,/g, '')) || 0;
             var runningBalance = parseFloat(document.getElementById("runningbal").value.replace(/,/g, '')) || 0;
 
-            // Get the charges values from predefined inputs
+            // Electricity fields
+            var elecarrear = parseFloat(document.getElementById("elecarrear").value.replace(/,/g, '')) || 0;
+            var elecbal = parseFloat(document.getElementById("elecbal").value.replace(/,/g, '')) || 0;
+            var paidElec = parseFloat(document.getElementById("paidelec").value.replace(/,/g, '')) || 0;
+            var paidElecArrear = (document.getElementById("paidelecarrear") ? parseFloat(document.getElementById("paidelecarrear").value.replace(/,/g, '')) : 0) || 0;
+
+            // Water fields
+            var waterarrear = parseFloat(document.getElementById("waterarrear").value.replace(/,/g, '')) || 0;
+            var waterbal = parseFloat(document.getElementById("waterbal").value.replace(/,/g, '')) || 0;
+            var paidWater = parseFloat(document.getElementById("paidwater").value.replace(/,/g, '')) || 0;
+            var paidWaterArrear = (document.getElementById("paidwaterarrear") ? parseFloat(document.getElementById("paidwaterarrear").value.replace(/,/g, '')) : 0) || 0;
+
+            // Bypass / Normalization: Treat positive initial balances from database as negative debt
+            var baseRentBal = (rentBalance > 0) ? -rentBalance : rentBalance;
+            var baseRunningBal = (runningBalance > 0) ? -runningBalance : runningBalance;
+            var baseElecArrear = (elecarrear > 0) ? -elecarrear : elecarrear;
+            var baseElecBal = (elecbal > 0) ? -elecbal : elecbal;
+            var baseWaterArrear = (waterarrear > 0) ? -waterarrear : waterarrear;
+            var baseWaterBal = (waterbal > 0) ? -waterbal : waterbal;
+
+            var rawElecTotal = (elecarrear < 0 || elecbal < 0) ? (baseElecArrear + baseElecBal) : (elecarrear + elecbal);
+            document.getElementById("electotal").value = parseFloat(rawElecTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            var rawWaterTotal = (waterarrear < 0 || waterbal < 0) ? (baseWaterArrear + baseWaterBal) : (waterarrear + waterbal);
+            document.getElementById("watertotal").value = parseFloat(rawWaterTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            // Get the charges values from predefined inputs (Cusa & Aircon)
             var chargecusa = parseFloat(document.getElementById("chargecusa").value.replace(/,/g, '')) || 0;
             var chargeac = parseFloat(document.getElementById("chargeac").value.replace(/,/g, '')) || 0;
-            var chargeelec = parseFloat(document.getElementById("chargeelec").value.replace(/,/g, '')) || 0;
-            var chargewater = parseFloat(document.getElementById("chargewater").value.replace(/,/g, '')) || 0;
-
-            // Calculate total charges from predefined inputs
-            var totalCharges = chargecusa + chargeac + chargeelec + chargewater;
+            var totalCharges = chargecusa + chargeac;
 
             // Get the value from the predefined 'Others' inputs
             var otherAmount = parseFloat(document.getElementById("otheramount").value.replace(/,/g, '')) || 0;
-
-            // Check if there is a valid other type selected and amount is greater than 0
             var otherType = document.getElementById("chargeothers").value;
             if (otherType && otherAmount > 0) {
                 totalCharges += otherAmount;
             }
 
             // Get dynamically added charges
-            var additionalCharges = document.querySelectorAll('#additionalChargesContainer input[type="text"]');
+            var additionalCharges = document.querySelectorAll('#additionalChargesContainer input[name="otheramount[]"]');
             additionalCharges.forEach(function (input) {
                 var amount = parseFloat(input.value.replace(/,/g, '')) || 0;
                 totalCharges += amount;
             });
 
-            // Calculate total amount paid
-            var totalAmountPaid = paidRent + paidBalance;
-            
-            // Calculate new balances according to business rules:
-            // 1. Handle overpayment in rent balance first
-            // 2. Apply payments to respective balances independently
-            // 3. Preserve negative balances as overpayments
-            
-            // Calculate new rent balance
-            // When rentBalance is negative (overpayment), applying a payment should reduce the overpayment
-            // The overpayment amount is (paidRent - dailyRent) when paidRent > dailyRent
-            // New rent balance = Current rent balance - (Paid Rent - Daily Rent)
-            var overpayment = paidRent - dailyRent;
-            var newRentBalance = rentBalance - overpayment;
-            
-            // Calculate new arrear balance
-            // New arrear balance = Current arrear balance - Amount paid toward arrear
-            var newRunningBalance = runningBalance - paidBalance;
+            // Calculate total amount paid (Rent + Arrear + Elec + Elec Arrear + Water + Water Arrear)
+            var totalAmountPaid = paidRent + paidBalance + paidElec + paidElecArrear + paidWater + paidWaterArrear;
+
+            // Calculate new rent balance:
+            // Negative balance represents debt; positive (or zero) represents advance payment.
+            // Paid rent credits the balance (+paidRent) and daily rent charges deduct from balance (-dailyRent).
+            var newRentBalance = baseRentBal + paidRent - dailyRent;
+
+            // Calculate new arrear balance:
+            // Paying paidBalance reduces arrear debt (+paidBalance towards balance).
+            var newRunningBalance = baseRunningBal + paidBalance;
+
+            // Calculate new Elec balances:
+            // Negative = debt, Positive/0 = advance/overpay (+paidElec credits balance towards positive)
+            var newElecBal = baseElecBal + paidElec;
+            var newElecArrear = baseElecArrear + paidElecArrear;
+            var newElecTotal = newElecArrear + newElecBal;
+
+            // Calculate new Water balances:
+            // Negative = debt, Positive/0 = advance/overpay (+paidWater credits balance towards positive)
+            var newWaterBal = baseWaterBal + paidWater;
+            var newWaterArrear = baseWaterArrear + paidWaterArrear;
+            var newWaterTotal = newWaterArrear + newWaterBal;
 
             // Calculate total payment (amounts paid + charges)
             var total = totalAmountPaid + totalCharges;
 
-            // Format the values with commas for display (keep exact decimal precision)
+            // Format the values with commas for display
             var formattedNewRentBalance = parseFloat(newRentBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             var formattedNewRunningBalance = parseFloat(newRunningBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            var formattedNewElecTotal = parseFloat(newElecTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            var formattedNewWaterTotal = parseFloat(newWaterTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             var formattedTotal = parseFloat(total.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-            // Update both the display elements and hidden input fields
+            // Update hidden input fields
             document.getElementById("newrentbalance").value = formattedNewRentBalance;
             document.getElementById("newbalance").value = formattedNewRunningBalance;
+            document.getElementById("newelecbal").value = parseFloat(newElecBal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newelecarrear").value = parseFloat(newElecArrear.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newwaterbal").value = parseFloat(newWaterBal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newwaterarrear").value = parseFloat(newWaterArrear.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             document.getElementById("total").value = formattedTotal;
-            
-            // Update the display spans
-            document.getElementById("newrentbalance-display").textContent = formattedNewRentBalance;
-            document.getElementById("newbalance-display").textContent = formattedNewRunningBalance;
-            document.getElementById("total-display").textContent = formattedTotal;
         }
 
         // Function to format numbers with commas and trigger calculation
         function formatNumberAndCalculateNewBalance(input) {
-            // Remove non-numeric characters and commas
-            let cleanValue = input.value.replace(/[^\d.]/g, '');
+            // Remove non-numeric characters and commas (allow negative/decimal)
+            let cleanValue = input.value.replace(/[^\d.-]/g, '');
 
             // Format the number with commas
             let formattedValue = cleanValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -1131,7 +1329,7 @@ $conn->close();
             // Set the formatted value back to the input
             input.value = formattedValue;
 
-            // Now you can use this value for further calculations
+            // Recalculate
             calculateNewBalance();
         }
 
@@ -1141,29 +1339,31 @@ $conn->close();
 
             // Create a new entry with dropdown and amount input
             var newEntry = document.createElement('div');
-            newEntry.classList.add('grid', 'grid-cols-2', 'gap-4', 'items-end', 'mb-2');
+            newEntry.classList.add('grid', 'grid-cols-2', 'gap-2', 'items-end', 'mb-2');
             newEntry.innerHTML = `
-                <div class="relative custom-select">
-                    <input type="text" class="pos-input w-full cursor-pointer bg-white border-blue-200 focus:border-blue-500" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
+                <div class="pos-field relative custom-select">
+                    <label class="pos-label">Others</label>
+                    <input type="text" class="pos-input w-full cursor-pointer bg-white text-xs sm:text-sm px-2 py-2" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
                     <input type="hidden" name="chargeothers[]">
-                    <div class="absolute z-50 w-full bg-white border border-blue-200 rounded-lg shadow-xl mt-1 hidden dropdown-menu flex-col overflow-hidden">
-                        <div class="p-2 border-b border-blue-100 bg-blue-50">
-                            <input type="text" class="w-full bg-white border border-blue-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400" placeholder="Search charges...">
+                    <div class="dropdown-menu hidden">
+                        <div class="search-box-wrap">
+                            <input type="text" class="search-input" placeholder="Search charges...">
                         </div>
-                        <div class="max-h-48 overflow-y-auto dropdown-options"></div>
+                        <div class="dropdown-options"></div>
                     </div>
                 </div>
-                <div class="flex items-center">
-                    <div class="relative flex-1">
-            <input oninput="formatNumberAndCalculateNewBalance(this)" 
-                            class="pos-input w-full"
-                            type="text" name="otheramount[]" placeholder="0.00" inputmode="decimal">
+                <div class="flex items-center gap-1">
+                    <div class="pos-field relative flex-1">
+                        <label class="pos-label">Amount</label>
+                        <input oninput="formatNumberAndCalculateNewBalance(this)" 
+                            class="pos-input w-full text-xs sm:text-sm px-2 py-2"
+                            type="text" name="otheramount[]" placeholder="Enter Amount" inputmode="decimal">
                     </div>
-                    <button type="button" class="remove-charge ml-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-full p-2.5 transition-colors">
-                        <i class="fas fa-trash-alt"></i>
+                    <button type="button" class="remove-charge bg-red-50 hover:bg-red-100 text-red-500 rounded-lg p-2 transition-colors mt-2">
+                        <i class="fas fa-trash-alt text-xs"></i>
                     </button>
-        </div>
-    `;
+                </div>
+            `;
 
             // Add event listener for remove button
             newEntry.querySelector('.remove-charge').addEventListener('click', function() {
@@ -1174,47 +1374,41 @@ $conn->close();
             container.appendChild(newEntry);
         });
 
-        // For Modal Payment Summary
         // Function to format the numbers as currency
         function formatCurrency(value) {
-            return '&#x20B1;' + numberWithCommas(parseFloat(value).toFixed(2));
+            const num = parseFloat(value || 0);
+            return (num < 0 ? '-&#x20B1;' + numberWithCommas(Math.abs(num).toFixed(2)) : '&#x20B1;' + numberWithCommas(num.toFixed(2)));
         }
 
-        // Function to gather the values and show the modal
+        // Function to gather all values and show comprehensive detailed modal
         function showConfirmationModal(event) {
             event.preventDefault(); // Prevent the form from submitting immediately
 
-            // Retrieve the form values
-            const rent = parseFloat(document.getElementById('rent').value.replace(',', '')) || 0;
-            const rentbal = parseFloat(document.getElementById('rentbal').value.replace(',', '')) || 0;
-            const runningbal = parseFloat(document.getElementById('runningbal').value.replace(',', '')) || 0;
-            const paidrent = parseFloat(document.getElementById('paidrent').value.replace(',', '')) || 0;
-            const paidbal = parseFloat(document.getElementById('paidbal').value.replace(',', '')) || 0;
-            const total = parseFloat(document.getElementById('total').value.replace(',', '')) || 0;
-            const newbalance = parseFloat(document.getElementById('newbalance').value.replace(',', '')) || 0;
-            const newrentbalance = parseFloat(document.getElementById('newrentbalance').value.replace(',', '')) || 0;
+            // Tenant & General Info
+            const tenantName = document.getElementById('tenantname').value.trim() || 'N/A';
+            const spaceCode = document.getElementById('spacecode-input').value.trim() || 'N/A';
+            const tenantCode = document.getElementById('tenantcode').value.trim() || 'N/A';
+            const paymentMethod = document.getElementById('payment_method').value || 'Cash';
+            const chequeNum = (document.getElementById('cheque_number') ? document.getElementById('cheque_number').value.trim() : '');
 
-            // Get all charges (Cusa, Aircon, Electricity, Water, Other charges from dropdown)
+            // Payments entered
+            const paidrent = parseFloat(document.getElementById('paidrent').value.replace(/,/g, '')) || 0;
+            const paidbal = parseFloat(document.getElementById('paidbal').value.replace(/,/g, '')) || 0;
+            const paidelec = parseFloat(document.getElementById('paidelec').value.replace(/,/g, '')) || 0;
+            const paidelecarrear = (document.getElementById('paidelecarrear') ? parseFloat(document.getElementById('paidelecarrear').value.replace(/,/g, '')) : 0) || 0;
+            const paidwater = parseFloat(document.getElementById('paidwater').value.replace(/,/g, '')) || 0;
+            const paidwaterarrear = (document.getElementById('paidwaterarrear') ? parseFloat(document.getElementById('paidwaterarrear').value.replace(/,/g, '')) : 0) || 0;
+            const totalPaidPayments = paidrent + paidbal + paidelec + paidelecarrear + paidwater + paidwaterarrear;
+
+            // Charges
             const charges = [];
-            
-            const chargeNames = [
-                { label: 'Cusa', id: 'chargecusa' },
-                { label: 'Aircon', id: 'chargeac' },
-                { label: 'Electricity', id: 'chargeelec' },
-                { label: 'Water', id: 'chargewater' }
-            ];
-            
-            chargeNames.forEach(charge => {
-                const chargeAmount = parseFloat(document.getElementById(charge.id).value.replace(',', '')) || 0;
-                if (chargeAmount > 0) {
-                    charges.push({ name: charge.label, amount: chargeAmount });
-                }
-            });
+            const chargecusa = parseFloat(document.getElementById('chargecusa').value.replace(/,/g, '')) || 0;
+            if (chargecusa > 0) charges.push({ name: 'Cusa', amount: chargecusa });
+            const chargeac = parseFloat(document.getElementById('chargeac').value.replace(/,/g, '')) || 0;
+            if (chargeac > 0) charges.push({ name: 'Aircon', amount: chargeac });
 
-            // Handle dynamic "Other Charges" from custom dropdowns (both static and dynamically added)
             const otherSelects = document.querySelectorAll('input[name="chargeothers[]"]');
             const otherAmounts = document.querySelectorAll('input[name="otheramount[]"]');
-            
             for (let i = 0; i < otherSelects.length; i++) {
                 const selectedChargeType = otherSelects[i].value;
                 const otherAmount = parseFloat(otherAmounts[i].value.replace(/,/g, '')) || 0;
@@ -1222,23 +1416,137 @@ $conn->close();
                     charges.push({ name: selectedChargeType, amount: otherAmount });
                 }
             }
+            const totalCharges = charges.reduce((sum, c) => sum + c.amount, 0);
 
-            // Generate the charges summary HTML
+            // Grand Total
+            const total = totalPaidPayments + totalCharges;
+
+            // New / Updated Balances
+            const newRentBalance = parseFloat(document.getElementById('newrentbalance').value.replace(/,/g, '')) || 0;
+            const newArrearBalance = parseFloat(document.getElementById('newbalance').value.replace(/,/g, '')) || 0;
+            const newElecBal = parseFloat(document.getElementById('newelecbal').value.replace(/,/g, '')) || 0;
+            const newElecArrear = parseFloat(document.getElementById('newelecarrear').value.replace(/,/g, '')) || 0;
+            const newElecTotal = newElecBal + newElecArrear;
+            const newWaterBal = parseFloat(document.getElementById('newwaterbal').value.replace(/,/g, '')) || 0;
+            const newWaterArrear = parseFloat(document.getElementById('newwaterarrear').value.replace(/,/g, '')) || 0;
+            const newWaterTotal = newWaterBal + newWaterArrear;
+
+            // Generate Payments HTML
+            let paymentsHtml = '';
+            if (paidrent > 0) {
+                paymentsHtml += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
+                        <span class="text-gray-600">Daily Rent:</span>
+                        <span class="font-bold text-green-700">${formatCurrency(paidrent)}</span>
+                    </div>`;
+            }
+            if (paidbal > 0) {
+                paymentsHtml += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
+                        <span class="text-gray-600">Rent Arrear:</span>
+                        <span class="font-bold text-purple-700">${formatCurrency(paidbal)}</span>
+                    </div>`;
+            }
+            if (paidelec > 0) {
+                paymentsHtml += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
+                        <span class="text-gray-600">Electricity:</span>
+                        <span class="font-bold text-yellow-800">${formatCurrency(paidelec)}</span>
+                    </div>`;
+            }
+            if (paidelecarrear > 0) {
+                paymentsHtml += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
+                        <span class="text-gray-600">Electricity Arrear:</span>
+                        <span class="font-bold text-yellow-900">${formatCurrency(paidelecarrear)}</span>
+                    </div>`;
+            }
+            if (paidwater > 0) {
+                paymentsHtml += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
+                        <span class="text-gray-600">Water:</span>
+                        <span class="font-bold text-blue-800">${formatCurrency(paidwater)}</span>
+                    </div>`;
+            }
+            if (paidwaterarrear > 0) {
+                paymentsHtml += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
+                        <span class="text-gray-600">Water Arrear:</span>
+                        <span class="font-bold text-blue-900">${formatCurrency(paidwaterarrear)}</span>
+                    </div>`;
+            }
+
+            // Generate Charges HTML
             let chargesHtml = '';
             charges.forEach(charge => {
-                chargesHtml += `<p><strong>${charge.name}:</strong> ${formatCurrency(charge.amount)}</p>`;
+                chargesHtml += `
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
+                        <span class="text-gray-600">${charge.name}:</span>
+                        <span class="font-semibold text-gray-800">${formatCurrency(charge.amount)}</span>
+                    </div>`;
             });
 
-            // Update the Amount Paid (Arrear Balance) to include the charges as well
-            const totalPaidArrearBalance = paidbal + charges.reduce((acc, charge) => acc + charge.amount, 0);
-
-            // Display the payment summary in the modal
+            // Build clean, compact Payment Summary HTML with only the essentials
             const summaryHtml = `
-                <p><strong>Amount Paid (Daily Rent):</strong> ${formatCurrency(paidrent)}</p>
-                <p><strong>Amount Paid (Arrear Balance):</strong> ${formatCurrency(paidbal)}</p>
-                ${chargesHtml}  <!-- Display charges here -->
-                <p><strong>Total Paid (including Charges):</strong> ${formatCurrency(total)}</p>
+                <!-- Tenant Card -->
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-2.5 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs sm:text-sm font-extrabold text-blue-950">${tenantName}</div>
+                        <div class="text-[10px] text-gray-500 font-medium">
+                            <span class="font-bold text-blue-700">Space:</span> ${spaceCode} &bull; <span class="font-bold text-blue-700">Code:</span> ${tenantCode}
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${paymentMethod === 'Cheque' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                        ${paymentMethod}${paymentMethod === 'Cheque' && chequeNum ? ` #${chequeNum}` : ''}
+                    </span>
+                </div>
+
+                <!-- Payment Itemization -->
+                <div class="bg-white border border-gray-200 rounded-xl p-2.5">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <i class="fas fa-receipt text-emerald-500"></i> Payment Breakdown
+                    </div>
+                    ${paymentsHtml || '<div class="text-[11px] text-gray-400 py-0.5 italic">No regular payments entered</div>'}
+                    ${chargesHtml}
+                </div>
+
+                <!-- Total Collection Card -->
+                <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white rounded-xl p-2.5 shadow-sm flex justify-between items-center">
+                    <div>
+                        <div class="text-[9px] font-bold text-blue-100 uppercase tracking-wider opacity-90">Total Collection</div>
+                        <div class="text-xl font-black tracking-tight">${formatCurrency(total)}</div>
+                    </div>
+                    <div class="text-right text-[10px] text-blue-100 font-semibold uppercase">
+                        ${paymentMethod}
+                    </div>
+                </div>
+
+                <!-- Total Outstanding Balances -->
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-2.5">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <i class="fas fa-balance-scale text-indigo-500"></i> Total Outstanding Balances
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                        <div class="p-1.5 bg-white rounded-lg border border-gray-100 flex justify-between items-center">
+                            <span class="text-[10px] text-gray-500 font-semibold">Rent:</span>
+                            <span class="font-bold ${newRentBalance < 0 ? 'text-red-600' : 'text-green-700'}">${formatCurrency(newRentBalance)}</span>
+                        </div>
+                        <div class="p-1.5 bg-white rounded-lg border border-gray-100 flex justify-between items-center">
+                            <span class="text-[10px] text-gray-500 font-semibold">Arrear:</span>
+                            <span class="font-bold ${newArrearBalance < 0 ? 'text-red-600' : 'text-purple-700'}">${formatCurrency(newArrearBalance)}</span>
+                        </div>
+                        <div class="p-1.5 bg-white rounded-lg border border-yellow-100 bg-yellow-50/20 flex justify-between items-center">
+                            <span class="text-[10px] text-yellow-700 font-semibold">Combined Elec:</span>
+                            <span class="font-bold ${newElecTotal < 0 ? 'text-red-600' : 'text-yellow-800'}">${formatCurrency(newElecTotal)}</span>
+                        </div>
+                        <div class="p-1.5 bg-white rounded-lg border border-blue-100 bg-blue-50/20 flex justify-between items-center">
+                            <span class="text-[10px] text-blue-700 font-semibold">Combined Water:</span>
+                            <span class="font-bold ${newWaterTotal < 0 ? 'text-red-600' : 'text-blue-800'}">${formatCurrency(newWaterTotal)}</span>
+                        </div>
+                    </div>
+                </div>
             `;
+
             document.getElementById('confirmationSummary').innerHTML = summaryHtml;
 
             // Show the confirmation modal
@@ -1258,11 +1566,11 @@ $conn->close();
             });
         }
 
-        // Event listener for the cancel button
+        // Event listener for the cancel button - hide modal instead of page reload
         const canBtn = document.getElementById('cancelButton');
         if (canBtn) {
             canBtn.addEventListener('click', function() {
-                window.location.href = "user.php";
+                document.getElementById('confirmationModal').classList.add('hidden');
             });
         }
 
@@ -1565,6 +1873,12 @@ $conn->close();
                         document.getElementById("rent").value = response.dailyRent;
                         document.getElementById("rentbal").value = response.rentbal;
                         document.getElementById("runningbal").value = response.runningbal;
+                        document.getElementById("elecarrear").value = response.elecarrear || "0.00";
+                        document.getElementById("elecbal").value = response.elecbal || "0.00";
+                        document.getElementById("electotal").value = response.electotal || "0.00";
+                        document.getElementById("waterarrear").value = response.waterarrear || "0.00";
+                        document.getElementById("waterbal").value = response.waterbal || "0.00";
+                        document.getElementById("watertotal").value = response.watertotal || "0.00";
 
                         // Set readonly attribute based on editable flag
                         var isAmbulant = response.editable;
@@ -1573,6 +1887,10 @@ $conn->close();
                         document.getElementById("rent").readOnly = !isAmbulant;
                         document.getElementById("rentbal").readOnly = !isAmbulant;
                         document.getElementById("runningbal").readOnly = !isAmbulant;
+                        document.getElementById("elecarrear").readOnly = !isAmbulant;
+                        document.getElementById("elecbal").readOnly = !isAmbulant;
+                        document.getElementById("waterarrear").readOnly = !isAmbulant;
+                        document.getElementById("waterbal").readOnly = !isAmbulant;
                         
                         // Update payment status reminder
                         var statusContainer = document.getElementById("payment-status-container");
@@ -1611,17 +1929,34 @@ $conn->close();
             document.getElementById("rent").value = "";
             document.getElementById("rentbal").value = "";
             document.getElementById("runningbal").value = "";
+            document.getElementById("elecarrear").value = "";
+            document.getElementById("elecbal").value = "";
+            document.getElementById("electotal").value = "";
+            document.getElementById("waterarrear").value = "";
+            document.getElementById("waterbal").value = "";
+            document.getElementById("watertotal").value = "";
+            document.getElementById("paidrent").value = "";
+            document.getElementById("paidbal").value = "";
+            document.getElementById("paidelec").value = "";
+            if (document.getElementById("paidelecarrear")) document.getElementById("paidelecarrear").value = "";
+            document.getElementById("paidwater").value = "";
+            if (document.getElementById("paidwaterarrear")) document.getElementById("paidwaterarrear").value = "";
             
             document.getElementById("tenantcode").readOnly = false;
             document.getElementById("tenantname").readOnly = false;
             document.getElementById("rent").readOnly = false;
             document.getElementById("rentbal").readOnly = false;
             document.getElementById("runningbal").readOnly = false;
-            
-            // Reset the balance displays
-            document.getElementById("total-display").textContent = "0.00";
-            document.getElementById("newbalance-display").textContent = "0.00";
-            document.getElementById("newrentbalance-display").textContent = "0.00";
+            document.getElementById("elecarrear").readOnly = false;
+            document.getElementById("elecbal").readOnly = false;
+            document.getElementById("waterarrear").readOnly = false;
+            document.getElementById("waterbal").readOnly = false;
+            // Reset the hidden input values
+            if (document.getElementById("total")) document.getElementById("total").value = "0.00";
+            if (document.getElementById("newbalance")) document.getElementById("newbalance").value = "0.00";
+            if (document.getElementById("newrentbalance")) document.getElementById("newrentbalance").value = "0.00";
+            if (document.getElementById("newelecbal")) document.getElementById("newelecbal").value = "0.00";
+            if (document.getElementById("newwaterbal")) document.getElementById("newwaterbal").value = "0.00";
             
             // Hide and reset status container
             var statusContainer = document.getElementById("payment-status-container");
@@ -1649,16 +1984,21 @@ $conn->close();
 
         window.openCustomSelect = function(inputEl) {
             // Close all others first
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.custom-select .dropdown-menu').forEach(m => m.classList.add('hidden'));
             
             const wrapper = inputEl.closest('.custom-select');
             const menu = wrapper.querySelector('.dropdown-menu');
-            const search = wrapper.querySelector('.dropdown-menu input');
+            const search = wrapper.querySelector('.dropdown-menu .search-input');
             
             menu.classList.remove('hidden');
             search.value = '';
             window.renderCustomSelectOptions(wrapper, '');
             search.focus();
+
+            // Ensure dropdown is scrolled into view smoothly
+            setTimeout(() => {
+                menu.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 50);
         };
 
         window.renderCustomSelectOptions = function(wrapper, filterText) {
@@ -1666,13 +2006,14 @@ $conn->close();
             const input = wrapper.querySelector('input[type="text"][readonly]');
             const hidden = wrapper.querySelector('input[type="hidden"]');
             const menu = wrapper.querySelector('.dropdown-menu');
+            const currentVal = hidden.value;
             
             optionsContainer.innerHTML = '';
             
-            // Add a Clear Option at the very top
+            // Add Clear Option at the top
             const clearDiv = document.createElement('div');
-            clearDiv.className = 'px-3 py-2 cursor-pointer hover:bg-red-50 text-red-500 font-bold text-sm border-b border-gray-100 transition-colors flex justify-between items-center';
-            clearDiv.innerHTML = '<span><i class="fas fa-times-circle mr-1"></i> Clear Selection</span>';
+            clearDiv.className = 'dropdown-clear';
+            clearDiv.innerHTML = '<span>Clear Selection</span>';
             clearDiv.onclick = (e) => {
                 e.stopPropagation();
                 input.value = '';
@@ -1691,7 +2032,8 @@ $conn->close();
             
             filtered.forEach(opt => {
                 const div = document.createElement('div');
-                div.className = 'px-3 py-2 cursor-pointer hover:bg-blue-50 text-gray-700 text-sm border-b border-gray-50 last:border-0 transition-colors';
+                const isSelected = (opt === currentVal);
+                div.className = 'dropdown-option' + (isSelected ? ' selected' : '');
                 div.textContent = opt;
                 div.onclick = (e) => {
                     e.stopPropagation();
@@ -1704,7 +2046,7 @@ $conn->close();
             });
             
             if (filtered.length === 0) {
-                optionsContainer.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">No results found</div>';
+                optionsContainer.innerHTML = '<div class="px-3 py-3 text-xs text-gray-400 text-center font-medium">No matching charges found</div>';
             }
         };
 

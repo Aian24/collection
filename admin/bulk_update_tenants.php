@@ -6,13 +6,18 @@ ini_set('log_errors', 1);
 
 ob_start();
 include '../config.php';
+if (file_exists('tenant_history_logger.php')) {
+    require_once 'tenant_history_logger.php';
+}
 
 // Include PhpSpreadsheet for Excel file support
 require_once '../vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Exception as ReaderException;
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Check if user is logged in
 if (!isset($_SESSION["username"])) {
@@ -43,6 +48,10 @@ if (!isset($_POST['bulkUpdateBranch']) || empty($_POST['bulkUpdateBranch'])) {
 }
 
 $branch = $_POST['bulkUpdateBranch'];
+$updateType = strtolower(trim($_POST['updateType'] ?? 'rent'));
+if (!in_array($updateType, ['rent', 'electricity', 'water'])) {
+    $updateType = 'rent';
+}
 
 // Validate branch against allowed tables
 $tables_query = "SHOW TABLES";
@@ -175,27 +184,286 @@ $inserted = 0;
 $skipped = 0;
 $errors = [];
 $headerChecked = false; // Flag to track if we've checked for headers
+$headerColMap = [
+    'spacecode' => null,
+    'name' => null,
+    'arrear' => null,
+    'balance' => null,
+    'total' => null
+];
 $processedTenants = []; // Track processed tenants to avoid duplicates
 
 foreach ($fileData as $line) {
     $lineNumber++;
     
     // Skip empty lines or lines with only whitespace
-    if (empty(array_filter($line, function($field) { return trim($field) !== ''; }))) {
+    if (empty(array_filter($line, function($field) { return trim((string)$field) !== ''; }))) {
         continue;
     }
     
-    // Check for header lines only once and only if it's clearly a header
-    if (!$headerChecked && $lineNumber === 1) {
-        $firstColumn = strtolower(trim($line[0] ?? ''));
-        if ($firstColumn === 'tenant name' || $firstColumn === 'tenantname' || $firstColumn === 'name') {
-            $headerChecked = true;
+    // Check for header lines on first non-empty row
+    if (!$headerChecked) {
+        $headerChecked = true;
+        $isHeader = false;
+        $tempMap = [
+            'spacecode' => null,
+            'name' => null,
+            'arrear' => null,
+            'balance' => null,
+            'total' => null
+        ];
+        
+        foreach ($line as $colIdx => $colVal) {
+            $cleanedHeader = strtolower(trim((string)$colVal));
+            $simpleHeader = preg_replace('/[^a-z0-9]/', '', $cleanedHeader);
+            
+            if ($tempMap['spacecode'] === null && (strpos($simpleHeader, 'scode') !== false || strpos($simpleHeader, 'spacecode') !== false || strpos($simpleHeader, 'space') !== false || strpos($simpleHeader, 'stall') !== false)) {
+                $tempMap['spacecode'] = $colIdx;
+                $isHeader = true;
+            } elseif ($tempMap['total'] === null && (strpos($simpleHeader, 'total') !== false || strpos($simpleHeader, 'outstanding') !== false)) {
+                $tempMap['total'] = $colIdx;
+                $isHeader = true;
+            } elseif ($tempMap['arrear'] === null && (strpos($simpleHeader, 'arrear') !== false || strpos($simpleHeader, 'arrears') !== false)) {
+                $tempMap['arrear'] = $colIdx;
+                $isHeader = true;
+            } elseif ($tempMap['balance'] === null && (strpos($simpleHeader, 'balance') !== false || strpos($simpleHeader, 'bal') !== false || strpos($simpleHeader, 'bill') !== false || strpos($simpleHeader, 'current') !== false || strpos($simpleHeader, 'reading') !== false || strpos($simpleHeader, 'kwh') !== false || strpos($simpleHeader, 'cum') !== false)) {
+                $tempMap['balance'] = $colIdx;
+                $isHeader = true;
+            } elseif ($tempMap['name'] === null && (strpos($simpleHeader, 'sname') !== false || strpos($simpleHeader, 'tenant') !== false || strpos($simpleHeader, 'name') !== false || strpos($simpleHeader, 'store') !== false)) {
+                $tempMap['name'] = $colIdx;
+                $isHeader = true;
+            } elseif (strpos($simpleHeader, 'daily') !== false || strpos($simpleHeader, 'starteddate') !== false) {
+                $isHeader = true;
+            }
+        }
+        
+        if ($isHeader) {
+            $headerColMap = $tempMap;
             continue; // Skip the header line
         }
-        // If it's not clearly a header, we'll process it as data
-        $headerChecked = true;
     }
-    
+
+    $tableName = $conn->real_escape_string($branch);
+    $userEmail = $_SESSION['email'] ?? $_SESSION['username'] ?? 'admin';
+    $userName = trim(($_SESSION['fname'] ?? '') . ' ' . ($_SESSION['lname'] ?? '')) ?: ($_SESSION['username'] ?? 'Admin');
+
+    // -------------------------------------------------------------
+    // ELECTRICITY BULK UPDATE
+    // Standard Format: Col 1: scode, Col 2: sname, Col 3: arrears, Col 4: balance, Col 5: total outstanding
+    // -------------------------------------------------------------
+    if ($updateType === 'electricity') {
+        if (count($line) < 2) {
+            $errors[] = "Line $lineNumber: Insufficient columns for electricity update (minimum 2 required: Space Code, Arrear/Balance)";
+            $skipped++;
+            continue;
+        }
+
+        $spacecode = '';
+        $elecarrear = '0';
+        $elecbal = '0';
+
+        // 1. Check if header mapping exists
+        if ($headerColMap['spacecode'] !== null && isset($line[$headerColMap['spacecode']])) {
+            $spacecode = trim(str_replace(['"', "'"], '', (string)$line[$headerColMap['spacecode']]));
+            if ($headerColMap['arrear'] !== null && isset($line[$headerColMap['arrear']])) {
+                $elecarrear = trim(str_replace(['"', "'"], '', (string)$line[$headerColMap['arrear']]));
+            }
+            if ($headerColMap['balance'] !== null && isset($line[$headerColMap['balance']])) {
+                $elecbal = trim(str_replace(['"', "'"], '', (string)$line[$headerColMap['balance']]));
+            }
+        }
+        // 2. Positional Mapping
+        else {
+            $colCount = count($line);
+            if ($colCount >= 4) {
+                // User Format: [0] scode, [1] sname, [2] arrears, [3] balance, [4] total
+                $spacecode  = trim(str_replace(['"', "'"], '', (string)$line[0]));
+                $elecarrear = trim(str_replace(['"', "'"], '', (string)$line[2]));
+                $elecbal    = trim(str_replace(['"', "'"], '', (string)$line[3]));
+            } elseif ($colCount === 3) {
+                // 3 Columns: [0] scode, [1] arrears, [2] balance
+                $spacecode  = trim(str_replace(['"', "'"], '', (string)$line[0]));
+                $elecarrear = trim(str_replace(['"', "'"], '', (string)$line[1]));
+                $elecbal    = trim(str_replace(['"', "'"], '', (string)$line[2]));
+            } else {
+                // 2 Columns: [0] scode, [1] arrears
+                $spacecode  = trim(str_replace(['"', "'"], '', (string)$line[0]));
+                $elecarrear = trim(str_replace(['"', "'"], '', (string)$line[1]));
+                $elecbal    = '0';
+            }
+        }
+
+        if (empty($spacecode)) {
+            $errors[] = "Line $lineNumber: Space Code is required.";
+            $skipped++;
+            continue;
+        }
+
+        $spacecode = trim(preg_replace('/\s+/', ' ', $spacecode));
+        $tenantKey = strtolower($spacecode);
+        if (isset($processedTenants[$tenantKey])) {
+            $errors[] = "Line $lineNumber: Duplicate space code entry '$spacecode' in batch (already processed at line " . $processedTenants[$tenantKey] . "). Skipping duplicate.";
+            $skipped++;
+            continue;
+        }
+        $processedTenants[$tenantKey] = $lineNumber;
+
+        // Clean currency amounts with support for accounting (101.57), negative numbers, and dashes
+        $cleanAmount = function($val) {
+            if ($val === null || $val === '') return '0.00';
+            $s = trim((string)$val);
+            if ($s === '-' || $s === '--' || $s === '') return '0.00';
+            $isNeg = false;
+            if (preg_match('/^\((.+)\)$/', $s, $m)) {
+                $isNeg = true;
+                $s = $m[1];
+            } elseif (strpos($s, '-') === 0) {
+                $isNeg = true;
+                $s = substr($s, 1);
+            }
+            $s = preg_replace('/[^\d.]/', '', $s);
+            if (!is_numeric($s) || $s === '') return '0.00';
+            $num = (float)$s;
+            if ($isNeg) $num = -$num;
+            return number_format($num, 2, '.', '');
+        };
+
+        $elecbal = $cleanAmount($elecbal);
+        $elecarrear = $cleanAmount($elecarrear);
+
+        $checkQuery = "SELECT id, tenantname, spacecode, elecbal, elecarrear FROM $tableName WHERE spacecode = ?";
+        $checkStmt = $conn->prepare($checkQuery);
+        $checkStmt->bind_param("s", $spacecode);
+        $checkStmt->execute();
+        $res = $checkStmt->get_result();
+        $existingTenant = $res->fetch_assoc();
+        $checkStmt->close();
+
+        if ($existingTenant) {
+            $updateQuery = "UPDATE $tableName SET elecbal = ?, elecarrear = ? WHERE id = ?";
+            $updateStmt = $conn->prepare($updateQuery);
+            $updateStmt->bind_param("ddi", $elecbal, $elecarrear, $existingTenant['id']);
+            if ($updateStmt->execute()) {
+                $updated++;
+                if (function_exists('logTenantHistory')) {
+                    $newTenantData = $existingTenant;
+                    $newTenantData['elecbal'] = $elecbal;
+                    $newTenantData['elecarrear'] = $elecarrear;
+                    $changes = "Updated Electricity: Bal=$elecbal, Arrear=$elecarrear";
+                    logTenantHistory($conn, 'bulk_updated_elec', $newTenantData, $userEmail, $userName, $branch, $changes);
+                }
+            } else {
+                $errors[] = "Line $lineNumber: Failed to update electricity for Space Code '$spacecode' - " . $conn->error;
+                $skipped++;
+            }
+            $updateStmt->close();
+        } else {
+            $errors[] = "Line $lineNumber: Space Code '$spacecode' not found in " . strtoupper($branch) . " branch.";
+            $skipped++;
+        }
+        continue;
+    }
+
+    // -------------------------------------------------------------
+    // WATER BULK UPDATE
+    // Standard Format: Col 1: scode, Col 2: sname, Col 3: arrears, Col 4: balance, Col 5: total outstanding
+    // -------------------------------------------------------------
+    if ($updateType === 'water') {
+        if (count($line) < 2) {
+            $errors[] = "Line $lineNumber: Insufficient columns for water update (minimum 2 required: Space Code, Arrear/Balance)";
+            $skipped++;
+            continue;
+        }
+
+        $spacecode = '';
+        $waterarrear = '0';
+        $waterbal = '0';
+
+        // 1. Check if header mapping exists
+        if ($headerColMap['spacecode'] !== null && isset($line[$headerColMap['spacecode']])) {
+            $spacecode = trim(str_replace(['"', "'"], '', (string)$line[$headerColMap['spacecode']]));
+            if ($headerColMap['arrear'] !== null && isset($line[$headerColMap['arrear']])) {
+                $waterarrear = trim(str_replace(['"', "'"], '', (string)$line[$headerColMap['arrear']]));
+            }
+            if ($headerColMap['balance'] !== null && isset($line[$headerColMap['balance']])) {
+                $waterbal = trim(str_replace(['"', "'"], '', (string)$line[$headerColMap['balance']]));
+            }
+        }
+        // 2. Positional Mapping
+        else {
+            $colCount = count($line);
+            if ($colCount >= 4) {
+                // User Format: [0] scode, [1] sname, [2] arrears, [3] balance, [4] total
+                $spacecode   = trim(str_replace(['"', "'"], '', (string)$line[0]));
+                $waterarrear = trim(str_replace(['"', "'"], '', (string)$line[2]));
+                $waterbal    = trim(str_replace(['"', "'"], '', (string)$line[3]));
+            } elseif ($colCount === 3) {
+                // 3 Columns: [0] scode, [1] arrears, [2] balance
+                $spacecode   = trim(str_replace(['"', "'"], '', (string)$line[0]));
+                $waterarrear = trim(str_replace(['"', "'"], '', (string)$line[1]));
+                $waterbal    = trim(str_replace(['"', "'"], '', (string)$line[2]));
+            } else {
+                // 2 Columns: [0] scode, [1] arrears
+                $spacecode   = trim(str_replace(['"', "'"], '', (string)$line[0]));
+                $waterarrear = trim(str_replace(['"', "'"], '', (string)$line[1]));
+                $waterbal    = '0';
+            }
+        }
+
+        if (empty($spacecode)) {
+            $errors[] = "Line $lineNumber: Space Code is required.";
+            $skipped++;
+            continue;
+        }
+
+        $spacecode = trim(preg_replace('/\s+/', ' ', $spacecode));
+        $tenantKey = strtolower($spacecode);
+        if (isset($processedTenants[$tenantKey])) {
+            $errors[] = "Line $lineNumber: Duplicate space code entry '$spacecode' in batch (already processed at line " . $processedTenants[$tenantKey] . "). Skipping duplicate.";
+            $skipped++;
+            continue;
+        }
+        $processedTenants[$tenantKey] = $lineNumber;
+
+        $waterbal = $cleanAmount($waterbal);
+        $waterarrear = $cleanAmount($waterarrear);
+
+        $checkQuery = "SELECT id, tenantname, spacecode, waterbal, waterarrear FROM $tableName WHERE spacecode = ?";
+        $checkStmt = $conn->prepare($checkQuery);
+        $checkStmt->bind_param("s", $spacecode);
+        $checkStmt->execute();
+        $res = $checkStmt->get_result();
+        $existingTenant = $res->fetch_assoc();
+        $checkStmt->close();
+
+        if ($existingTenant) {
+            $updateQuery = "UPDATE $tableName SET waterbal = ?, waterarrear = ? WHERE id = ?";
+            $updateStmt = $conn->prepare($updateQuery);
+            $updateStmt->bind_param("ddi", $waterbal, $waterarrear, $existingTenant['id']);
+            if ($updateStmt->execute()) {
+                $updated++;
+                if (function_exists('logTenantHistory')) {
+                    $newTenantData = $existingTenant;
+                    $newTenantData['waterbal'] = $waterbal;
+                    $newTenantData['waterarrear'] = $waterarrear;
+                    $changes = "Updated Water: Bal=$waterbal, Arrear=$waterarrear";
+                    logTenantHistory($conn, 'bulk_updated_water', $newTenantData, $userEmail, $userName, $branch, $changes);
+                }
+            } else {
+                $errors[] = "Line $lineNumber: Failed to update water for Space Code '$spacecode' - " . $conn->error;
+                $skipped++;
+            }
+            $updateStmt->close();
+        } else {
+            $errors[] = "Line $lineNumber: Space Code '$spacecode' not found in " . strtoupper($branch) . " branch.";
+            $skipped++;
+        }
+        continue;
+    }
+
+    // -------------------------------------------------------------
+    // RENT / MASTER TENANT BULK UPDATE (Default)
+    // -------------------------------------------------------------
     // Validate minimum columns (at least 6 required: tenantname, tenantcode, spacecode, daily, rentbal, runningbal)
     if (count($line) < 6) {
         $errors[] = "Line $lineNumber: Insufficient columns (minimum 6 required, found " . count($line) . ")";
@@ -380,7 +648,6 @@ foreach ($fileData as $line) {
     }
     
     // Check if tenant exists by spacecode - this is now the only matching method
-    $tableName = $conn->real_escape_string($branch);
     $spacecode_escaped = $conn->real_escape_string($spacecode);
     
     $existingTenant = null;

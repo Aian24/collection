@@ -500,7 +500,9 @@ $branch = $_SESSION["branch"];
 
     function buildCard(t) {
         const cTotal = getChargesTotal(t.charges);
-        const paid = parseFloat(t.paidrent||0) + parseFloat(t.paidbal||0) + cTotal;
+        const paidElec = parseFloat(t.paidelec||0);
+        const paidWater = parseFloat(t.paidwater||0);
+        const paid = parseFloat(t.paidrent||0) + parseFloat(t.paidbal||0) + paidElec + paidWater + cTotal;
         const charges = t.charges && t.charges !== 'null' ? t.charges : '';
         return `
         <div class="tx-card">
@@ -533,9 +535,19 @@ $branch = $_SESSION["branch"];
                     <div class="tx-value tx-money-green">&#x20B1;${n(t.paidrent)}</div>
                 </div>
                 <div class="tx-field">
-                    <div class="tx-label"><i class="fas fa-money-check"></i> Paid Bal</div>
+                    <div class="tx-label"><i class="fas fa-money-check"></i> Paid Arrear</div>
                     <div class="tx-value tx-money-blue">&#x20B1;${n(t.paidbal)}</div>
                 </div>
+                ${paidElec > 0 ? `
+                <div class="tx-field">
+                    <div class="tx-label"><i class="fas fa-bolt text-yellow-500"></i> Paid Elec</div>
+                    <div class="tx-value font-bold text-yellow-600">&#x20B1;${n(paidElec)}</div>
+                </div>` : ''}
+                ${paidWater > 0 ? `
+                <div class="tx-field">
+                    <div class="tx-label"><i class="fas fa-tint text-blue-500"></i> Paid Water</div>
+                    <div class="tx-value font-bold text-blue-600">&#x20B1;${n(paidWater)}</div>
+                </div>` : ''}
                 <div class="tx-field">
                     <div class="tx-label"><i class="fas fa-building"></i> Branch</div>
                     <div class="tx-value">${t.branch||'—'}</div>

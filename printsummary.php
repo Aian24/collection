@@ -36,15 +36,23 @@ if ($collector_result->num_rows > 0) {
 }
 
 // Fetch totals for the selected date and collector
-$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, SUM(total) AS db_grand_total
+$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, (SUM(paidelec) + SUM(IFNULL(paidelecarrear,0))) AS total_elec, (SUM(paidwater) + SUM(IFNULL(paidwaterarrear,0))) AS total_water, SUM(total) AS db_grand_total
           FROM $table
           WHERE DATE(collected_date) = '$selected_date' AND collector = '$lname'";
 $result = $conn->query($query);
+
+$total_rent = 0;
+$total_balance = 0;
+$total_elec = 0;
+$total_water = 0;
+$db_grand_total = 0;
 
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $total_rent = (float)($row['total_rent'] ?? 0);
     $total_balance = (float)($row['total_balance'] ?? 0);
+    $total_elec = (float)($row['total_elec'] ?? 0);
+    $total_water = (float)($row['total_water'] ?? 0);
     $db_grand_total = (float)($row['db_grand_total'] ?? 0);
 }
 
@@ -58,7 +66,7 @@ $total_charges = 0;
 
 if ($charges_result->num_rows > 0) {
     while ($charge_row = $charges_result->fetch_assoc()) {
-        // Match charges with the format "Electricity: 123", "Ice & Water: 123", etc.
+        // Match charges with the format "Cusa: 123", etc.
         preg_match_all('/([^:,]+):\s*([\d,]+(\.\d{1,2})?)/', $charge_row['charges'], $matches);
 
         // If matches are found
@@ -84,6 +92,8 @@ if ($charges_result->num_rows > 0) {
 // Round all totals
 $total_rent = round($total_rent, 2);
 $total_balance = round($total_balance, 2);
+$total_elec = round($total_elec, 2);
+$total_water = round($total_water, 2);
 $total_charges = round($total_charges, 2);
 
 // Use the database's true grand total column to match the exact POS transaction totals
@@ -210,22 +220,34 @@ $conn->close();
             </div>
 
             <div class="space-y-1 my-2">
-                <?php if ($total_rent !== null): ?>
+                <?php if ($total_rent > 0): ?>
                     <div class="receipt-row">
                         <span class="receipt-label">Total Rent:</span>
                         <span class="receipt-value"><?php echo number_format($total_rent, 2); ?></span>
                     </div>
                 <?php endif; ?>
-                <?php if ($total_balance !== null): ?>
+                <?php if ($total_balance > 0): ?>
                     <div class="receipt-row">
                         <span class="receipt-label">Total Arrear:</span>
                         <span class="receipt-value"><?php echo number_format($total_balance, 2); ?></span>
                     </div>
                 <?php endif; ?>
+                <?php if ($total_elec > 0): ?>
+                    <div class="receipt-row">
+                        <span class="receipt-label">Total Elec:</span>
+                        <span class="receipt-value"><?php echo number_format($total_elec, 2); ?></span>
+                    </div>
+                <?php endif; ?>
+                <?php if ($total_water > 0): ?>
+                    <div class="receipt-row">
+                        <span class="receipt-label">Total Water:</span>
+                        <span class="receipt-value"><?php echo number_format($total_water, 2); ?></span>
+                    </div>
+                <?php endif; ?>
                 <!-- Subtotal row like print.php -->
                 <div class="receipt-row" style="border-top: 1px dotted black; margin-top: 4px; padding-top: 4px;">
-                    <span class="receipt-label">Rent & Arrear Total:</span>
-                    <span class="receipt-value">(<?php echo number_format((float)$total_rent + (float)$total_balance, 2); ?>)</span>
+                    <span class="receipt-label">Payments Subtotal:</span>
+                    <span class="receipt-value">(<?php echo number_format((float)$total_rent + (float)$total_balance + (float)$total_elec + (float)$total_water, 2); ?>)</span>
                 </div>
             </div>
             
@@ -318,22 +340,40 @@ $conn->close();
                 </div>
             </div>
 
-            <!-- Breakdown: Rent & Arrear -->
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-                        <i class="fas fa-home"></i>
+            <!-- Breakdown: Rent, Arrear, Elec, Water -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                        <i class="fas fa-home text-xs"></i>
                     </div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Rent</p>
-                    <p class="text-xl font-bold text-gray-900">₱<?php echo number_format($total_rent, 2); ?></p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Rent</p>
+                    <p class="text-lg font-bold text-gray-900">₱<?php echo number_format($total_rent, 2); ?></p>
                 </div>
-                <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-                    <div class="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
-                        <i class="fas fa-history"></i>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                    <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-2">
+                        <i class="fas fa-history text-xs"></i>
                     </div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Arrear</p>
-                    <p class="text-xl font-bold text-gray-900">₱<?php echo number_format($total_balance, 2); ?></p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Arrear</p>
+                    <p class="text-lg font-bold text-gray-900">₱<?php echo number_format($total_balance, 2); ?></p>
                 </div>
+                <?php if ($total_elec > 0): ?>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-yellow-100 bg-yellow-50/20">
+                    <div class="w-8 h-8 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center mb-2">
+                        <i class="fas fa-bolt text-xs"></i>
+                    </div>
+                    <p class="text-[10px] font-bold text-yellow-700 uppercase tracking-wider mb-0.5">Total Elec</p>
+                    <p class="text-lg font-bold text-yellow-800">₱<?php echo number_format($total_elec, 2); ?></p>
+                </div>
+                <?php endif; ?>
+                <?php if ($total_water > 0): ?>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-blue-100 bg-blue-50/20">
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                        <i class="fas fa-tint text-xs"></i>
+                    </div>
+                    <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-0.5">Total Water</p>
+                    <p class="text-lg font-bold text-blue-800">₱<?php echo number_format($total_water, 2); ?></p>
+                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Total Charges -->

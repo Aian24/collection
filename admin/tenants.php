@@ -56,6 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create'])) {
         $daily = filter_var($_POST['daily'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
         $rentbal = filter_var($_POST['rentbal'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
         $runningbal = filter_var($_POST['runningbal'], FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+        $elecbal = filter_var($_POST['elecbal'] ?? '0', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+        $elecarrear = filter_var($_POST['elecarrear'] ?? '0', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+        $waterbal = filter_var($_POST['waterbal'] ?? '0', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+        $waterarrear = filter_var($_POST['waterarrear'] ?? '0', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
         $started_date = $_POST['started_date'];
         $branch = $_POST['branch']; // Get the selected branch from the modal/form
 
@@ -94,10 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create'])) {
              }
              $checkStmt->close();
              
-             $insertQuery = "INSERT INTO $tableName (tenantname, tenantcode, spacecode, daily, rentbal, runningbal, started_date) VALUES (?, ?, ?, ?, ?, ?, ?)";
+             $insertQuery = "INSERT INTO $tableName (tenantname, tenantcode, spacecode, daily, rentbal, runningbal, elecbal, elecarrear, waterbal, waterarrear, started_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
              $stmt = $conn->prepare($insertQuery);
              // Use "d" for decimal/double for float/double types in bind_param
-             $stmt->bind_param("ssssdds", $tenantname, $tenantcode, $spacecode, $daily, $rentbal, $runningbal, $started_date);
+             $stmt->bind_param("ssssdddddds", $tenantname, $tenantcode, $spacecode, $daily, $rentbal, $runningbal, $elecbal, $elecarrear, $waterbal, $waterarrear, $started_date);
 
             if ($stmt->execute()) {
                 // Get the inserted tenant ID
@@ -111,7 +115,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create'])) {
                     'spacecode' => $spacecode,
                     'daily' => $daily,
                     'rentbal' => $rentbal,
-                    'runningbal' => $runningbal
+                    'runningbal' => $runningbal,
+                    'elecbal' => $elecbal,
+                    'elecarrear' => $elecarrear,
+                    'waterbal' => $waterbal,
+                    'waterarrear' => $waterarrear
                 ];
                 
                 // Get user information
@@ -167,10 +175,43 @@ if (!empty($branch) && in_array($branch, $allowedTables)) {
 $totalDaily = 0;
 $totalRentBal = 0;
 $totalRunningBal = 0;
+$totalRentOutstanding = 0;
+$totalElecBal = 0;
+$totalElecArrear = 0;
+$totalElecOutstanding = 0;
+$totalWaterBal = 0;
+$totalWaterArrear = 0;
+$totalWaterOutstanding = 0;
+$totalCombinedArrears = 0;
+$grandTotalOutstanding = 0;
+
 foreach ($data as $row) {
-    $totalDaily += (float)($row['daily'] ?? 0);
-    $totalRentBal += (float)($row['rentbal'] ?? 0);
-    $totalRunningBal += (float)($row['runningbal'] ?? 0);
+    $daily = (float)($row['daily'] ?? 0);
+    $r_bal = (float)($row['rentbal'] ?? 0);
+    $r_arr = (float)($row['runningbal'] ?? 0);
+    $e_bal = (float)($row['elecbal'] ?? 0);
+    $e_arr = (float)($row['elecarrear'] ?? 0);
+    $w_bal = (float)($row['waterbal'] ?? 0);
+    $w_arr = (float)($row['waterarrear'] ?? 0);
+    
+    $r_out = $r_bal + $r_arr;
+    $e_out = $e_bal + $e_arr;
+    $w_out = $w_bal + $w_arr;
+    $c_arr = $r_arr + $e_arr + $w_arr;
+    $g_out = $r_out + $e_out + $w_out;
+
+    $totalDaily += $daily;
+    $totalRentBal += $r_bal;
+    $totalRunningBal += $r_arr;
+    $totalRentOutstanding += $r_out;
+    $totalElecBal += $e_bal;
+    $totalElecArrear += $e_arr;
+    $totalElecOutstanding += $e_out;
+    $totalWaterBal += $w_bal;
+    $totalWaterArrear += $w_arr;
+    $totalWaterOutstanding += $w_out;
+    $totalCombinedArrears += $c_arr;
+    $grandTotalOutstanding += $g_out;
 }
 
 // Get messages from session
@@ -274,38 +315,150 @@ $conn->close(); // Close the database connection
             outline: none;
         }
 
-        .totals-section {
-            background-color: #f8fafc;
-            border-radius: var(--radius-lg);
-            padding: 1.25rem;
-            margin-top: 1.5rem;
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 1rem;
+        /* Summary Cards Grid */
+        .summary-dashboard {
+            margin-top: 1.75rem;
+            margin-bottom: 1rem;
+        }
+        .summary-card {
+            background: #ffffff;
+            border-radius: 12px;
             border: 1px solid #e2e8f0;
-            box-shadow: var(--shadow-sm);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .total-item {
-            text-align: center;
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
         }
-        .total-label {
-            font-weight: 600;
-            color: #64748b;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .total-value {
-            font-size: 1.25rem;
-            color: var(--accent-indigo);
+        .summary-card-header {
+            padding: 10px 16px;
+            font-size: 0.82rem;
             font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .summary-card-body {
+            padding: 14px 16px;
+            flex-grow: 1;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 0.88rem;
+            color: #475569;
+        }
+        .summary-row .label {
+            font-weight: 500;
+        }
+        .summary-row .value {
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .summary-card-footer {
+            padding: 12px 16px;
+            border-top: 1px dashed #cbd5e1;
+            background: #f8fafc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .summary-card-footer .total-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .summary-card-footer .total-val {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        /* Card Specific Themes */
+        .card-rent {
+            border-top: 4px solid #2563eb;
+        }
+        .card-rent .summary-card-header {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .card-rent .summary-card-footer .total-val {
+            color: #1d4ed8;
+        }
+
+        .card-elec {
+            border-top: 4px solid #f59e0b;
+        }
+        .card-elec .summary-card-header {
+            background: #fffbeb;
+            color: #b45309;
+        }
+        .card-elec .summary-card-footer .total-val {
+            color: #b45309;
+        }
+
+        .card-water {
+            border-top: 4px solid #06b6d4;
+        }
+        .card-water .summary-card-header {
+            background: #ecfeff;
+            color: #0e7490;
+        }
+        .card-water .summary-card-footer .total-val {
+            color: #0e7490;
+        }
+
+        .card-grand {
+            border-top: 4px solid #6366f1;
+        }
+        .card-grand .summary-card-header {
+            background: #eef2ff;
+            color: #4338ca;
+        }
+        .card-grand .summary-card-footer {
+            background: #f5f3ff;
+        }
+        .card-grand .summary-card-footer .total-val {
+            color: #4338ca;
+            font-size: 1.35rem;
         }
 
         /* SweetAlert2 custom styling */
         .swal2-popup { font-size: 0.875rem; }
         .swal2-title { font-size: 1.25rem; }
         .swal2-html-container { font-size: 0.875rem; }
+
+        /* Custom File Upload Dropzone */
+        .custom-file-dropzone, .custom-file-dropzone-branch {
+            border: 2px dashed #4e73df !important;
+            background: #f8f9fc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .custom-file-dropzone:hover, .custom-file-dropzone-branch:hover {
+            border-color: #224abe !important;
+            background: #eef2ff;
+        }
+        .visually-hidden {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0,0,0,0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
     </style>
 </head>
 
@@ -466,66 +619,198 @@ $conn->close(); // Close the database connection
                       </div>
                  <?php else: ?>
                      <div class="table-responsive">
-                         <table id="tenantTable" class="table table-striped table-bordered dt-responsive nowrap" style="width: 100%;">
-                             <thead class="bg-blue-600 text-white"> <tr>
-                                     <th>Tenant Name</th>
-                                     <th>Tenant Code</th>
-                                     <th>Space Code</th>
-                                     <th>Daily Rent</th>
-                                     <th>Rent Balance</th>
-                                     <th>Arrear Balance</th>
+                          <table id="tenantTable" class="table table-striped table-bordered dt-responsive nowrap" style="width: 100%;">
+                              <thead class="bg-blue-600 text-white"> 
+                                  <tr>
+                                      <th>Tenant Name</th>
+                                      <th>Tenant Code</th>
+                                      <th>Space Code</th>
+                                      <th>Daily Rent</th>
+                                      <th>Rent Bal</th>
+                                      <th>Rent Arrear</th>
+                                      <th>Rent Total Out</th>
+                                      <th>Elec Bal</th>
+                                      <th>Elec Arrear</th>
+                                      <th>Elec Total Out</th>
+                                      <th>Water Bal</th>
+                                      <th>Water Arrear</th>
+                                      <th>Water Total Out</th>
+                                      <th>Total Arrears</th>
+                                      <th>Grand Total Out</th>
                                       <th>Started Date</th>
-                                     <th>Actions</th>
-                                 </tr>
-                             </thead>
-                             <tbody>
-                                 <?php foreach ($data as $row): ?>
-                                     <tr>
-                                         <td><?= htmlspecialchars($row['tenantname'] ?? '') ?></td>
-                                         <td><?= htmlspecialchars($row['tenantcode'] ?? '') ?></td>
-                                         <td><?= htmlspecialchars($row['spacecode'] ?? '') ?></td>
-                                         <td><?= number_format((float) ($row['daily'] ?? 0), 2) ?></td>
-                                         <td><?= number_format((float) ($row['rentbal'] ?? 0), 2) ?></td>
-                                         <td><?= number_format((float) ($row['runningbal'] ?? 0), 2) ?></td>
-                                        <td><?= htmlspecialchars($row['started_date'] ?? '') ?></td>
-                                         <td>
-                                             <button class="btn btn-warning btn-sm me-1" data-toggle="modal" data-target="#editModal"
-                                                 data-id="<?= htmlspecialchars($row['id'] ?? '') ?>"
-                                                 data-tenantname="<?= htmlspecialchars($row['tenantname'] ?? '') ?>"
-                                                 data-tenantcode="<?= htmlspecialchars($row['tenantcode'] ?? '') ?>"
-                                                 data-spacecode="<?= htmlspecialchars($row['spacecode'] ?? '') ?>"
-                                                 data-daily="<?= htmlspecialchars($row['daily'] ?? '') ?>"
-                                                 data-rentbal="<?= htmlspecialchars($row['rentbal'] ?? '') ?>"
-                                                 data-runningbal="<?= htmlspecialchars($row['runningbal'] ?? '') ?>"
-                                                 data-branch="<?= htmlspecialchars($branch) ?>"
-                                                 title="Edit Tenant"><i class="fas fa-edit"></i></button>
+                                      <th>Actions</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  <?php foreach ($data as $row): 
+                                      $r_bal = (float)($row['rentbal'] ?? 0);
+                                      $r_arr = (float)($row['runningbal'] ?? 0);
+                                      $e_bal = (float)($row['elecbal'] ?? 0);
+                                      $e_arr = (float)($row['elecarrear'] ?? 0);
+                                      $w_bal = (float)($row['waterbal'] ?? 0);
+                                      $w_arr = (float)($row['waterarrear'] ?? 0);
 
-                                             <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal"
-                                                 data-id="<?= htmlspecialchars($row['id'] ?? '') ?>"
-                                                 data-branch="<?= htmlspecialchars($branch) ?>"
-                                                 title="Delete Tenant"><i class="fas fa-trash-alt"></i></button>
-                                         </td>
-                                     </tr>
-                                 <?php endforeach; ?>
-                             </tbody>
-                         </table>
-                     </div>
+                                      $r_out = $r_bal + $r_arr;
+                                      $e_out = $e_bal + $e_arr;
+                                      $w_out = $w_bal + $w_arr;
+                                      $t_arr = $r_arr + $e_arr + $w_arr;
+                                      $g_out = $r_out + $e_out + $w_out;
+                                  ?>
+                                      <tr>
+                                          <td><?= htmlspecialchars($row['tenantname'] ?? '') ?></td>
+                                          <td><?= htmlspecialchars($row['tenantcode'] ?? '') ?></td>
+                                          <td><?= htmlspecialchars($row['spacecode'] ?? '') ?></td>
+                                          <td><?= number_format((float) ($row['daily'] ?? 0), 2) ?></td>
+                                          <td><?= number_format($r_bal, 2) ?></td>
+                                          <td><?= number_format($r_arr, 2) ?></td>
+                                          <td class="font-weight-bold text-primary"><?= number_format($r_out, 2) ?></td>
+                                          <td><?= number_format($e_bal, 2) ?></td>
+                                          <td><?= number_format($e_arr, 2) ?></td>
+                                          <td class="font-weight-bold text-warning"><?= number_format($e_out, 2) ?></td>
+                                          <td><?= number_format($w_bal, 2) ?></td>
+                                          <td><?= number_format($w_arr, 2) ?></td>
+                                          <td class="font-weight-bold text-info"><?= number_format($w_out, 2) ?></td>
+                                          <td class="font-weight-bold text-danger"><?= number_format($t_arr, 2) ?></td>
+                                          <td class="font-weight-bold" style="color: #4f46e5;"><?= number_format($g_out, 2) ?></td>
+                                          <td><?= htmlspecialchars($row['started_date'] ?? '') ?></td>
+                                          <td>
+                                              <button class="btn btn-warning btn-sm me-1" data-toggle="modal" data-target="#editModal"
+                                                  data-id="<?= htmlspecialchars($row['id'] ?? '') ?>"
+                                                  data-tenantname="<?= htmlspecialchars($row['tenantname'] ?? '') ?>"
+                                                  data-tenantcode="<?= htmlspecialchars($row['tenantcode'] ?? '') ?>"
+                                                  data-spacecode="<?= htmlspecialchars($row['spacecode'] ?? '') ?>"
+                                                  data-daily="<?= htmlspecialchars($row['daily'] ?? '') ?>"
+                                                  data-rentbal="<?= htmlspecialchars($row['rentbal'] ?? '') ?>"
+                                                  data-runningbal="<?= htmlspecialchars($row['runningbal'] ?? '') ?>"
+                                                  data-elecbal="<?= htmlspecialchars($row['elecbal'] ?? '0') ?>"
+                                                  data-elecarrear="<?= htmlspecialchars($row['elecarrear'] ?? '0') ?>"
+                                                  data-waterbal="<?= htmlspecialchars($row['waterbal'] ?? '0') ?>"
+                                                  data-waterarrear="<?= htmlspecialchars($row['waterarrear'] ?? '0') ?>"
+                                                  data-branch="<?= htmlspecialchars($branch) ?>"
+                                                  title="Edit Tenant"><i class="fas fa-edit"></i></button>
 
-                     <div class="totals-section">
-                         <div class="total-item">
-                             <div class="total-label">Total Daily Rent:</div>
-                             <div class="total-value"><?= number_format($totalDaily, 2) ?></div>
-                         </div>
-                          <div class="total-item">
-                             <div class="total-label">Total Rent Balance:</div>
-                             <div class="total-value"><?= number_format($totalRentBal, 2) ?></div>
-                         </div>
-                          <div class="total-item">
-                             <div class="total-label">Total Arrear Balance:</div>
-                             <div class="total-value"><?= number_format($totalRunningBal, 2) ?></div>
-                         </div>
-                     </div>
-                 <?php endif; ?>
+                                              <button class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal"
+                                                  data-id="<?= htmlspecialchars($row['id'] ?? '') ?>"
+                                                  data-branch="<?= htmlspecialchars($branch) ?>"
+                                                  title="Delete Tenant"><i class="fas fa-trash-alt"></i></button>
+                                          </td>
+                                      </tr>
+                                  <?php endforeach; ?>
+                              </tbody>
+                          </table>
+                      </div>
+
+                      <div class="summary-dashboard">
+                          <div class="row">
+                              <!-- RENT SUMMARY -->
+                              <div class="col-xl-3 col-md-6 mb-3">
+                                  <div class="summary-card card-rent">
+                                      <div class="summary-card-header">
+                                          <span><i class="fas fa-home mr-1"></i> Rent Breakdown</span>
+                                          <span class="badge badge-primary">Rent</span>
+                                      </div>
+                                      <div class="summary-card-body">
+                                          <div class="summary-row">
+                                              <span class="label">Daily Rent:</span>
+                                              <span class="value"><?= number_format($totalDaily, 2) ?></span>
+                                          </div>
+                                          <div class="summary-row">
+                                              <span class="label">Rent Balance:</span>
+                                              <span class="value"><?= number_format($totalRentBal, 2) ?></span>
+                                          </div>
+                                          <div class="summary-row">
+                                              <span class="label">Rent Arrear:</span>
+                                              <span class="value"><?= number_format($totalRunningBal, 2) ?></span>
+                                          </div>
+                                      </div>
+                                      <div class="summary-card-footer">
+                                          <span class="total-label text-primary">Rent Total Out:</span>
+                                          <span class="total-val"><?= number_format($totalRentOutstanding, 2) ?></span>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              <!-- ELECTRICITY SUMMARY -->
+                              <div class="col-xl-3 col-md-6 mb-3">
+                                  <div class="summary-card card-elec">
+                                      <div class="summary-card-header">
+                                          <span><i class="fas fa-bolt mr-1"></i> Electricity Breakdown</span>
+                                          <span class="badge badge-warning text-dark">Elec</span>
+                                      </div>
+                                      <div class="summary-card-body">
+                                          <div class="summary-row">
+                                              <span class="label">Elec Balance:</span>
+                                              <span class="value"><?= number_format($totalElecBal, 2) ?></span>
+                                          </div>
+                                          <div class="summary-row">
+                                              <span class="label">Elec Arrear:</span>
+                                              <span class="value"><?= number_format($totalElecArrear, 2) ?></span>
+                                          </div>
+                                          <div class="summary-row text-muted" style="font-size: 0.8rem; font-style: italic;">
+                                              <span>Current & Arrears</span>
+                                              <span>Utility</span>
+                                          </div>
+                                      </div>
+                                      <div class="summary-card-footer">
+                                          <span class="total-label text-warning">Elec Total Out:</span>
+                                          <span class="total-val"><?= number_format($totalElecOutstanding, 2) ?></span>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              <!-- WATER SUMMARY -->
+                              <div class="col-xl-3 col-md-6 mb-3">
+                                  <div class="summary-card card-water">
+                                      <div class="summary-card-header">
+                                          <span><i class="fas fa-tint mr-1"></i> Water Breakdown</span>
+                                          <span class="badge badge-info">Water</span>
+                                      </div>
+                                      <div class="summary-card-body">
+                                          <div class="summary-row">
+                                              <span class="label">Water Balance:</span>
+                                              <span class="value"><?= number_format($totalWaterBal, 2) ?></span>
+                                          </div>
+                                          <div class="summary-row">
+                                              <span class="label">Water Arrear:</span>
+                                              <span class="value"><?= number_format($totalWaterArrear, 2) ?></span>
+                                          </div>
+                                          <div class="summary-row text-muted" style="font-size: 0.8rem; font-style: italic;">
+                                              <span>Current & Arrears</span>
+                                              <span>Utility</span>
+                                          </div>
+                                      </div>
+                                      <div class="summary-card-footer">
+                                          <span class="total-label text-info">Water Total Out:</span>
+                                          <span class="total-val"><?= number_format($totalWaterOutstanding, 2) ?></span>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              <!-- OVERALL GRAND TOTALS -->
+                              <div class="col-xl-3 col-md-6 mb-3">
+                                  <div class="summary-card card-grand">
+                                      <div class="summary-card-header">
+                                          <span><i class="fas fa-calculator mr-1"></i> Overall Totals</span>
+                                          <span class="badge badge-indigo text-white" style="background-color: #6366f1;">Combined</span>
+                                      </div>
+                                      <div class="summary-card-body">
+                                          <div class="summary-row">
+                                              <span class="label text-danger font-weight-bold">Combined Arrears:</span>
+                                              <span class="value text-danger font-weight-bold"><?= number_format($totalCombinedArrears, 2) ?></span>
+                                          </div>
+                                          <div class="summary-row text-muted" style="font-size: 0.78rem;">
+                                              <span>Rent + Elec + Water Arrears</span>
+                                          </div>
+                                      </div>
+                                      <div class="summary-card-footer">
+                                          <span class="total-label" style="color: #4338ca;">Grand Total Out:</span>
+                                          <span class="total-val"><?= number_format($grandTotalOutstanding, 2) ?></span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  <?php endif; ?>
             </div>
         </div>
     </div>
@@ -581,8 +866,36 @@ $conn->close(); // Close the database connection
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="editRunningBal" class="form-label">Arrear Balance:</label>
+                                    <label for="editRunningBal" class="form-label">Rent Arrear:</label>
                                     <input type="text" name="editRunningBal" id="editRunningBal" class="form-control decimal" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editElecBal" class="form-label">Elec Balance:</label>
+                                    <input type="text" name="editElecBal" id="editElecBal" class="form-control decimal" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editElecArrear" class="form-label">Elec Arrear:</label>
+                                    <input type="text" name="editElecArrear" id="editElecArrear" class="form-control decimal" value="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editWaterBal" class="form-label">Water Balance:</label>
+                                    <input type="text" name="editWaterBal" id="editWaterBal" class="form-control decimal" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editWaterArrear" class="form-label">Water Arrear:</label>
+                                    <input type="text" name="editWaterArrear" id="editWaterArrear" class="form-control decimal" value="0">
                                 </div>
                             </div>
                         </div>
@@ -669,8 +982,36 @@ $conn->close(); // Close the database connection
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="runningbal" class="form-label">Arrear Balance:</label>
-                                    <input type="text" name="runningbal" id="runningbal" placeholder="Enter Arrear Balance" class="form-control decimal" required>
+                                    <label for="runningbal" class="form-label">Rent Arrear:</label>
+                                    <input type="text" name="runningbal" id="runningbal" placeholder="Enter Rent Arrear" class="form-control decimal" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="elecbal" class="form-label">Elec Balance:</label>
+                                    <input type="text" name="elecbal" id="elecbal" placeholder="Enter Elec Balance" value="0" class="form-control decimal">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="elecarrear" class="form-label">Elec Arrear:</label>
+                                    <input type="text" name="elecarrear" id="elecarrear" placeholder="Enter Elec Arrear" value="0" class="form-control decimal">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="waterbal" class="form-label">Water Balance:</label>
+                                    <input type="text" name="waterbal" id="waterbal" placeholder="Enter Water Balance" value="0" class="form-control decimal">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="waterarrear" class="form-label">Water Arrear:</label>
+                                    <input type="text" name="waterarrear" id="waterarrear" placeholder="Enter Water Arrear" value="0" class="form-control decimal">
                                 </div>
                             </div>
                         </div>
@@ -783,6 +1124,10 @@ $conn->close(); // Close the database connection
                 const daily = button.data('daily');
                 const rentbal = button.data('rentbal');
                 const runningbal = button.data('runningbal');
+                const elecbal = button.data('elecbal') || 0;
+                const elecarrear = button.data('elecarrear') || 0;
+                const waterbal = button.data('waterbal') || 0;
+                const waterarrear = button.data('waterarrear') || 0;
                 const branch = button.data('branch');
 
                 $(this).find('#editTenantId').val(id);
@@ -792,6 +1137,10 @@ $conn->close(); // Close the database connection
                 $(this).find('#editDailyRent').val(daily);
                 $(this).find('#editRentBal').val(rentbal);
                 $(this).find('#editRunningBal').val(runningbal);
+                $(this).find('#editElecBal').val(elecbal);
+                $(this).find('#editElecArrear').val(elecarrear);
+                $(this).find('#editWaterBal').val(waterbal);
+                $(this).find('#editWaterArrear').val(waterarrear);
                 $(this).find('#editBranch').val(branch);
             });
 
@@ -972,6 +1321,9 @@ $conn->close(); // Close the database connection
             $('#bulkUpdateCsvFile').on('change', function() {
                 const file = this.files[0];
                 if (!file) {
+                    $('#bulkUpdateFileName').text('Click to browse or drag & drop file');
+                    $('#bulkUpdateFileIcon').removeClass('fa-file-excel text-success').addClass('fa-cloud-upload-alt text-primary');
+                    $('.custom-file-dropzone').css({'border-color': '#4e73df', 'background': '#f8f9fc'});
                     $('#previewBtn, #bulkUpdateBtn').prop('disabled', true);
                     return;
                 }
@@ -987,6 +1339,9 @@ $conn->close(); // Close the database connection
                         confirmButtonColor: '#dc3545'
                     });
                     this.value = '';
+                    $('#bulkUpdateFileName').text('Click to browse or drag & drop file');
+                    $('#bulkUpdateFileIcon').removeClass('fa-file-excel text-success').addClass('fa-cloud-upload-alt text-primary');
+                    $('.custom-file-dropzone').css({'border-color': '#4e73df', 'background': '#f8f9fc'});
                     $('#previewBtn, #bulkUpdateBtn').prop('disabled', true);
                     return;
                 }
@@ -1000,54 +1355,177 @@ $conn->close(); // Close the database connection
                          confirmButtonColor: '#dc3545'
                      });
                      this.value = '';
+                     $('#bulkUpdateFileName').text('Click to browse or drag & drop file');
+                     $('#bulkUpdateFileIcon').removeClass('fa-file-excel text-success').addClass('fa-cloud-upload-alt text-primary');
+                     $('.custom-file-dropzone').css({'border-color': '#4e73df', 'background': '#f8f9fc'});
                      $('#previewBtn, #bulkUpdateBtn').prop('disabled', true);
                      return;
                  }
 
-                                 // Handle file reading - only CSV files can be previewed on client side
+                // Update Dropzone UI
+                const sizeFormatted = (file.size / 1024).toFixed(1) + ' KB';
+                $('#bulkUpdateFileName').html('<span class="text-success font-weight-bold"><i class="fas fa-check-circle mr-1"></i> ' + $('<div>').text(file.name).html() + '</span> <span class="text-muted small">(' + sizeFormatted + ')</span>');
+                $('#bulkUpdateFileIcon').removeClass('fa-cloud-upload-alt text-primary').addClass('fa-file-excel text-success');
+                $('.custom-file-dropzone').css({'border-color': '#1cc88a', 'background': '#f0fff4'});
+
+                // Handle updateType change
+                $('#updateType').on('change', function() {
+                    const uType = $(this).val();
+                    $('#instructionsRent').addClass('d-none');
+                    $('#instructionsElec').addClass('d-none');
+                    $('#instructionsWater').addClass('d-none');
+
+                    if (uType === 'electricity') {
+                        $('#instructionsElec').removeClass('d-none');
+                    } else if (uType === 'water') {
+                        $('#instructionsWater').removeClass('d-none');
+                    } else {
+                        $('#instructionsRent').removeClass('d-none');
+                    }
+
+                    if (csvRawLines && csvRawLines.length > 0) {
+                        parseCsvContent(csvRawLines);
+                        showPreview();
+                    }
+                });
+
+                let csvRawLines = null;
+
+                function cleanNumber(val) {
+                    if (!val) return '0.00';
+                    let s = String(val).trim();
+                    if (s === '-' || s === '--' || s === '') return '0.00';
+                    let isNeg = false;
+                    if (s.startsWith('(') && s.endsWith(')')) {
+                        isNeg = true;
+                        s = s.substring(1, s.length - 1);
+                    } else if (s.startsWith('-')) {
+                        isNeg = true;
+                        s = s.substring(1);
+                    }
+                    s = s.replace(/[^\d.]/g, '');
+                    if (!s || isNaN(parseFloat(s))) return '0.00';
+                    let num = parseFloat(s);
+                    if (isNeg) num = -num;
+                    return num.toFixed(2);
+                }
+
+                function parseCsvContent(lines) {
+                    const uType = $('#updateType').val();
+                    let headerMap = null;
+                    const parsedRows = [];
+
+                    for (let r = 0; r < lines.length; r++) {
+                        const line = lines[r];
+                        const columns = [];
+                        let current = '';
+                        let inQuotes = false;
+                        
+                        for (let i = 0; i < line.length; i++) {
+                            const char = line[i];
+                            if (char === '"') {
+                                inQuotes = !inQuotes;
+                            } else if (char === ',' && !inQuotes) {
+                                columns.push(current.trim());
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        columns.push(current.trim());
+                        const cleanColumns = columns.map(col => col.replace(/^"|"$/g, '').trim());
+                        
+                        if (cleanColumns.every(c => c === '')) continue;
+
+                        if (uType === 'electricity' || uType === 'water') {
+                            // Detect header row
+                            const isHeaderRow = cleanColumns.some(c => /^(scode|sname|space|tenant|arrear|balance|bal|total)/i.test(c.replace(/[^a-z0-9]/gi, '')));
+                            if (isHeaderRow && !headerMap) {
+                                headerMap = { spacecode: null, tenantname: null, arrear: null, balance: null, total: null };
+                                cleanColumns.forEach((col, idx) => {
+                                    const simple = col.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                    if (headerMap.spacecode === null && (simple.includes('scode') || simple.includes('space') || simple.includes('stall'))) {
+                                        headerMap.spacecode = idx;
+                                    } else if (headerMap.total === null && (simple.includes('total') || simple.includes('outstanding'))) {
+                                        headerMap.total = idx;
+                                    } else if (headerMap.arrear === null && simple.includes('arrear')) {
+                                        headerMap.arrear = idx;
+                                    } else if (headerMap.balance === null && (simple.includes('balance') || simple.includes('bal') || simple.includes('bill') || simple.includes('current'))) {
+                                        headerMap.balance = idx;
+                                    } else if (headerMap.tenantname === null && (simple.includes('sname') || simple.includes('tenant') || simple.includes('name') || simple.includes('store'))) {
+                                        headerMap.tenantname = idx;
+                                    }
+                                });
+                                continue; // Skip header row
+                            }
+
+                            let scode = '', sname = '', arrStr = '0.00', balStr = '0.00', totStr = '';
+                            if (headerMap && headerMap.spacecode !== null) {
+                                scode = cleanColumns[headerMap.spacecode] || '';
+                                sname = (headerMap.tenantname !== null ? cleanColumns[headerMap.tenantname] : '') || '';
+                                arrStr = cleanNumber(headerMap.arrear !== null ? cleanColumns[headerMap.arrear] : '0');
+                                balStr = cleanNumber(headerMap.balance !== null ? cleanColumns[headerMap.balance] : '0');
+                                if (headerMap.total !== null && cleanColumns[headerMap.total]) {
+                                    totStr = cleanNumber(cleanColumns[headerMap.total]);
+                                } else {
+                                    totStr = (parseFloat(arrStr) + parseFloat(balStr)).toFixed(2);
+                                }
+                            } else {
+                                // User standard positional format: [0] scode, [1] sname, [2] arrears, [3] balance, [4] total outstanding
+                                if (cleanColumns.length >= 4) {
+                                    scode = cleanColumns[0] || '';
+                                    sname = cleanColumns[1] || '';
+                                    arrStr = cleanNumber(cleanColumns[2]);
+                                    balStr = cleanNumber(cleanColumns[3]);
+                                    totStr = cleanColumns[4] ? cleanNumber(cleanColumns[4]) : (parseFloat(arrStr) + parseFloat(balStr)).toFixed(2);
+                                } else if (cleanColumns.length === 3) {
+                                    scode = cleanColumns[0] || '';
+                                    sname = '';
+                                    arrStr = cleanNumber(cleanColumns[1]);
+                                    balStr = cleanNumber(cleanColumns[2]);
+                                    totStr = (parseFloat(arrStr) + parseFloat(balStr)).toFixed(2);
+                                } else {
+                                    scode = cleanColumns[0] || '';
+                                    sname = '';
+                                    arrStr = cleanNumber(cleanColumns[1]);
+                                    balStr = '0.00';
+                                    totStr = arrStr;
+                                }
+                            }
+
+                            if (scode) {
+                                parsedRows.push({
+                                    spacecode: scode,
+                                    tenantname: sname,
+                                    arrear: arrStr,
+                                    bal: balStr,
+                                    total: totStr
+                                });
+                            }
+                        } else {
+                            parsedRows.push({
+                                tenantname: cleanColumns[0] || '',
+                                tenantcode: cleanColumns[1] || '',
+                                spacecode: cleanColumns[2] || '',
+                                daily: cleanColumns[3] || '',
+                                rentbal: cleanColumns[4] || '',
+                                runningbal: cleanColumns[5] || '',
+                                started_date: cleanColumns[6] || ''
+                            });
+                        }
+                    }
+                    csvData = parsedRows;
+                }
+
+                // Handle file reading - only CSV files can be previewed on client side
                 if (fileExtension === '.csv') {
                     // Read and parse CSV
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         try {
                             const csvContent = e.target.result;
-                            const lines = csvContent.split('\n').filter(line => line.trim() !== '');
-                            
-                            csvData = lines.map(line => {
-                                // Handle CSV with potential quotes and better parsing
-                                const columns = [];
-                                let current = '';
-                                let inQuotes = false;
-                                
-                                for (let i = 0; i < line.length; i++) {
-                                    const char = line[i];
-                                    
-                                    if (char === '"') {
-                                        inQuotes = !inQuotes;
-                                    } else if (char === ',' && !inQuotes) {
-                                        columns.push(current.trim());
-                                        current = '';
-                                    } else {
-                                        current += char;
-                                    }
-                                }
-                                
-                                // Add the last column
-                                columns.push(current.trim());
-                                
-                                // Remove quotes from each column
-                                const cleanColumns = columns.map(col => col.replace(/^"|"$/g, ''));
-                                
-                                return {
-                                    tenantname: cleanColumns[0] || '',
-                                    tenantcode: cleanColumns[1] || '',
-                                    spacecode: cleanColumns[2] || '',
-                                    daily: cleanColumns[3] || '',
-                                    rentbal: cleanColumns[4] || '',
-                                    runningbal: cleanColumns[5] || '',
-                                    started_date: cleanColumns[6] || ''
-                                };
-                            });
+                            csvRawLines = csvContent.split('\n').filter(line => line.trim() !== '');
+                            parseCsvContent(csvRawLines);
 
                             // Enable buttons
                             $('#previewBtn, #bulkUpdateBtn').prop('disabled', false);
@@ -1068,7 +1546,8 @@ $conn->close(); // Close the database connection
                     reader.readAsText(file);
                 } else {
                     // For Excel files, we can't preview on client side
-                    csvData = null; // Clear any previous CSV data
+                    csvData = null;
+                    csvRawLines = null;
                     
                     // Enable buttons for Excel files (preview will show a message)
                     $('#previewBtn, #bulkUpdateBtn').prop('disabled', false);
@@ -1083,29 +1562,65 @@ $conn->close(); // Close the database connection
                  showPreview();
              });
 
-                         function showPreview() {
+             function showPreview() {
                 if (!csvData || csvData.length === 0) {
                     $('#bulkUpdatePreview').addClass('d-none');
                     return;
                 }
 
-                const previewData = csvData.slice(0, 5); // Show first 5 rows
+                const uType = $('#updateType').val();
+                const thead = $('#previewTableHeader');
                 const tbody = $('#previewTableBody');
                 tbody.empty();
 
+                if (uType === 'electricity') {
+                    thead.html(`<tr>
+                        <th>Space Code (scode)</th>
+                        <th>Tenant / Store Name (sname)</th>
+                        <th>Elec Arrears</th>
+                        <th>Elec Balance (Current Bill)</th>
+                        <th>Total Outstanding</th>
+                    </tr>`);
+                } else if (uType === 'water') {
+                    thead.html(`<tr>
+                        <th>Space Code (scode)</th>
+                        <th>Tenant / Store Name (sname)</th>
+                        <th>Water Arrears</th>
+                        <th>Water Balance (Current Bill)</th>
+                        <th>Total Outstanding</th>
+                    </tr>`);
+                } else {
+                    thead.html(`<tr>
+                        <th>Tenant Name</th>
+                        <th>Tenant Code</th>
+                        <th>Space Code</th>
+                        <th>Daily Rent</th>
+                        <th>Rent Balance</th>
+                        <th>Arrear Balance</th>
+                        <th>Started Date</th>
+                    </tr>`);
+                }
+
+                const previewData = csvData.slice(0, 5); // Show first 5 rows
+
                 previewData.forEach((row, index) => {
                     const tr = $('<tr>');
-                    tr.append(`<td>${row.tenantname}</td>`);
-                    tr.append(`<td>${row.tenantcode}</td>`);
-                    tr.append(`<td><strong>${row.spacecode || '<span class="text-danger">EMPTY</span>'}</strong></td>`);
-                    tr.append(`<td>${row.daily}</td>`);
-                    tr.append(`<td>${row.rentbal}</td>`);
-                    tr.append(`<td>${row.runningbal}</td>`);
-                    tr.append(`<td>${row.started_date || 'Not provided'}</td>`);
+                    if (uType === 'electricity' || uType === 'water') {
+                        tr.append(`<td><strong>${row.spacecode || '<span class="text-danger">EMPTY</span>'}</strong></td>`);
+                        tr.append(`<td>${row.tenantname || '<span class="text-muted">-</span>'}</td>`);
+                        tr.append(`<td class="text-danger font-weight-bold">${row.arrear}</td>`);
+                        tr.append(`<td class="text-warning font-weight-bold">${row.bal}</td>`);
+                        tr.append(`<td class="text-primary font-weight-bold">${row.total}</td>`);
+                    } else {
+                        tr.append(`<td>${row.tenantname}</td>`);
+                        tr.append(`<td>${row.tenantcode}</td>`);
+                        tr.append(`<td><strong>${row.spacecode || '<span class="text-danger">EMPTY</span>'}</strong></td>`);
+                        tr.append(`<td>${row.daily}</td>`);
+                        tr.append(`<td>${row.rentbal}</td>`);
+                        tr.append(`<td>${row.runningbal}</td>`);
+                        tr.append(`<td>${row.started_date || 'Not provided'}</td>`);
+                    }
                     tbody.append(tr);
-                    
-                    // Debug info in console
-                    console.log(`Row ${index + 1}:`, row);
                 });
 
                 $('#bulkUpdatePreview').removeClass('d-none');
@@ -1171,10 +1686,13 @@ $conn->close(); // Close the database connection
                      return;
                  }
 
+                 const uType = $('#updateType').val();
+                 const typeLabel = uType === 'electricity' ? 'Electricity' : (uType === 'water' ? 'Water' : 'Rent / Tenant Master');
+
                  // Confirmation dialog for bulk update
                  Swal.fire({
-                     title: 'Bulk Update Tenants?',
-                     html: `Are you sure you want to update tenant data for <strong>${branch.toUpperCase()}</strong> branch?<br><small>This will update or insert tenants based on the file.</small>`,
+                     title: `Bulk Update ${typeLabel}?`,
+                     html: `Are you sure you want to bulk update <strong>${typeLabel}</strong> for <strong>${branch.toUpperCase()}</strong> branch?<br><small>This will process and update tenant balances based on the uploaded file.</small>`,
                      icon: 'question',
                      showCancelButton: true,
                      confirmButtonColor: '#0dcaf0',
@@ -1430,9 +1948,13 @@ $conn->close(); // Close the database connection
                             <small class="text-muted">Example: apm, nova, sanko</small>
                         </div>
                         <div class="mb-3">
-                            <label for="csvFile" class="form-label">Import Initial Data (CSV):</label>
-                            <input type="file" name="csvFile" id="csvFile" class="form-control" accept=".csv" required>
-                            <small class="text-muted">CSV should contain columns: tenantname, tenantcode, spacecode, daily, rentbal, runningbal (started_date is optional, defaults to today)</small>
+                            <label class="form-label font-weight-bold">Import Initial Data (CSV):</label>
+                            <label for="csvFile" class="custom-file-dropzone-branch d-block text-center p-3 rounded mb-0" style="border: 2px dashed #1cc88a !important; background: #f8f9fc; cursor: pointer; transition: all 0.2s;">
+                                <input type="file" name="csvFile" id="csvFile" class="d-none" accept=".csv" required onchange="if(this.files[0]){ $('#branchFileName').html('<span class=\'text-success font-weight-bold\'><i class=\'fas fa-check-circle mr-1\'></i> ' + $('<div>').text(this.files[0].name).html() + '</span>'); } else { $('#branchFileName').text('Click to browse CSV file'); }">
+                                <i class="fas fa-file-csv text-success fa-2x mb-2" id="branchFileIcon"></i>
+                                <div class="font-weight-bold text-gray-800 mb-1" id="branchFileName">Click to browse CSV file</div>
+                                <small class="text-muted d-block">Columns: tenantname, tenantcode, spacecode, daily, rentbal, runningbal</small>
+                            </label>
                         </div>
                         <div class="alert alert-info">
                             <h6 class="alert-heading"><i class="fas fa-info-circle"></i> Important Integration Steps:</h6>
@@ -1592,22 +2114,199 @@ $conn->close(); // Close the database connection
                         </button>
                     </div>
                     <div class="modal-body">
-                        <div class="alert alert-info">
-                            <h6 class="alert-heading"><i class="fas fa-info-circle"></i> File Format Instructions:</h6>
-                            <hr>
-                            <p class="mb-2"><strong>CSV/Excel files should contain the following columns in order:</strong></p>
-                            <ol class="mb-2">
-                                <li>Tenant Name</li>
-                                <li>Tenant Code</li>
-                                <li>Space Code (unique identifier)</li>
-                                <li>Daily Rent</li>
-                                <li>Rent Balance</li>
-                                <li>Arrear Balance</li>
-                                <li>Started Date (optional, format: YYYY-MM-DD)</li>
-                            </ol>
-                            <p class="mb-0"><strong>CSV Example:</strong><br>
-                            <code>Calipes, Celestino,1A001,195.77,0.00,2431.00,2024-01-01</code><br>
-                            <small class="text-muted">Excel files should have the same column structure but in spreadsheet format.</small></p>
+                        <div class="mb-3">
+                            <label for="updateType" class="form-label font-weight-bold">Select Update Type:</label>
+                            <select name="updateType" id="updateType" class="form-select" required>
+                                <option value="rent" selected>Rent / Tenant Master List (Full)</option>
+                                <option value="electricity">Electricity Only (Space Code, Elec Balance, Elec Arrear)</option>
+                                <option value="water">Water Only (Space Code, Water Balance, Water Arrear)</option>
+                            </select>
+                        </div>
+
+                        <div id="instructionsRent" class="alert alert-primary">
+                            <h6 class="alert-heading font-weight-bold text-dark mb-2">
+                                <i class="fas fa-home text-primary mr-1"></i> Rent / Tenant Master List — Required Columns & Order:
+                            </h6>
+                            <p class="small text-dark mb-2">
+                                Please upload a CSV or Excel (<code>.xlsx / .xls</code>) file. Make sure columns are arranged in the following exact 7-column sequence:
+                            </p>
+                            <div class="table-responsive bg-white rounded border mb-2">
+                                <table class="table table-sm table-bordered text-center mb-0" style="font-size: 0.82rem;">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Col 1 (A)</th>
+                                            <th>Col 2 (B)</th>
+                                            <th>Col 3 (C)</th>
+                                            <th>Col 4 (D)</th>
+                                            <th>Col 5 (E)</th>
+                                            <th>Col 6 (F)</th>
+                                            <th>Col 7 (G)</th>
+                                        </tr>
+                                        <tr class="font-weight-bold">
+                                            <th>Tenant Name</th>
+                                            <th>Tenant Code</th>
+                                            <th>Space Code</th>
+                                            <th>Daily Rent</th>
+                                            <th>Rent Balance</th>
+                                            <th>Rent Arrear</th>
+                                            <th>Started Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="text-muted">
+                                            <td>Calipes, Celestino</td>
+                                            <td><code>1A001</code></td>
+                                            <td><code>1A001</code></td>
+                                            <td><code>195.77</code></td>
+                                            <td><code>0.00</code></td>
+                                            <td><code>2431.00</code></td>
+                                            <td><code>2024-01-01</code></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="bg-white p-2 rounded border small text-dark">
+                                <strong><i class="fas fa-list-ol text-primary mr-1"></i> Column Breakdown:</strong>
+                                <ul class="mb-0 pl-3 mt-1">
+                                    <li><strong>Col 1 - Tenant Name:</strong> Full Name of the tenant.</li>
+                                    <li><strong>Col 2 - Tenant Code:</strong> Unique tenant identification code.</li>
+                                    <li><strong>Col 3 - Space Code:</strong> Stall / Booth / Space ID (Primary matching key).</li>
+                                    <li><strong>Col 4 - Daily Rent:</strong> Daily rental amount.</li>
+                                    <li><strong>Col 5 - Rent Balance:</strong> Advance / Current rent balance.</li>
+                                    <li><strong>Col 6 - Rent Arrear:</strong> Accumulated unpaid rent balance.</li>
+                                    <li><strong>Col 7 - Started Date:</strong> Lease start date format <code>YYYY-MM-DD</code> (e.g. <code>2024-01-01</code>).</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div id="instructionsElec" class="alert alert-warning d-none" style="background-color: #fffbeb; border-color: #fde68a;">
+                            <h6 class="alert-heading font-weight-bold text-dark mb-2">
+                                <i class="fas fa-bolt text-warning mr-1"></i> Electricity Update — Required Columns & Order:
+                            </h6>
+                            <p class="small text-dark mb-2">
+                                Please upload a CSV or Excel (<code>.xlsx / .xls</code>) file. Make sure columns are arranged in this exact 5-column sequence:
+                            </p>
+
+                            <!-- Standard 5-Column Format -->
+                            <div class="card mb-2 border">
+                                <div class="card-header bg-white py-1 px-2">
+                                    <strong class="small text-primary"><i class="fas fa-table mr-1"></i> Electricity File Format (5 Columns):</strong>
+                                </div>
+                                <div class="card-body p-0 table-responsive">
+                                    <table class="table table-sm table-bordered text-center mb-0" style="font-size: 0.83rem;">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th class="bg-light text-primary">Col 1 (A)</th>
+                                                <th class="bg-light text-secondary">Col 2 (B)</th>
+                                                <th class="bg-light text-danger">Col 3 (C)</th>
+                                                <th class="bg-light text-warning">Col 4 (D)</th>
+                                                <th class="bg-light text-info">Col 5 (E)</th>
+                                            </tr>
+                                            <tr class="font-weight-bold">
+                                                <th>scode</th>
+                                                <th>sname</th>
+                                                <th>arrears</th>
+                                                <th>balance</th>
+                                                <th>total outstanding balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="text-muted">
+                                                <td><code>1A001</code></td>
+                                                <td>Calipes Celestino</td>
+                                                <td class="text-danger"><code>1200.00</code></td>
+                                                <td class="text-warning"><code>350.00</code></td>
+                                                <td class="text-primary font-weight-bold"><code>1550.00</code></td>
+                                            </tr>
+                                            <tr class="text-muted">
+                                                <td><code>S-02</code></td>
+                                                <td>Nova Store</td>
+                                                <td class="text-danger"><code>0.00</code></td>
+                                                <td class="text-warning"><code>480.50</code></td>
+                                                <td class="text-primary font-weight-bold"><code>480.50</code></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Detailed Column Breakdown & Understanding -->
+                            <div class="bg-white p-2 rounded border small text-dark">
+                                <strong><i class="fas fa-info-circle text-warning mr-1"></i> How the System Updates Electricity:</strong>
+                                <ul class="mb-0 pl-3 mt-1">
+                                    <li><strong>Col 1 - <code>scode</code> (Space Code):</strong> Primary matching key. Used to locate the tenant in the branch database.</li>
+                                    <li><strong>Col 2 - <code>sname</code> (Space/Tenant Name):</strong> Tenant or Store Name (for reference & visual verification).</li>
+                                    <li><strong>Col 3 - <code>arrears</code> (Electricity Arrear):</strong> Updates <strong>Electricity Arrear</strong> (unpaid previous electricity bills).</li>
+                                    <li><strong>Col 4 - <code>balance</code> (Current Bill):</strong> Updates <strong>Electricity Balance</strong> (current monthly billing charges).</li>
+                                    <li><strong>Col 5 - <code>total outstanding balance</code>:</strong> Combined total (<code>arrears + balance</code>). The system also auto-computes and displays this everywhere!</li>
+                                    <li><strong class="text-success"><i class="fas fa-shield-alt"></i> Safe Update:</strong> Rent and Water balances are <strong>never touched</strong> by this update.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div id="instructionsWater" class="alert alert-info d-none" style="background-color: #ecfeff; border-color: #a5f3fc;">
+                            <h6 class="alert-heading font-weight-bold text-dark mb-2">
+                                <i class="fas fa-tint text-info mr-1"></i> Water Update — Required Columns & Order:
+                            </h6>
+                            <p class="small text-dark mb-2">
+                                Please upload a CSV or Excel (<code>.xlsx / .xls</code>) file. Make sure columns are arranged in this exact 5-column sequence:
+                            </p>
+
+                            <!-- Standard 5-Column Format -->
+                            <div class="card mb-2 border">
+                                <div class="card-header bg-white py-1 px-2">
+                                    <strong class="small text-primary"><i class="fas fa-table mr-1"></i> Water File Format (5 Columns):</strong>
+                                </div>
+                                <div class="card-body p-0 table-responsive">
+                                    <table class="table table-sm table-bordered text-center mb-0" style="font-size: 0.83rem;">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th class="bg-light text-primary">Col 1 (A)</th>
+                                                <th class="bg-light text-secondary">Col 2 (B)</th>
+                                                <th class="bg-light text-danger">Col 3 (C)</th>
+                                                <th class="bg-light text-info">Col 4 (D)</th>
+                                                <th class="bg-light text-primary">Col 5 (E)</th>
+                                            </tr>
+                                            <tr class="font-weight-bold">
+                                                <th>scode</th>
+                                                <th>sname</th>
+                                                <th>arrears</th>
+                                                <th>balance</th>
+                                                <th>total outstanding balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="text-muted">
+                                                <td><code>1A001</code></td>
+                                                <td>Calipes Celestino</td>
+                                                <td class="text-danger"><code>450.00</code></td>
+                                                <td class="text-info"><code>150.00</code></td>
+                                                <td class="text-primary font-weight-bold"><code>600.00</code></td>
+                                            </tr>
+                                            <tr class="text-muted">
+                                                <td><code>S-02</code></td>
+                                                <td>Nova Store</td>
+                                                <td class="text-danger"><code>0.00</code></td>
+                                                <td class="text-info"><code>200.00</code></td>
+                                                <td class="text-primary font-weight-bold"><code>200.00</code></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Detailed Column Breakdown & Understanding -->
+                            <div class="bg-white p-2 rounded border small text-dark">
+                                <strong><i class="fas fa-info-circle text-info mr-1"></i> How the System Updates Water:</strong>
+                                <ul class="mb-0 pl-3 mt-1">
+                                    <li><strong>Col 1 - <code>scode</code> (Space Code):</strong> Primary matching key. Used to locate the tenant in the branch database.</li>
+                                    <li><strong>Col 2 - <code>sname</code> (Space/Tenant Name):</strong> Tenant or Store Name (for reference & visual verification).</li>
+                                    <li><strong>Col 3 - <code>arrears</code> (Water Arrear):</strong> Updates <strong>Water Arrear</strong> (unpaid previous water bills).</li>
+                                    <li><strong>Col 4 - <code>balance</code> (Current Bill):</strong> Updates <strong>Water Balance</strong> (current monthly billing charges).</li>
+                                    <li><strong>Col 5 - <code>total outstanding balance</code>:</strong> Combined total (<code>arrears + balance</code>). The system also auto-computes and displays this everywhere!</li>
+                                    <li><strong class="text-success"><i class="fas fa-shield-alt"></i> Safe Update:</strong> Rent and Electricity balances are <strong>never touched</strong> by this update.</li>
+                                </ul>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -1627,20 +2326,23 @@ $conn->close(); // Close the database connection
                         </div>
                         
                         <div class="mb-3">
-                            <label for="bulkUpdateCsvFile" class="form-label">Upload File (CSV/Excel):</label>
-                            <input type="file" name="bulkUpdateCsvFile" id="bulkUpdateCsvFile" class="form-control" accept=".csv,.xls,.xlsx" required>
-                            <small class="text-muted">Supported formats: CSV, XLS, XLSX | Maximum file size: 50MB</small>
+                            <label class="form-label font-weight-bold">Upload File (CSV/Excel):</label>
+                            <label for="bulkUpdateCsvFile" class="custom-file-dropzone d-block text-center p-3 rounded mb-0" style="border: 2px dashed #4e73df !important; background: #f8f9fc; cursor: pointer; transition: all 0.2s;">
+                                <input type="file" name="bulkUpdateCsvFile" id="bulkUpdateCsvFile" class="d-none" accept=".csv,.xls,.xlsx" required>
+                                <i class="fas fa-cloud-upload-alt text-primary fa-2x mb-2" id="bulkUpdateFileIcon"></i>
+                                <div class="font-weight-bold text-gray-800 mb-1" id="bulkUpdateFileName">Click to browse or drag & drop file</div>
+                                <small class="text-muted d-block">Supported formats: <strong>CSV, XLS, XLSX</strong> | Maximum file size: <strong>50MB</strong></small>
+                            </label>
                         </div>
                         
                         <div class="alert alert-info">
                             <h6 class="alert-heading"><i class="fas fa-info-circle"></i> Matching Logic:</h6>
                             <hr>
                             <ul class="mb-0">
-                                <li><strong>Primary Matching:</strong> Space Code only</li>
-                                <li><strong>Secondary Matching:</strong> Tenant Name AND Space Code (for "others in space code")</li>
-                                <li>If tenant doesn't exist (spacecode not found): Insert as new tenant</li>
+                                <li><strong>Primary Matching:</strong> Space Code</li>
+                                <li>For Rent mode: If space code not found, tenant will be inserted</li>
+                                <li>For Elec/Water mode: Matches existing tenant space code to update balances</li>
                                 <li>Empty values in CSV will not overwrite existing data</li>
-                                <li>Started Date is optional - if not provided, current date will be used for new tenants</li>
                             </ul>
                         </div>
                         
@@ -1649,9 +2351,8 @@ $conn->close(); // Close the database connection
                             <hr>
                             <ul class="mb-0">
                                 <li><strong>Summary/Total Rows:</strong> Remove any rows that contain totals, subtotals, or summary calculations</li>
-                                <li><strong>Empty Space Codes:</strong> Every data row must have a space code (3rd column)</li>
-                                <li><strong>Headers:</strong> Remove or ensure header rows are properly formatted</li>
-                                <li><strong>Merged Cells:</strong> Unmerge any merged cells before uploading</li>
+                                <li><strong>Empty Space Codes:</strong> Every data row must have a valid space code</li>
+                                <li><strong>Headers:</strong> Ensure header rows are in row 1</li>
                                 <li><strong>Formulas:</strong> Convert calculated cells to values before uploading</li>
                             </ul>
                         </div>
@@ -1660,7 +2361,7 @@ $conn->close(); // Close the database connection
                             <h6><i class="fas fa-eye me-2"></i>Preview (First 5 rows):</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm table-bordered">
-                                    <thead class="table-light">
+                                    <thead class="table-light" id="previewTableHeader">
                                         <tr>
                                             <th>Tenant Name</th>
                                             <th>Tenant Code</th>
@@ -1691,18 +2392,18 @@ $conn->close(); // Close the database connection
 
     <!-- Processing Modal -->
     <div class="modal fade" id="processingModal" tabindex="-1" aria-labelledby="processingModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-body text-center d-flex flex-column align-items-center justify-content-center" style="min-height: 200px;">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Processing...</span>
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 16px;">
+                <div class="modal-body text-center p-4">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem; border-width: 0.3em;">
+                        <span class="sr-only">Loading...</span>
                     </div>
-                    <h5 class="modal-title mb-2" id="processingModalLabel">Processing CSV Update</h5>
-                    <p class="text-muted mb-3">Please wait while we process your file...</p>
-                    <div class="progress mb-2" style="width: 100%;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                    <h5 class="modal-title font-weight-bold mb-2 text-gray-900" id="processingModalLabel">Processing CSV Update...</h5>
+                    <p class="text-muted small mb-3">Please wait while we process your file.<br>This may take a few minutes for large files.</p>
+                    <div class="progress mb-2" style="width: 100%; height: 8px; border-radius: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
                     </div>
-                    <small class="text-muted">This may take a few moments depending on file size</small>
+                    <small class="text-muted" style="font-size: 11px;">This may take a few moments depending on file size</small>
                 </div>
             </div>
         </div>

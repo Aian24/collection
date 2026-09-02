@@ -18,8 +18,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $tenantCode = $_POST["editTenantCode"] ?? "";
     $spaceCode = $_POST["editSpaceCode"] ?? "";
     $dailyRent = str_replace(',', '', $_POST["editDailyRent"]) ?? ""; // Sanitize daily rent input (remove commas)
-    $rentBal = str_replace(',', '', $_POST["editRentBal"]) ?? "";
-    $runningBal = str_replace(',', '', $_POST["editRunningBal"]) ?? "";
+    $rentBal = str_replace(',', '', $_POST["editRentBal"] ?? "");
+    $runningBal = str_replace(',', '', $_POST["editRunningBal"] ?? "");
+    $elecBal = str_replace(',', '', $_POST["editElecBal"] ?? "0");
+    $elecArrear = str_replace(',', '', $_POST["editElecArrear"] ?? "0");
+    $waterBal = str_replace(',', '', $_POST["editWaterBal"] ?? "0");
+    $waterArrear = str_replace(',', '', $_POST["editWaterArrear"] ?? "0");
 
     $branch = $_POST["editBranch"] ?? "";
     
@@ -96,13 +100,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Prepare the update query
     $updateQuery = "UPDATE $tableName 
-                    SET tenantname=?, tenantcode=?, spacecode=?, daily=?, rentbal=?, runningbal=?
+                    SET tenantname=?, tenantcode=?, spacecode=?, daily=?, rentbal=?, runningbal=?, elecbal=?, elecarrear=?, waterbal=?, waterarrear=?
                     WHERE id=?";
     $stmt = $conn->prepare($updateQuery);
     
     // Bind the parameters to the query
     if ($stmt) {
-        $stmt->bind_param("ssssddi", $tenantName, $tenantCode, $spaceCode, $dailyRent, $rentBal, $runningBal, $id);
+        $stmt->bind_param("ssssddddddi", $tenantName, $tenantCode, $spaceCode, $dailyRent, $rentBal, $runningBal, $elecBal, $elecArrear, $waterBal, $waterArrear, $id);
 
         // Execute the query and check for success
         if ($stmt->execute()) {
@@ -114,7 +118,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 'spacecode' => $spaceCode,
                 'daily' => $dailyRent,
                 'rentbal' => $rentBal,
-                'runningbal' => $runningBal
+                'runningbal' => $runningBal,
+                'elecbal' => $elecBal,
+                'elecarrear' => $elecArrear,
+                'waterbal' => $waterBal,
+                'waterarrear' => $waterArrear
             ];
             
             // Get user information

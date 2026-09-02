@@ -260,8 +260,11 @@ while ($row = mysqli_fetch_assoc($result)) {
 
 
     if ($includeRow) {
-        $rent_balance = (float)$row['newrentbalance'];
-        $arrear_balance = (float)$row['newbalance'];
+        $rent_balance = (float)($row['newrentbalance'] ?? 0);
+        $rent_arrear = (float)($row['newbalance'] ?? 0);
+        $elec_arrear = (float)($row['newelecarrear'] ?? 0);
+        $water_arrear = (float)($row['newwaterarrear'] ?? 0);
+        $total_arrears = $rent_arrear + $elec_arrear + $water_arrear;
         $row_total = (float)$row['paidrent'] + (float)$row['paidbal'] + $aircon + $cusa + $electricity + $water + $table_tennis + $pay_toilet + $pay_parking +
             $ice_water + $ulam_vendor + $gas + $famylihan + $garbage_haul + $photocopy +
             $tenant_id + $function_room + $tables_chairs + $overnight_works +
@@ -309,7 +312,10 @@ while ($row = mysqli_fetch_assoc($result)) {
             'forfeited_items' => number_format($forfeited_items, 2),
             'total' => number_format($row_total, 2), // Total collected for this transaction
             'rent_balance' => number_format($rent_balance, 2), // Rent Balance for this transaction
-            'arrear_balance' => number_format($arrear_balance, 2), // Arrear Balance for this transaction
+            'rent_arrear' => number_format($rent_arrear, 2),
+            'elec_arrear' => number_format($elec_arrear, 2),
+            'water_arrear' => number_format($water_arrear, 2),
+            'total_arrears' => number_format($total_arrears, 2),
 
             // Include raw values for potential client-side re-calculation or sorting if needed
             'raw_paidrent' => (float)$row['paidrent'],
@@ -341,7 +347,10 @@ while ($row = mysqli_fetch_assoc($result)) {
             'raw_forfeited_items' => $forfeited_items,
             'raw_total' => $row_total,
             'raw_rent_balance' => $rent_balance,
-            'raw_arrear_balance' => $arrear_balance,
+            'raw_rent_arrear' => $rent_arrear,
+            'raw_elec_arrear' => $elec_arrear,
+            'raw_water_arrear' => $water_arrear,
+            'raw_total_arrears' => $total_arrears,
         ];
 
         // Calculate grand totals only once per unique transaction number within the filtered set
@@ -380,7 +389,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 
         // Sum combined total and balance for the filtered rows
          $total_combined += $row_total;
-         $total_balance += $rent_balance + $arrear_balance;
+         $total_balance += $rent_balance + $total_arrears;
 
     }
 }
@@ -896,7 +905,10 @@ if ($isAjax) {
                              <th>Forfeited Items</th>
                             <th>Row Total</th>
                             <th>Rent Balance</th>
-                            <th>Arrear Balance</th>
+                            <th>Rent Arrear</th>
+                            <th>Elec Arrear</th>
+                            <th>Water Arrear</th>
+                            <th>Total Arrears</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1781,7 +1793,10 @@ if ($isAjax) {
                     36: 'raw_forfeited_items',
                     37: 'raw_total',
                     38: 'raw_rent_balance',
-                    38: 'raw_arrear_balance'
+                    39: 'raw_rent_arrear',
+                    40: 'raw_elec_arrear',
+                    41: 'raw_water_arrear',
+                    42: 'raw_total_arrears'
                 };
                 
                 // If we have a raw field mapping, use raw values for checking
@@ -1934,7 +1949,10 @@ if ($isAjax) {
                      { data: 'forfeited_items' },
                     { data: 'total' }, // Column for Row Total
                     { data: 'rent_balance' }, // Column for Rent Balance
-                    { data: 'arrear_balance' } // Column for Arrear Balance
+                    { data: 'rent_arrear' },
+                    { data: 'elec_arrear' },
+                    { data: 'water_arrear' },
+                    { data: 'total_arrears' }
                     // Make sure the order and data keys match your PHP's $dataForTable structure
                 ],
                 dom: '<"d-flex flex-wrap align-items-center justify-content-between mb-3"l B f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-3"i p>', // Placed l, B, f side by side
