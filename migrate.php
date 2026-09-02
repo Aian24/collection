@@ -42,7 +42,7 @@ if (!$conn || (isset($conn->connect_error) && $conn->connect_error)) {
 // Determine action
 $action_performed = false;
 $auto_run = isset($_GET['run']) && $_GET['run'] == '1';
-$is_post_run = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration']));
+$is_post_run = (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration']));
 $should_migrate = ($auto_run || $is_post_run) && !$db_error;
 
 // 1. Definition of core tables to create if missing
@@ -306,6 +306,83 @@ if ($should_migrate && $conn) {
             }
         }
     }
+
+    // C. Scan and Clean Legacy Utility Charges from `charges` strings in collection tables
+    $migrated_utility_records = [];
+    foreach ($all_db_tables as $tbl) {
+        if (strpos($tbl, 'collected') !== 0) {
+            continue;
+        }
+
+        // Verify that paidelec, paidwater, and charges exist
+        $cols_in_tbl = [];
+        $t_cols = $conn->query("SHOW COLUMNS FROM `$tbl`");
+        if ($t_cols) {
+            while ($tc = $t_cols->fetch_assoc()) {
+                $cols_in_tbl[] = strtolower($tc['Field']);
+            }
+        }
+
+        if (!in_array('charges', $cols_in_tbl) || !in_array('paidelec', $cols_in_tbl) || !in_array('paidwater', $cols_in_tbl)) {
+            continue;
+        }
+
+        $query_charges = "SELECT id, transaction_number, charges, paidelec, paidwater, paidelecarrear, paidwaterarrear FROM `$tbl` WHERE charges IS NOT NULL AND charges != '' AND (charges LIKE '%Electricity%' OR charges LIKE '%Elec%' OR charges LIKE '%Water%')";
+        $charges_res = $conn->query($query_charges);
+
+        $table_cleaned_count = 0;
+        if ($charges_res && $charges_res->num_rows > 0) {
+            while ($crow = $charges_res->fetch_assoc()) {
+                $c_str = $crow['charges'];
+                preg_match_all('/([^:,]+):\s*([\d,]+(\.\d{1,2})?)/', $c_str, $matches);
+                if (count($matches[0]) === 0) continue;
+
+                $extracted_elec = 0;
+                $extracted_water = 0;
+                $remaining = [];
+                $row_needs_update = false;
+
+                foreach ($matches[1] as $idx => $ctype) {
+                    $cval = (float) str_replace(',', '', $matches[2][$idx]);
+                    $ctype_trim = trim($ctype);
+                    $lower = strtolower($ctype_trim);
+
+                    if (in_array($lower, ['electricity', 'elec', 'electric', 'paidelec', 'electricity bal', 'electricity arrear'])) {
+                        $extracted_elec += $cval;
+                        $row_needs_update = true;
+                    } elseif (in_array($lower, ['water', 'paidwater', 'water bal', 'water arrear']) && strpos($lower, 'ice') === false) {
+                        $extracted_water += $cval;
+                        $row_needs_update = true;
+                    } else {
+                        $remaining[] = $ctype_trim . ': ' . number_format($cval, 2, '.', '');
+                    }
+                }
+
+                if ($row_needs_update) {
+                    $cur_elec = (float)($crow['paidelec'] ?? 0);
+                    $cur_water = (float)($crow['paidwater'] ?? 0);
+
+                    $new_elec = $cur_elec + $extracted_elec;
+                    $new_water = $cur_water + $extracted_water;
+                    $new_charges_str = !empty($remaining) ? implode(', ', $remaining) : '';
+
+                    $u_stmt = $conn->prepare("UPDATE `$tbl` SET paidelec = ?, paidwater = ?, charges = ? WHERE id = ?");
+                    $elec_val = number_format($new_elec, 2, '.', '');
+                    $water_val = number_format($new_water, 2, '.', '');
+                    $row_id = (int)$crow['id'];
+                    $u_stmt->bind_param('sssi', $elec_val, $water_val, $new_charges_str, $row_id);
+                    $u_stmt->execute();
+                    $u_stmt->close();
+
+                    $table_cleaned_count++;
+                }
+            }
+        }
+
+        if ($table_cleaned_count > 0) {
+            $migrated_utility_records[$tbl] = $table_cleaned_count;
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -403,6 +480,29 @@ if ($should_migrate && $conn) {
                                         <span class="text-green-700 font-semibold"><?php echo htmlspecialchars($t_info['message']); ?></span>
                                     </div>
                                 <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($migrated_utility_records)): ?>
+                        <div class="mb-6 border border-amber-200 bg-amber-50/40 rounded-xl overflow-hidden shadow-xs">
+                            <div class="bg-amber-100/70 px-4 py-2.5 border-b border-amber-200 font-bold text-xs text-amber-900 uppercase tracking-wider flex items-center">
+                                <i class="fas fa-bolt text-yellow-600 mr-2"></i> Legacy Utility Charges Migrated
+                            </div>
+                            <div class="p-4 space-y-2 text-xs">
+                                <p class="text-slate-700 font-medium">
+                                    Cleaned and moved Electricity & Water payments from legacy charge strings into dedicated database columns:
+                                </p>
+                                <div class="divide-y divide-amber-100 bg-white rounded-lg border border-amber-200 p-2">
+                                    <?php foreach ($migrated_utility_records as $m_tbl => $m_count): ?>
+                                        <div class="py-1.5 px-2 flex justify-between items-center">
+                                            <span class="font-mono font-bold text-slate-800"><?php echo htmlspecialchars($m_tbl); ?></span>
+                                            <span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                <i class="fas fa-check mr-1"></i> <?php echo $m_count; ?> transactions migrated
+                                            </span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
                         </div>
                     <?php endif; ?>

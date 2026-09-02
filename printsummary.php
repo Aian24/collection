@@ -74,15 +74,24 @@ if ($charges_result->num_rows > 0) {
             foreach ($matches[1] as $index => $charge_type) {
                 $charge_value = (float) str_replace(',', '', $matches[2][$index]);
                 $charge_type = trim($charge_type);
+                $lower_type = strtolower($charge_type);
                 
-                // Add to total charges
-                $total_charges += $charge_value;
-                
-                // Group by charge type
-                if (!isset($charge_totals[$charge_type])) {
-                    $charge_totals[$charge_type] = 0;
+                // If legacy transactions stored electricity or water inside the charges column,
+                // seamlessly merge them into Total Elec and Total Water instead of Total Charges
+                if (in_array($lower_type, ['electricity', 'elec', 'electric', 'paidelec', 'electricity bal', 'electricity arrear'])) {
+                    $total_elec += $charge_value;
+                } elseif (in_array($lower_type, ['water', 'paidwater', 'water bal', 'water arrear']) && strpos($lower_type, 'ice') === false) {
+                    $total_water += $charge_value;
+                } else {
+                    // Add to total charges
+                    $total_charges += $charge_value;
+                    
+                    // Group by charge type
+                    if (!isset($charge_totals[$charge_type])) {
+                        $charge_totals[$charge_type] = 0;
+                    }
+                    $charge_totals[$charge_type] += $charge_value;
                 }
-                $charge_totals[$charge_type] += $charge_value;
             }
         }
     }

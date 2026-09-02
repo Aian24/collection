@@ -172,6 +172,12 @@ while ($row = mysqli_fetch_assoc($result)) {
     if ((float)$row['paidbal'] > 0) {
         $chargeCounts['Paid Balance'] = isset($chargeCounts['Paid Balance']) ? $chargeCounts['Paid Balance'] + 1 : 1;
     }
+    if (((float)($row['paidelec'] ?? 0) + (float)($row['paidelecarrear'] ?? 0)) > 0) {
+        $chargeCounts['Electricity'] = isset($chargeCounts['Electricity']) ? $chargeCounts['Electricity'] + 1 : 1;
+    }
+    if (((float)($row['paidwater'] ?? 0) + (float)($row['paidwaterarrear'] ?? 0)) > 0) {
+        $chargeCounts['Water'] = isset($chargeCounts['Water']) ? $chargeCounts['Water'] + 1 : 1;
+    }
 
     // --- CONTINUING TO PART 2 (Filtered Data Processing) ---
 
@@ -217,6 +223,9 @@ while ($row = mysqli_fetch_assoc($result)) {
         }
     }
 
+    // Include direct columns for Electricity and Water (from POS transactions)
+    $electricity += (float)($row['paidelec'] ?? 0) + (float)($row['paidelecarrear'] ?? 0);
+    $water += (float)($row['paidwater'] ?? 0) + (float)($row['paidwaterarrear'] ?? 0);
 
     // --- Apply PHP-side filtering based on selected charges, tenants, and spaces ---
     $includeRow = true;
@@ -233,6 +242,8 @@ while ($row = mysqli_fetch_assoc($result)) {
         if (!$includeRow) {
             if (in_array('Paid Rent', $selectedCharges) && (float)$row['paidrent'] > 0) $includeRow = true;
             if (in_array('Paid Balance', $selectedCharges) && (float)$row['paidbal'] > 0) $includeRow = true;
+            if (in_array('Electricity', $selectedCharges) && (((float)($row['paidelec'] ?? 0) + (float)($row['paidelecarrear'] ?? 0)) > 0)) $includeRow = true;
+            if (in_array('Water', $selectedCharges) && (((float)($row['paidwater'] ?? 0) + (float)($row['paidwaterarrear'] ?? 0)) > 0)) $includeRow = true;
         }
     }
 

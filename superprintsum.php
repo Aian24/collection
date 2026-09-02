@@ -56,15 +56,28 @@ $charges_query = "SELECT charges FROM $table WHERE DATE(collected_date) = '$sele
 $charges_result = $conn->query($charges_query);
 if ($charges_result->num_rows > 0) {
     while ($charge_row = $charges_result->fetch_assoc()) {
-        preg_match_all('/[\d,\.]+/', $charge_row['charges'], $matches);
-        foreach ($matches[0] as $match) {
-            // Trim trailing periods just in case
-            $match = rtrim($match, '.');
-            $total_charges += (float) str_replace(',', '', $match);
+        preg_match_all('/([^:,]+):\s*([\d,]+(\.\d{1,2})?)/', $charge_row['charges'], $matches);
+        if (count($matches[0]) > 0) {
+            foreach ($matches[1] as $index => $charge_type) {
+                $charge_value = (float) str_replace(',', '', $matches[2][$index]);
+                $lower_type = strtolower(trim($charge_type));
+                if (in_array($lower_type, ['electricity', 'elec', 'electric', 'paidelec', 'electricity bal', 'electricity arrear'])) {
+                    $total_elec += $charge_value;
+                } elseif (in_array($lower_type, ['water', 'paidwater', 'water bal', 'water arrear']) && strpos($lower_type, 'ice') === false) {
+                    $total_water += $charge_value;
+                } else {
+                    $total_charges += $charge_value;
+                }
+            }
         }
     }
 }
 
+$total_rent = round((float)$total_rent, 2);
+$total_balance = round((float)$total_balance, 2);
+$total_elec = round((float)$total_elec, 2);
+$total_water = round((float)$total_water, 2);
+$total_charges = round((float)$total_charges, 2);
 $total = round((float)$db_grand_total, 2);
 
 $conn->close();
