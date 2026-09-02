@@ -1,8 +1,13 @@
 <?php
 /**
  * Universal Database Migration & Schema Sync Utility
- * 100% compatible with PHP 5.6+, PHP 7.x, PHP 8.x, and all MySQL versions.
+ * 100% compatible with PHP 5.6+, PHP 7.x, PHP 8.x (including PHP 8.1 - 8.4 mysqli strict mode).
  */
+
+// Turn off mysqli exception throwing so it doesn't crash on duplicate columns or existing tables
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
 
 // Enable error display for diagnostics
 error_reporting(E_ALL);
@@ -26,7 +31,7 @@ try {
     } else {
         throw new Exception("config.php file not found in current directory.");
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $db_error = $e->getMessage();
 }
 
@@ -97,7 +102,7 @@ $core_tables = [
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"
 ];
 
-// Standard column requirements
+// Target columns to sync (Electricity, Water, Arrears, Payments)
 $tenant_columns = [
     'elecbal' => 'VARCHAR(100) NULL DEFAULT "0"',
     'elecarrear' => 'VARCHAR(100) NULL DEFAULT "0"',
@@ -150,11 +155,15 @@ $all_db_tables = [];
 $dynamic_schema = [];
 
 if ($conn && !$db_error) {
-    $tables_query = $conn->query("SHOW TABLES");
-    if ($tables_query) {
-        while ($row = $tables_query->fetch_array()) {
-            $all_db_tables[] = $row[0];
+    try {
+        $tables_query = $conn->query("SHOW TABLES");
+        if ($tables_query) {
+            while ($row = $tables_query->fetch_array()) {
+                $all_db_tables[] = $row[0];
+            }
         }
+    } catch (Throwable $e) {
+        $db_error = $e->getMessage();
     }
 
     // Always include known core tenant tables
@@ -192,7 +201,6 @@ if ($conn && !$db_error) {
 // 4. Execution & Results Gathering
 $results = [];
 $table_creations = [];
-$generated_sql = [];
 
 if ($should_migrate && $conn) {
     $action_performed = true;
@@ -200,16 +208,23 @@ if ($should_migrate && $conn) {
     // A. Create core tables if missing
     foreach ($core_tables as $ct_name => $ct_sql) {
         if (!in_array($ct_name, $all_db_tables)) {
-            if ($conn->query($ct_sql)) {
-                $table_creations[$ct_name] = [
-                    'status' => 'created',
-                    'message' => "Table `$ct_name` created successfully."
-                ];
-                $all_db_tables[] = $ct_name;
-            } else {
+            try {
+                if ($conn->query($ct_sql)) {
+                    $table_creations[$ct_name] = [
+                        'status' => 'created',
+                        'message' => "Table `$ct_name` created successfully."
+                    ];
+                    $all_db_tables[] = $ct_name;
+                } else {
+                    $table_creations[$ct_name] = [
+                        'status' => 'error',
+                        'message' => "Failed to create table `$ct_name`: " . $conn->error
+                    ];
+                }
+            } catch (Throwable $e) {
                 $table_creations[$ct_name] = [
                     'status' => 'error',
-                    'message' => "Failed to create table `$ct_name`: " . $conn->error
+                    'message' => "Error: " . $e->getMessage()
                 ];
             }
         }
@@ -218,27 +233,35 @@ if ($should_migrate && $conn) {
     // B. Check and Add Columns for Each Target Table
     foreach ($dynamic_schema as $table => $columns) {
         // Check if table exists in DB
-        $check_tbl = $conn->query("SHOW TABLES LIKE '$table'");
+        $check_tbl = null;
+        try {
+            $check_tbl = $conn->query("SHOW TABLES LIKE '$table'");
+        } catch (Throwable $e) {}
+
         if (!$check_tbl || $check_tbl->num_rows === 0) {
             $results[$table][] = [
                 'column' => '*',
                 'status' => 'skipped',
-                'message' => "Table `$table` does not exist in this database yet (skipped)."
+                'message' => "Table `$table` does not exist in database (skipped)."
             ];
             continue;
         }
 
         // Fetch all existing columns for this table in a single query
         $existing_cols = [];
-        $cols_res = $conn->query("SHOW COLUMNS FROM `$table`");
-        if ($cols_res) {
-            while ($c_row = $cols_res->fetch_assoc()) {
-                $existing_cols[] = strtolower($c_row['Field']);
+        try {
+            $cols_res = $conn->query("SHOW COLUMNS FROM `$table`");
+            if ($cols_res) {
+                while ($c_row = $cols_res->fetch_assoc()) {
+                    $existing_cols[] = strtolower(trim($c_row['Field']));
+                }
             }
-        }
+        } catch (Throwable $e) {}
 
         foreach ($columns as $col => $definition) {
-            if (in_array(strtolower($col), $existing_cols)) {
+            $col_clean = strtolower(trim($col));
+
+            if (in_array($col_clean, $existing_cols)) {
                 $results[$table][] = [
                     'column' => $col,
                     'status' => 'exists',
@@ -246,8 +269,28 @@ if ($should_migrate && $conn) {
                 ];
             } else {
                 $alter_sql = "ALTER TABLE `$table` ADD `$col` $definition";
-                $generated_sql[] = $alter_sql . ";";
-                if ($conn->query($alter_sql)) {
+                $success = false;
+                $err_msg = '';
+
+                try {
+                    $res = $conn->query($alter_sql);
+                    if ($res) {
+                        $success = true;
+                    } else {
+                        $err_msg = $conn->error;
+                    }
+                } catch (Throwable $e) {
+                    $err_msg = $e->getMessage();
+                }
+
+                // If error is duplicate column (code 1060), treat as exists
+                if (!$success && (strpos($err_msg, 'Duplicate column') !== false || ($conn && $conn->errno === 1060))) {
+                    $results[$table][] = [
+                        'column' => $col,
+                        'status' => 'exists',
+                        'message' => "Column `$col` already exists."
+                    ];
+                } elseif ($success) {
                     $results[$table][] = [
                         'column' => $col,
                         'status' => 'added',
@@ -257,7 +300,7 @@ if ($should_migrate && $conn) {
                     $results[$table][] = [
                         'column' => $col,
                         'status' => 'error',
-                        'message' => "Failed to add column `$col`: " . $conn->error
+                        'message' => "Failed to add `$col`: " . $err_msg
                     ];
                 }
             }
