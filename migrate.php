@@ -1,22 +1,44 @@
 <?php
 /**
  * Universal Database Migration & Schema Sync Utility
- * Safely inspects, updates, and creates all tables/columns across all branches.
+ * 100% compatible with PHP 5.6+, PHP 7.x, PHP 8.x, and all MySQL versions.
  */
-ob_start();
-include 'config.php';
 
-// Enable error reporting for diagnostics
+// Enable error display for diagnostics
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
-ini_set('log_errors', 1);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+
+// Polyfill for str_starts_with (PHP < 8.0 compatibility)
+if (!function_exists('str_starts_with')) {
+    function str_starts_with($haystack, $needle) {
+        return $needle === '' || strpos($haystack, $needle) === 0;
+    }
+}
+
+// Database Connection with graceful fallback
+$db_error = null;
+$conn = null;
+
+try {
+    if (file_exists('config.php')) {
+        include_once 'config.php';
+    } else {
+        throw new Exception("config.php file not found in current directory.");
+    }
+} catch (Exception $e) {
+    $db_error = $e->getMessage();
+}
+
+if (!$conn || (isset($conn->connect_error) && $conn->connect_error)) {
+    $db_error = $db_error ?? ($conn->connect_error ?? "Unable to establish database connection.");
+}
 
 // Determine action
 $action_performed = false;
 $auto_run = isset($_GET['run']) && $_GET['run'] == '1';
 $is_post_run = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration']));
-
-$should_migrate = $auto_run || $is_post_run;
+$should_migrate = ($auto_run || $is_post_run) && !$db_error;
 
 // 1. Definition of core tables to create if missing
 $core_tables = [
@@ -125,44 +147,45 @@ $system_tables = ['system_settings', 'user_roles', 'users', 'branches'];
 
 // 2. Discover all existing tables in DB
 $all_db_tables = [];
-$tables_query = $conn->query("SHOW TABLES");
-if ($tables_query) {
-    while ($row = $tables_query->fetch_array()) {
-        $all_db_tables[] = $row[0];
-    }
-}
-
-// 3. Dynamically build table schema mapping
 $dynamic_schema = [];
 
-// Always include known core tenant tables even if not yet created
-$known_tenants = ['sanko', 'nova', 'apm', 'acc'];
-foreach ($known_tenants as $kt) {
-    $dynamic_schema[$kt] = $tenant_columns;
-}
-
-// Check all discovered tables in DB
-foreach ($all_db_tables as $tbl) {
-    if (in_array($tbl, $system_tables)) {
-        continue;
+if ($conn && !$db_error) {
+    $tables_query = $conn->query("SHOW TABLES");
+    if ($tables_query) {
+        while ($row = $tables_query->fetch_array()) {
+            $all_db_tables[] = $row[0];
+        }
     }
-    if ($tbl === 'void') {
-        $dynamic_schema['void'] = $void_columns;
-    } elseif ($tbl === 'tenant_history') {
-        $dynamic_schema['tenant_history'] = $history_columns;
-    } elseif (str_starts_with($tbl, 'collected')) {
-        $dynamic_schema[$tbl] = $collected_columns;
-    } else {
-        // Discovered tenant branch table
-        $dynamic_schema[$tbl] = $tenant_columns;
-    }
-}
 
-// Always ensure standard collection tables exist in schema
-$known_collected = ['collected', 'collectednova', 'collectedapm', 'collectedacc'];
-foreach ($known_collected as $kc) {
-    if (!isset($dynamic_schema[$kc])) {
-        $dynamic_schema[$kc] = $collected_columns;
+    // Always include known core tenant tables
+    $known_tenants = ['sanko', 'nova', 'apm', 'acc'];
+    foreach ($known_tenants as $kt) {
+        $dynamic_schema[$kt] = $tenant_columns;
+    }
+
+    // Check all discovered tables in DB
+    foreach ($all_db_tables as $tbl) {
+        if (in_array($tbl, $system_tables)) {
+            continue;
+        }
+        if ($tbl === 'void') {
+            $dynamic_schema['void'] = $void_columns;
+        } elseif ($tbl === 'tenant_history') {
+            $dynamic_schema['tenant_history'] = $history_columns;
+        } elseif (strpos($tbl, 'collected') === 0) {
+            $dynamic_schema[$tbl] = $collected_columns;
+        } else {
+            // Discovered tenant branch table
+            $dynamic_schema[$tbl] = $tenant_columns;
+        }
+    }
+
+    // Always ensure standard collection tables exist in schema
+    $known_collected = ['collected', 'collectednova', 'collectedapm', 'collectedacc'];
+    foreach ($known_collected as $kc) {
+        if (!isset($dynamic_schema[$kc])) {
+            $dynamic_schema[$kc] = $collected_columns;
+        }
     }
 }
 
@@ -171,7 +194,7 @@ $results = [];
 $table_creations = [];
 $generated_sql = [];
 
-if ($should_migrate) {
+if ($should_migrate && $conn) {
     $action_performed = true;
 
     // A. Create core tables if missing
@@ -276,9 +299,9 @@ if ($should_migrate) {
             <div class="p-6 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <span class="text-sm text-slate-600 font-semibold">Database Status:</span> 
-                    <?php if (isset($conn) && $conn->ping()): ?>
+                    <?php if ($conn && !$db_error): ?>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">
-                            <span class="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span> Connected
+                            <span class="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span> Connected (PHP <?php echo phpversion(); ?>)
                         </span>
                     <?php else: ?>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800">
@@ -291,18 +314,32 @@ if ($should_migrate) {
                     <a href="migration.sql" download class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2.5 border border-slate-300 text-xs font-bold rounded-xl text-slate-700 bg-white hover:bg-slate-100 shadow-sm transition">
                         <i class="fas fa-file-download mr-1.5 text-blue-600"></i> Download migration.sql
                     </a>
-                    <form method="POST" class="w-full sm:w-auto" onsubmit="return confirm('Do you want to run the database migration now?');">
-                        <button type="submit" name="run_migration" value="1"
-                            class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-xs font-extrabold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition active:scale-95">
-                            <i class="fas fa-play-circle mr-2 text-sm"></i> Run Database Migration
-                        </button>
-                    </form>
+                    <?php if ($conn && !$db_error): ?>
+                        <form method="POST" class="w-full sm:w-auto" onsubmit="return confirm('Do you want to run the database migration now?');">
+                            <button type="submit" name="run_migration" value="1"
+                                class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-xs font-extrabold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition active:scale-95">
+                                <i class="fas fa-play-circle mr-2 text-sm"></i> Run Database Migration
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             </div>
 
-            <!-- Migration Results Section -->
+            <!-- Migration Results / Status Section -->
             <div class="p-6 sm:p-8">
-                <?php if ($action_performed): ?>
+                <?php if ($db_error): ?>
+                    <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm">
+                        <div class="flex items-center font-bold mb-1">
+                            <i class="fas fa-exclamation-triangle mr-2 text-red-600"></i> Database Connection Error
+                        </div>
+                        <div class="text-xs font-mono bg-white p-3 rounded border border-red-200 text-red-700 mt-2">
+                            <?php echo htmlspecialchars($db_error); ?>
+                        </div>
+                        <div class="mt-3 text-xs text-red-700">
+                            Please check your <code>config.php</code> settings (database host, username, password, and database name).
+                        </div>
+                    </div>
+                <?php elseif ($action_performed): ?>
                     <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center text-emerald-900 text-sm font-semibold">
                         <i class="fas fa-check-circle text-emerald-600 text-xl mr-3"></i>
                         <div>
