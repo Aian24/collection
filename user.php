@@ -353,40 +353,42 @@ $conn->close();
         /* ── INPUTS & LABELS ── */
         .pos-input {
             width: 100%;
+            height: 48px !important;
             border: 1.5px solid var(--border);
             border-radius: 10px;
-            padding: 10px 12px;
-            font-size: 14px;
+            padding: 10px 14px !important;
+            font-size: 15px !important;
             font-family: inherit;
             background: var(--surface);
             color: var(--text);
             transition: border-color .2s, box-shadow .2s;
             outline: none;
             -webkit-appearance: none;
+            box-sizing: border-box;
         }
         .pos-input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37,99,235,.15);
         }
         .pos-input-small {
-            padding: 6px 8px !important;
-            font-size: 13px !important;
-            height: 34px !important;
+            padding: 8px 10px !important;
+            font-size: 14px !important;
+            height: 40px !important;
         }
 
         /* ── FIELD WITH LEFT-ALIGNED NOTCHED BORDER LABEL ── */
         .pos-field {
             position: relative;
-            margin-top: 8px;
+            margin-top: 10px;
         }
         .pos-field .pos-label {
             position: absolute;
             top: 0;
-            left: 10px;
+            left: 12px;
             transform: translateY(-50%);
             background: var(--surface, #ffffff);
-            padding: 0 5px;
-            font-size: 10px;
+            padding: 0 6px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .5px;
@@ -405,13 +407,18 @@ $conn->close();
         .pos-field .pos-label-blue { background: #eff6ff !important; }
 
         .pos-field .pos-input {
-            padding: 8px 10px 6px !important;
-            font-size: 13px;
+            height: 48px !important;
+            padding: 12px 14px !important;
+            font-size: 15px !important;
             text-align: left;
+            border-radius: 10px;
+            box-sizing: border-box;
         }
         .pos-field select.pos-input {
             text-align-last: left;
-            height: 38px;
+            height: 48px !important;
+            padding: 10px 14px !important;
+            font-size: 15px !important;
         }
 
         .pos-label {
