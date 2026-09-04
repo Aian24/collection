@@ -355,27 +355,6 @@ if ($result->num_rows > 0) {
                 </div>
             </div>
 
-            <div class="border-t border-gray-200 pt-2 mt-2 space-y-1 bg-gray-50 p-2 rounded">
-                <div class="flex justify-between text-[10px] font-bold">
-                    <span class="text-black uppercase font-semibold">Remaining Rent Bal:</span>
-                    <span class="text-black font-black">&#x20B1;<?php echo isset($newrentbalance) ? number_format((float)$newrentbalance, 2) : '0.00'; ?></span>
-                </div>
-                <div class="flex justify-between text-[10px] font-bold">
-                    <span class="text-black uppercase font-semibold">Remaining Elec:</span>
-                    <span class="text-black font-black">&#x20B1;<?php echo number_format((float)($newelecbal ?? 0), 2); ?></span>
-                </div>
-                <div class="flex justify-between text-[10px] font-bold">
-                    <span class="text-black uppercase font-semibold">Remaining Water:</span>
-                    <span class="text-black font-black">&#x20B1;<?php echo number_format((float)($newwaterbal ?? 0), 2); ?></span>
-                </div>
-                <?php 
-                $remTotalArrears = (float)($newbalance ?? 0) + (float)($newelecarrear ?? 0) + (float)($newwaterarrear ?? 0);
-                ?>
-                <div class="flex justify-between text-[10px] font-bold">
-                    <span class="text-black uppercase font-semibold">Remaining Arrears:</span>
-                    <span class="text-black font-black">&#x20B1;<?php echo number_format($remTotalArrears, 2); ?></span>
-                </div>
-            </div>
 
             <!-- Note section -->
             <div class="mt-6 text-center">
