@@ -120,6 +120,7 @@ $total_tables_chairs = 0;
 $total_overnight_works = 0;
 $total_vendo_sale = 0;
 $total_zumba = 0;
+$total_scrap = 0;
 $total_hasang = 0;
 $total_secdep = 0;
 $total_utilitydep = 0;
@@ -185,7 +186,7 @@ while ($row = mysqli_fetch_assoc($result)) {
      $charges = explode(', ', $row['charges']);
     $aircon = $cusa = $electricity = $water = $table_tennis = $pay_toilet = $pay_parking = $ice_water =
         $ulam_vendor = $gas = $famylihan = $garbage_haul = $photocopy = $tenant_id = $function_room =
-        $tables_chairs = $overnight_works = $vendo_sale = $zumba = $hasang = $secdep = $utilitydep = $meterdep = $miscellaneous = $forfeited_items = 0;
+        $tables_chairs = $overnight_works = $vendo_sale = $zumba = $scrap = $hasang = $secdep = $utilitydep = $meterdep = $miscellaneous = $forfeited_items = 0;
 
     foreach ($charges as $charge) {
         preg_match('/^([^:]+):\s*(\d+\.?\d*)$/', trim($charge), $matches);
@@ -213,6 +214,7 @@ while ($row = mysqli_fetch_assoc($result)) {
                  case 'Overnight Works': $overnight_works += $chargeValue; break;
                  case 'Vendo Sale': $vendo_sale += $chargeValue; break;
                  case 'Zumba': $zumba += $chargeValue; break;
+                 case 'Scrap': $scrap += $chargeValue; break;
                  case 'Hasang': $hasang += $chargeValue; break;
                  case 'Sec Dep': $secdep += $chargeValue; break;
                  case 'Utility Dep': $utilitydep += $chargeValue; break;
@@ -312,6 +314,7 @@ while ($row = mysqli_fetch_assoc($result)) {
             'overnight_works' => number_format($overnight_works, 2),
             'vendo_sale' => number_format($vendo_sale, 2),
             'zumba' => number_format($zumba, 2),
+            'scrap' => number_format($scrap, 2),
             'hasang' => number_format($hasang, 2),
             'secdep' => number_format($secdep, 2),
             'utilitydep' => number_format($utilitydep, 2),
@@ -347,6 +350,7 @@ while ($row = mysqli_fetch_assoc($result)) {
             'raw_overnight_works' => $overnight_works,
             'raw_vendo_sale' => $vendo_sale,
             'raw_zumba' => $zumba,
+            'raw_scrap' => $scrap,
             'raw_hasang' => $hasang,
             'raw_secdep' => $secdep,
             'raw_utilitydep' => $utilitydep,
@@ -388,6 +392,7 @@ while ($row = mysqli_fetch_assoc($result)) {
         $total_overnight_works += $overnight_works;
         $total_vendo_sale += $vendo_sale;
         $total_zumba += $zumba;
+        $total_scrap += $scrap;
         $total_hasang += $hasang;
         $total_secdep += $secdep;
         $total_utilitydep += $utilitydep;
@@ -472,6 +477,7 @@ if ($isAjax) {
             'overnight_works' => number_format($total_overnight_works, 2),
             'vendo_sale' => number_format($total_vendo_sale, 2),
             'zumba' => number_format($total_zumba, 2),
+            'scrap' => number_format($total_scrap, 2),
             'hasang' => number_format($total_hasang, 2),
              'secdep' => number_format($total_secdep, 2),
              'utilitydep' => number_format($total_utilitydep, 2),
@@ -927,6 +933,7 @@ if ($isAjax) {
                             <th>Overnight Works</th>
                             <th>Vendo Sale</th>
                             <th>Zumba</th>
+                            <th>Scrap</th>
                             <th>Hasang</th>
                              <th>Sec Dep</th>
                              <th>Utility Dep</th>
@@ -1079,6 +1086,10 @@ if ($isAjax) {
                         </label>
                         <label class="checkbox-container">Zumba <span class="count-badge" data-charge="Zumba">0</span>
                             <input type="checkbox" class="charge-filter" value="Zumba">
+                            <span class="checkmark"></span>
+                        </label>
+                        <label class="checkbox-container">Scrap <span class="count-badge" data-charge="Scrap">0</span>
+                            <input type="checkbox" class="charge-filter" value="Scrap">
                             <span class="checkmark"></span>
                         </label>
                         <label class="checkbox-container">Hasang <span class="count-badge" data-charge="Hasang">0</span>
@@ -1538,18 +1549,19 @@ if ($isAjax) {
                     28: 'raw_overnight_works',
                     29: 'raw_vendo_sale',
                     30: 'raw_zumba',
-                    31: 'raw_hasang',
-                    32: 'raw_secdep',
-                    33: 'raw_utilitydep',
-                    34: 'raw_meterdep',
-                    35: 'raw_miscellaneous',
-                    36: 'raw_forfeited_items',
-                    37: 'raw_total',
-                    38: 'raw_rent_balance',
-                    39: 'raw_rent_arrear',
-                    40: 'raw_elec_arrear',
-                    41: 'raw_water_arrear',
-                    42: 'raw_total_arrears'
+                    31: 'raw_scrap',
+                    32: 'raw_hasang',
+                    33: 'raw_secdep',
+                    34: 'raw_utilitydep',
+                    35: 'raw_meterdep',
+                    36: 'raw_miscellaneous',
+                    37: 'raw_forfeited_items',
+                    38: 'raw_total',
+                    39: 'raw_rent_balance',
+                    40: 'raw_rent_arrear',
+                    41: 'raw_elec_arrear',
+                    42: 'raw_water_arrear',
+                    43: 'raw_total_arrears'
                 };
                 
                 // If we have a raw field mapping, use raw values for checking
@@ -1694,6 +1706,7 @@ if ($isAjax) {
                     { data: 'overnight_works', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_overnight_works : data; } },
                     { data: 'vendo_sale', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_vendo_sale : data; } },
                     { data: 'zumba', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_zumba : data; } },
+                    { data: 'scrap', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_scrap : data; } },
                     { data: 'hasang', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_hasang : data; } },
                      { data: 'secdep', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_secdep : data; } },
                      { data: 'utilitydep', render: function(data, type, row) { return (type === 'export' || type === 'sort') ? row.raw_utilitydep : data; } },
