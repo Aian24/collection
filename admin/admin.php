@@ -2501,6 +2501,25 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             // Initialize countdown timer
             setInterval(updateCountdown, 1000);
 
+            function startDashboardAutoUpdate() {
+                if (document.hidden) return; // Do not start if tab is hidden
+                updateDashboardData(); // Initial update
+                if (dashboardInterval) {
+                    clearInterval(dashboardInterval);
+                }
+                const interval = parseInt(localStorage.getItem('dashboardUpdateInterval')) || UPDATE_INTERVAL;
+                dashboardInterval = setInterval(updateDashboardData, interval);
+                lastUpdateTime = Date.now();
+            }
+
+            function stopDashboardAutoUpdate() {
+                if (dashboardInterval) {
+                    clearInterval(dashboardInterval);
+                    dashboardInterval = null;
+                }
+                lastUpdateTime = null;
+            }
+
             // Start auto-update on page load if enabled
             $(document).ready(function() {
                 const dashboardAutoUpdateEnabled = localStorage.getItem('dashboardAutoUpdateEnabled') !== 'false';
@@ -2520,41 +2539,21 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                         localStorage.setItem('dashboardAutoUpdateEnabled', 'false');
                     }
                 });
-            });
 
-            function startDashboardAutoUpdate() {
-                updateDashboardData(); // Initial update
-                if (dashboardInterval) {
-                    clearInterval(dashboardInterval);
-                }
-                dashboardInterval = setInterval(updateDashboardData, UPDATE_INTERVAL);
-            }
-
-            function stopDashboardAutoUpdate() {
-                if (dashboardInterval) {
-                    clearInterval(dashboardInterval);
-                    dashboardInterval = null;
-                }
-                lastUpdateTime = null;
-            }
-
-            // Initialize dashboard auto-update based on saved preference
-            const dashboardAutoUpdateEnabled = localStorage.getItem('dashboardAutoUpdateEnabled') !== 'false';
-            $('#dashboardAutoUpdate').prop('checked', dashboardAutoUpdateEnabled);
-            
-            if (dashboardAutoUpdateEnabled) {
-                startDashboardAutoUpdate();
-            }
-
-            // Handle toggle changes
-            $('#dashboardAutoUpdate').change(function() {
-                if ($(this).is(':checked')) {
-                    startDashboardAutoUpdate();
-                    localStorage.setItem('dashboardAutoUpdateEnabled', 'true');
-                } else {
-                    stopDashboardAutoUpdate();
-                    localStorage.setItem('dashboardAutoUpdateEnabled', 'false');
-                }
+                // Pause polling when browser tab is inactive to save server connections
+                document.addEventListener('visibilitychange', function() {
+                    if (document.hidden) {
+                        stopDashboardAutoUpdate();
+                        stopAutoUpdate();
+                    } else {
+                        if (localStorage.getItem('dashboardAutoUpdateEnabled') !== 'false') {
+                            startDashboardAutoUpdate();
+                        }
+                        if (localStorage.getItem('autoUpdateEnabled') !== 'false') {
+                            startAutoUpdate();
+                        }
+                    }
+                });
             });
 
             // Add countdown timer

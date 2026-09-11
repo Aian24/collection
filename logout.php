@@ -1,16 +1,18 @@
 <?php
-ob_start(); // Start output buffering
-include 'config.php';
+ob_start();
 session_start();
 
-// Check if user is logged in
-if (!isset($_SESSION["lname"])) {
-    // If not logged in, redirect to login page
-    header("Location: index.php");
-    exit();
+// Unset all session variables
+$_SESSION = [];
+
+// If session cookie exists, destroy it
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
 }
-
-
 
 // Destroy session
 session_destroy();

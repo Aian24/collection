@@ -1,38 +1,49 @@
 <?php
-ob_start(); // Start output buffering
-include 'config.php';
+ob_start();
 session_start();
 
 // Check if user is logged in
 if (!isset($_SESSION["username"])) {
-    header("Location: index.php"); // Redirect if not logged in
+    header("Location: index.php");
     exit();
 }
+
+include 'config.php';
 
 $username = $_SESSION["username"];
 
 // Fetch user details
-$sql_user = "SELECT * FROM users WHERE username = ?";
+$lname = "Unknown";
+$sql_user = "SELECT lname FROM users WHERE username = ?";
 $stmt_user = $conn->prepare($sql_user);
-$stmt_user->bind_param("s", $username);
-$stmt_user->execute();
-$result_user = $stmt_user->get_result();
-
-$lname = $result_user->num_rows > 0 ? $result_user->fetch_assoc()["lname"] : "Unknown"; // Get last name or default to "Unknown"
-$stmt_user->close();
+if ($stmt_user) {
+    $stmt_user->bind_param("s", $username);
+    $stmt_user->execute();
+    $result_user = $stmt_user->get_result();
+    if ($result_user && $result_user->num_rows > 0) {
+        $row_user = $result_user->fetch_assoc();
+        $lname = $row_user["lname"] ?? "Unknown";
+    }
+    $stmt_user->close();
+}
 
 // Determine the correct table based on branch
-$branch = $_SESSION["branch"];
-$tableName = ($branch === 'Nova Market') ? 'collectednova' : (($branch === 'APM') ? 'collectedapm' : 'collected');
+$branch = $_SESSION["branch"] ?? '';
+$tableName = ($branch === 'Nova Market') ? 'collectednova' : 
+             (($branch === 'APM') ? 'collectedapm' : 
+             (($branch === 'ACC' || $branch === 'Ambulant') ? 'collectedacc' : 'collected'));
 
 // Fetch the latest transaction for the current user
-$sql = "SELECT * FROM $tableName WHERE username = ? ORDER BY id DESC LIMIT 1";
+$sql = "SELECT * FROM `$tableName` WHERE username = ? ORDER BY id DESC LIMIT 1";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $username);
-$stmt->execute();
-$result = $stmt->get_result();
+$result = false;
+if ($stmt) {
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+}
 
-if ($result->num_rows > 0) {
+if ($result && $result->num_rows > 0) {
     // Get the latest transaction details
     $row = $result->fetch_assoc();
     $transaction_number = $row["transaction_number"];

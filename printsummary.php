@@ -1,6 +1,5 @@
 <?php
 ob_start();
-include 'config.php';
 session_start();
 
 if (!isset($_SESSION["username"])) {
@@ -8,63 +7,73 @@ if (!isset($_SESSION["username"])) {
     exit();
 }
 
+include 'config.php';
+
 $username = $_SESSION["username"];
-$branch = $_SESSION["branch"]; // This will help determine the table
+$branch = $_SESSION["branch"] ?? '';
 date_default_timezone_set('Asia/Manila');
 $current_date_time = date('Y-m-d g:i A');
 $total_rent = $total_balance = $total_charges = $total = 0;
-
-$conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Get the selected date or default to today
-$selected_date = isset($_POST['selected_date']) ? $_POST['selected_date'] : date('Y-m-d');
-
-// Determine the correct table based on the user's branch
-$table = ($branch === 'Sanko Market') ? 'collected' : (($branch === 'Nova Market') ? 'collectednova' : 'collectedapm');
-
-// Fetch collector's last name and branch first so we can use it in the queries
-$collector_query = "SELECT lname, branch FROM users WHERE username = '$username'";
-$collector_result = $conn->query($collector_query);
-$lname = '';
-if ($collector_result->num_rows > 0) {
-    $collector_row = $collector_result->fetch_assoc();
-    $lname = $collector_row['lname'];
-    $branch = $collector_row['branch'];
-}
-
-// Fetch totals for the selected date and collector
-$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, (SUM(paidelec) + SUM(IFNULL(paidelecarrear,0))) AS total_elec, (SUM(paidwater) + SUM(IFNULL(paidwaterarrear,0))) AS total_water, SUM(total) AS db_grand_total
-          FROM $table
-          WHERE DATE(collected_date) = '$selected_date' AND collector = '$lname'";
-$result = $conn->query($query);
-
-$total_rent = 0;
-$total_balance = 0;
 $total_elec = 0;
 $total_water = 0;
 $db_grand_total = 0;
 
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $total_rent = (float)($row['total_rent'] ?? 0);
-    $total_balance = (float)($row['total_balance'] ?? 0);
-    $total_elec = (float)($row['total_elec'] ?? 0);
-    $total_water = (float)($row['total_water'] ?? 0);
-    $db_grand_total = (float)($row['db_grand_total'] ?? 0);
+// Get the selected date or default to today
+$selected_date = isset($_POST['selected_date']) && !empty($_POST['selected_date']) ? $_POST['selected_date'] : date('Y-m-d');
+$startOfDay = $selected_date . ' 00:00:00';
+$endOfDay = $selected_date . ' 23:59:59';
+
+// Fetch collector's last name and branch first
+$lname = '';
+$collector_stmt = $conn->prepare("SELECT lname, branch FROM users WHERE username = ?");
+if ($collector_stmt) {
+    $collector_stmt->bind_param("s", $username);
+    $collector_stmt->execute();
+    $collector_result = $collector_stmt->get_result();
+    if ($collector_result && $collector_result->num_rows > 0) {
+        $collector_row = $collector_result->fetch_assoc();
+        $lname = $collector_row['lname'] ?? '';
+        if (!empty($collector_row['branch'])) {
+            $branch = $collector_row['branch'];
+        }
+    }
+    $collector_stmt->close();
+}
+
+// Determine the correct table based on the user's branch
+$table = ($branch === 'Sanko Market') ? 'collected' : 
+         (($branch === 'Nova Market') ? 'collectednova' : 
+         (($branch === 'ACC' || $branch === 'Ambulant') ? 'collectedacc' : 'collectedapm'));
+
+// Fetch totals for the selected date and collector
+$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, (SUM(IFNULL(paidelec,0)) + SUM(IFNULL(paidelecarrear,0))) AS total_elec, (SUM(IFNULL(paidwater,0)) + SUM(IFNULL(paidwaterarrear,0))) AS total_water, SUM(total) AS db_grand_total
+          FROM `$table`
+          WHERE collected_date BETWEEN ? AND ? AND (collector = ? OR username = ?)";
+$stmt = $conn->prepare($query);
+if ($stmt) {
+    $stmt->bind_param("ssss", $startOfDay, $endOfDay, $lname, $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $total_rent = (float)($row['total_rent'] ?? 0);
+        $total_balance = (float)($row['total_balance'] ?? 0);
+        $total_elec = (float)($row['total_elec'] ?? 0);
+        $total_water = (float)($row['total_water'] ?? 0);
+        $db_grand_total = (float)($row['db_grand_total'] ?? 0);
+    }
+    $stmt->close();
 }
 
 // Fetch charges and group by type
-$charges_query = "SELECT charges FROM $table WHERE DATE(collected_date) = '$selected_date' AND collector = '$lname'";
-$charges_result = $conn->query($charges_query);
-
-// Initialize array to store charge totals by type
+$charges_stmt = $conn->prepare("SELECT charges FROM `$table` WHERE collected_date BETWEEN ? AND ? AND (collector = ? OR username = ?)");
 $charge_totals = array();
 $total_charges = 0;
 
-if ($charges_result->num_rows > 0) {
+if ($charges_stmt) {
+    $charges_stmt->bind_param("ssss", $startOfDay, $endOfDay, $lname, $username);
+    $charges_stmt->execute();
+    $charges_result = $charges_stmt->get_result();
     while ($charge_row = $charges_result->fetch_assoc()) {
         // Match charges with the format "Cusa: 123", etc.
         preg_match_all('/([^:,]+):\s*([\d,]+(\.\d{1,2})?)/', $charge_row['charges'], $matches);
@@ -95,8 +104,8 @@ if ($charges_result->num_rows > 0) {
             }
         }
     }
+    $charges_stmt->close();
 }
-
 
 // Round all totals
 $total_rent = round($total_rent, 2);
@@ -108,7 +117,9 @@ $total_charges = round($total_charges, 2);
 // Use the database's true grand total column to match the exact POS transaction totals
 $total = round($db_grand_total, 2);
 
-$conn->close();
+if (isset($conn) && $conn) {
+    $conn->close();
+}
 ?>
 
 <!DOCTYPE html>

@@ -1,40 +1,52 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-ob_start(); // Start output buffering
-include 'config.php'; // Make sure config.php exists and has your database connection
+ob_start();
 session_start();
 
-$error_message = ""; // Initialize an empty error message
+// If already logged in, redirect immediately without connecting to DB
+if (isset($_SESSION["username"]) && isset($_SESSION["user_type"])) {
+    $user_type = $_SESSION["user_type"];
+    if ($user_type === "normal_user") {
+        header("Location: user.php");
+        exit();
+    } elseif ($user_type === "admin") {
+        header("Location: admin/admin.php");
+        exit();
+    } elseif ($user_type === "admin_viewer") {
+        header("Location: admin/adminacc.php");
+        exit();
+    } elseif ($user_type === "superuser") {
+        header("Location: superuser.php");
+        exit();
+    } elseif ($user_type === "adminapm") {
+        header("Location: admin/adminapm.php");
+        exit();
+    } elseif ($user_type === "collection_viewer") {
+        header("Location: admin/collectiononly.php");
+        exit();
+    }
+}
+
+$error_message = "";
 $remembered_username = isset($_COOKIE["remembered_username"]) ? $_COOKIE["remembered_username"] : '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Assuming you have validated and sanitized the input data
-    $username = $_POST["username"] ?? '';
-    $password = $_POST["password"] ?? '';
+    $username = trim($_POST["username"] ?? '');
+    $password = trim($_POST["password"] ?? '');
 
-    // Query to fetch user data based on username and password
-    // Using prepared statements to prevent SQL injection
-    $query = "SELECT id, lname, user_type, branch, profile_photo FROM users WHERE username = ? AND password = ?";
-    $stmt = $conn->prepare($query);
-
-    // Check if the prepare was successful
-    if (!$stmt) {
-        // Log the error instead of displaying it directly in production
-        error_log("Prepare failed: " . $conn->error);
-        $error_message = "An internal error occurred. Please try again.";
+    if ($username === '' || $password === '') {
+        $error_message = "Please enter both username and password.";
     } else {
-        // Bind parameters and execute the statement
-        $stmt->bind_param("ss", $username, $password);
-        $result = $stmt->execute();
+        include 'config.php';
 
-        // Check if the execution was successful
-        if (!$result) {
-            // Log the error instead of displaying it directly in production
-            error_log("Execution failed: " . $stmt->error);
-             $error_message = "An internal error occurred. Please try again.";
+        $query = "SELECT id, lname, user_type, branch, profile_photo FROM users WHERE username = ? AND password = ?";
+        $stmt = $conn->prepare($query);
+
+        if (!$stmt) {
+            error_log("Prepare failed: " . $conn->error);
+            $error_message = "An internal error occurred. Please try again.";
         } else {
-            // Bind results
+            $stmt->bind_param("ss", $username, $password);
+            $stmt->execute();
             $stmt->bind_result($id, $lname, $user_type, $branch, $profile_photo);
 
             if ($stmt->fetch()) {
@@ -45,20 +57,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION["user_type"] = $user_type;
                 $_SESSION["profile_photo"] = $profile_photo;
 
-                // Handle Remember Me
                 if (isset($_POST["remember-me"])) {
-                    setcookie("remembered_username", $username, time() + (86400 * 30), "/"); // 30 days
+                    setcookie("remembered_username", $username, time() + (86400 * 30), "/");
                 } else {
-                    setcookie("remembered_username", "", time() - 3600, "/"); // Clear cookie
+                    setcookie("remembered_username", "", time() - 3600, "/");
                 }
 
-                // Close the statement
                 $stmt->close();
-                // Close the connection before redirecting
-                $conn->close();
+                if (isset($conn) && $conn) $conn->close();
 
-
-                // Redirect based on user type
                 if ($user_type === "normal_user") {
                     header("Location: user.php");
                     exit();
@@ -78,26 +85,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     header("Location: admin/collectiononly.php");
                     exit();
                 } else {
-                     // Handle unknown user types or set a default redirect
-                     header("Location: default_dashboard.php");
-                     exit();
+                    header("Location: default_dashboard.php");
+                    exit();
                 }
-
             } else {
                 $error_message = "Invalid username or password. Please try again.";
             }
-             // Close the statement if fetch didn't succeed
             $stmt->close();
         }
-    }
 
-    // Close the connection if it wasn't closed during a successful login redirect
-    if ($conn) {
-        $conn->close();
+        if (isset($conn) && $conn) {
+            $conn->close();
+        }
     }
 }
-// Ensure output buffering is cleaned and turned off at the end of the script
-ob_end_flush();
 ?>
 
 <!DOCTYPE html>

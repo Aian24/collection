@@ -1,6 +1,5 @@
 <?php
-ob_start(); // Start output buffering
-include 'config.php';
+ob_start();
 session_start();
 
 // Check if user is logged in
@@ -9,9 +8,11 @@ if (!isset($_SESSION["username"])) {
     exit();
 }
 
+include 'config.php';
+
 // Get user details from session
 $username = $_SESSION["username"];
-$lname = $_SESSION["lname"];
+$lname = $_SESSION["lname"] ?? '';
 
 // Set default timezone to Philippines
 date_default_timezone_set('Asia/Manila');
@@ -22,21 +23,18 @@ $currentDateTime = date('Y-m-d\TH:i:s');
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Retrieve form data
-    $branch = $_POST['branch']; // Get the branch from the form
-    $_SESSION["branch"] = $branch; // Store branch in session
-    $collector = $_POST['collector'];
-    $tenantcode = $_POST['tenantcode'];
-    $spacecode = $_POST['spacecode'];
-    $tenantname = $_POST['tenantname'];
-    $collected_date = $_POST['collected_date']; // Capture the collected date
+    $branch = $_POST['branch'] ?? '';
+    $_SESSION["branch"] = $branch;
+    $collector = $_POST['collector'] ?? '';
+    $tenantcode = $_POST['tenantcode'] ?? '';
+    $spacecode = $_POST['spacecode'] ?? '';
+    $tenantname = $_POST['tenantname'] ?? '';
+    $collected_date = $_POST['collected_date'] ?? '';
+    $payment_method = !empty($_POST['payment_method']) ? $_POST['payment_method'] : 'Cash';
+    $cheque_number = $_POST['cheque_number'] ?? null;
+    $cheque_payee = $_POST['cheque_payee'] ?? null;
 
     // Remove commas and format numeric values properly
-    $rent = !empty($_POST['rent']) ? floatval(str_replace(',', '', $_POST['rent'])) : 0;
-    $rentbal = !empty($_POST['rentbal']) ? floatval(str_replace(',', '', $_POST['rentbal'])) : 0;
-    $runningBal = !empty($_POST['runningbal']) ? floatval(str_replace(',', '', $_POST['runningbal'])) : 0;
-    $paidrent = !empty($_POST['paidrent']) ? floatval(str_replace(',', '', $_POST['paidrent'])) : 0;
-    $paidbal = !empty($_POST['paidbal']) ? floatval(str_replace(',', '', $_POST['paidbal'])) : 0;
-    $total = !empty($_POST['total']) ? floatval(str_replace(',', '', $_POST['total'])) : 0;
     $rent = !empty($_POST['rent']) ? floatval(str_replace(',', '', $_POST['rent'])) : 0;
     $rentbal = !empty($_POST['rentbal']) ? floatval(str_replace(',', '', $_POST['rentbal'])) : 0;
     $runningBal = !empty($_POST['runningbal']) ? floatval(str_replace(',', '', $_POST['runningbal'])) : 0;
@@ -59,17 +57,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $newrentbalance = !empty($_POST['newrentbalance']) ? floatval(str_replace(',', '', $_POST['newrentbalance'])) : 0;
 
     // Determine the appropriate table based on the selected branch
-    $tableName = ($branch === 'Sanko Market') ? 'collected' : (($branch === 'APM') ? 'collectedapm' : 'collectednova');
+    $tableName = ($branch === 'Sanko Market') ? 'collected' : 
+                 (($branch === 'APM') ? 'collectedapm' : 
+                 (($branch === 'ACC' || $branch === 'Ambulant') ? 'collectedacc' : 'collectednova'));
 
     // Get the latest transaction number
-    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM $tableName");
-    $latestTransactionRow = $latestTransactionQuery->fetch_assoc();
-    $latestTransactionNumber = $latestTransactionRow['max_transaction'] ?? 0;
+    $latestTransactionNumber = 0;
+    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM `$tableName`");
+    if ($latestTransactionQuery) {
+        $latestTransactionRow = $latestTransactionQuery->fetch_assoc();
+        $latestTransactionNumber = (int)($latestTransactionRow['max_transaction'] ?? 0);
+    }
 
-    // Use the latest transaction number to generate the next one
     $nextTransactionNumber = $latestTransactionNumber + 1;
 
-    // Accumulate charges, if provided
+    // Accumulate charges
     $charges = [];
     if (!empty($_POST['chargecusa'])) {
         $charges[] = "Cusa: " . floatval(str_replace(',', '', $_POST['chargecusa']));
@@ -78,7 +80,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $charges[] = "Aircon: " . floatval(str_replace(',', '', $_POST['chargeac']));
     }
 
-    // Handle multiple 'chargeothers' and 'otheramount' entries
     if (isset($_POST['chargeothers']) && isset($_POST['otheramount'])) {
         foreach ($_POST['chargeothers'] as $index => $chargeType) {
             $amount = isset($_POST['otheramount'][$index]) ? floatval(str_replace(',', '', $_POST['otheramount'][$index])) : 0;
@@ -88,46 +89,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // Join all charges into a single string, or use an empty string if no charges
     $chargesString = implode(', ', $charges);
 
     // Prepare the INSERT statement
-    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, elecbal, paidelec, newelecbal, waterbal, paidwater, newwaterbal, elecarrear, waterarrear, newelecarrear, newwaterarrear, paidelecarrear, paidwaterarrear" .
-        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
+    $query = "INSERT INTO `$tableName` (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, payment_method, cheque_number, cheque_payee, elecbal, paidelec, newelecbal, waterbal, paidwater, newwaterbal, elecarrear, waterarrear, newelecarrear, newwaterarrear, paidelecarrear, paidwaterarrear" .
+        (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
         (!empty($chargesString) ? ", ?" : "") . ")";
 
     $insertStmt = $conn->prepare($query);
 
-    // Bind parameters for insertion
+    if (!$insertStmt) {
+        error_log("Prepare collection failed in superuser: " . $conn->error);
+        echo "<div style='background:#fee2e2;border:1px solid #ef4444;color:#b91c1c;padding:16px;border-radius:8px;margin:20px;font-family:sans-serif;'>";
+        echo "<strong>Database Schema Notice:</strong> Table `{$tableName}` is missing one or more required columns.<br>";
+        echo "Please open <a href='migrate.php?run=1' style='color:#1d4ed8;font-weight:bold;text-decoration:underline;'>migrate.php?run=1</a> to automatically update your database tables.";
+        echo "</div>";
+        if (isset($conn) && $conn) $conn->close();
+        exit();
+    }
+
     if (!empty($chargesString)) {
-        $insertStmt->bind_param("dsssssddddddddssdddddddddddds", 
+        $insertStmt->bind_param("dsssssddddddddsssssdddddddddddds", 
             $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, 
             $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, 
-            $username, $collected_date,
+            $username, $collected_date, $payment_method, $cheque_number, $cheque_payee,
             $elecbal, $paidelec, $newelecbal, $waterbal, $paidwater, $newwaterbal, $elecarrear, $waterarrear, $newelecarrear, $newwaterarrear, $paidelecarrear, $paidwaterarrear,
             $chargesString);
     } else {
-        $insertStmt->bind_param("dsssssddddddddssdddddddddddd", 
+        $insertStmt->bind_param("dsssssddddddddsssssdddddddddddd", 
             $nextTransactionNumber, $collector, $branch, $tenantcode, $spacecode, $tenantname, 
             $rent, $rentbal, $runningBal, $paidrent, $paidbal, $total, $newbalance, $newrentbalance, 
-            $username, $collected_date,
+            $username, $collected_date, $payment_method, $cheque_number, $cheque_payee,
             $elecbal, $paidelec, $newelecbal, $waterbal, $paidwater, $newwaterbal, $elecarrear, $waterarrear, $newelecarrear, $newwaterarrear, $paidelecarrear, $paidwaterarrear);
     }
 
-    // Execute the INSERT statement
     if ($insertStmt->execute()) {
-        // Update running balance, rent balance, elec, water based on branch
-        $updateTable = ($branch === 'Sanko Market') ? 'sanko' : (($branch === 'APM') ? 'apm' : 'nova');
-        $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ?, elecbal = ?, waterbal = ?, elecarrear = ?, waterarrear = ? WHERE spacecode = ?");
-        $updateStmt->bind_param("dddddds", $newbalance, $newrentbalance, $newelecbal, $newwaterbal, $newelecarrear, $newwaterarrear, $spacecode);
-
-        if ($updateStmt->execute()) {
-            include 'supermodalsuccess.php';
-        } else {
-            echo "Error updating balances: " . $conn->error;
+        $updateTable = ($branch === 'Sanko Market') ? 'sanko' : 
+                       (($branch === 'APM') ? 'apm' : 
+                       (($branch === 'ACC' || $branch === 'Ambulant') ? 'acc' : 'nova'));
+        $updateStmt = $conn->prepare("UPDATE `$updateTable` SET runningbal = ?, rentbal = ?, elecbal = ?, waterbal = ?, elecarrear = ?, waterarrear = ? WHERE spacecode = ?");
+        if ($updateStmt) {
+            $updateStmt->bind_param("dddddds", $newbalance, $newrentbalance, $newelecbal, $newwaterbal, $newelecarrear, $newwaterarrear, $spacecode);
+            $updateStmt->execute();
+            $updateStmt->close();
         }
 
-        $updateStmt->close();
+        include 'supermodalsuccess.php';
     } else {
         echo "Error inserting collection: " . $conn->error;
     }
@@ -135,7 +142,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $insertStmt->close();
 }
 
-$conn->close();
+if (isset($conn) && $conn) {
+    $conn->close();
+}
 ?>
 
 

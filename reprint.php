@@ -1,6 +1,5 @@
 <?php
-ob_start(); // Start output buffering
-include 'config.php';
+ob_start();
 session_start();
 
 // Check if user is logged in
@@ -11,38 +10,37 @@ if (!isset($_SESSION["username"])) {
 
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $branch = $_POST['branch'];
-    $transaction_number = $_POST['transaction_number'];
-
-    // Initialize database connection
-    $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
-
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
+    include 'config.php';
+    
+    $branch = $_POST['branch'] ?? '';
+    $transaction_number = $_POST['transaction_number'] ?? '';
 
     // Determine the table based on selected branch
-    $table = ($branch === 'Nova Market') ? 'collectednova' : (($branch === 'APM Branch' || $branch === 'APM') ? 'collectedapm' : 'collected');
+    $table = ($branch === 'Nova Market') ? 'collectednova' : 
+             (($branch === 'APM Branch' || $branch === 'APM') ? 'collectedapm' : 
+             (($branch === 'ACC' || $branch === 'Ambulant') ? 'collectedacc' : 'collected'));
 
     // Prepare SQL query
-    $stmt = $conn->prepare("SELECT * FROM $table WHERE transaction_number = ?");
-    $stmt->bind_param("s", $transaction_number);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt = $conn->prepare("SELECT * FROM `$table` WHERE transaction_number = ?");
+    if ($stmt) {
+        $stmt->bind_param("s", $transaction_number);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-    // Check if transaction exists
-    if ($result->num_rows > 0) {
-        // Output the receipt (customize as needed)
-        while ($row = $result->fetch_assoc()) {
-            echo "Transaction Number: " . htmlspecialchars($row['transaction_number']) . "<br>";
-            // Add other fields you want to display
+        // Check if transaction exists
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                echo "Transaction Number: " . htmlspecialchars($row['transaction_number']) . "<br>";
+            }
+        } else {
+            echo "No transaction found with that number.";
         }
-    } else {
-        echo "No transaction found with that number.";
+        $stmt->close();
     }
 
-    $stmt->close();
-    $conn->close();
+    if (isset($conn) && $conn) {
+        $conn->close();
+    }
 }
 ?>
 
