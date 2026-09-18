@@ -1,5 +1,6 @@
 <?php
-ob_start();
+ob_start(); // Start output buffering
+include 'config.php';
 session_start();
 
 // Check if user is logged in
@@ -8,12 +9,10 @@ if (!isset($_SESSION["username"])) {
     exit();
 }
 
-include 'config.php';
-
 // Get user details from session
 $username = $_SESSION["username"];
-$lname = $_SESSION["lname"] ?? '';
-$branch = $_SESSION["branch"] ?? '';
+$lname = $_SESSION["lname"];
+$branch = $_SESSION["branch"];
 
 // Set default timezone to Philippines
 date_default_timezone_set('Asia/Manila');
@@ -22,29 +21,27 @@ date_default_timezone_set('Asia/Manila');
 $currentDateTime = date('Y-m-d\TH:i:s');
 
 // Determine the latest transaction number based on branch
-$latestTransactionNumber = 0;
+$latestTransactionNumber = 0; // Default transaction number
 $tableName = '';
 
-// Check if the branch is Sanko Market, Nova Market, APM, or ACC
+// Check if the branch is Sanko Market or Nova Market
 if ($branch === 'Sanko Market') {
     $tableName = 'collected';
+    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM collected");
 } elseif ($branch === 'Nova Market') {
     $tableName = 'collectednova';
+    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM collectednova");
 } elseif ($branch === 'APM') {
     $tableName = 'collectedapm';
-} elseif ($branch === 'ACC' || $branch === 'Ambulant') {
-    $tableName = 'collectedacc';
+    $latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM collectedapm");
 } else {
-    echo "Invalid branch selection: " . htmlspecialchars($branch);
-    if (isset($conn) && $conn) $conn->close();
+    echo "Invalid branch selection";
     exit();
 }
 
-$latestTransactionQuery = $conn->query("SELECT MAX(transaction_number) AS max_transaction FROM `$tableName`");
-if ($latestTransactionQuery) {
-    $latestTransactionRow = $latestTransactionQuery->fetch_assoc();
-    $latestTransactionNumber = (int)($latestTransactionRow['max_transaction'] ?? 0);
-}
+// Fetch the latest transaction number
+$latestTransactionRow = $latestTransactionQuery->fetch_assoc();
+$latestTransactionNumber = $latestTransactionRow['max_transaction'] ?? 0; // Use 0 as default if no transaction found
 
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -53,14 +50,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $tenantcode = $_POST['tenantcode'] ?? '';
     $spacecode = $_POST['spacecode'] ?? '';
     $tenantname = $_POST['tenantname'] ?? '';
-    $collected_date = $_POST['collected_date'] ?? '';
+    $collected_date = $_POST['collected_date'] ?? ''; // Capture the collected date
 
     if (empty($collector) || empty($spacecode)) {
         echo "Error: Required fields are missing. Please submit the form correctly.";
-        if (isset($conn) && $conn) $conn->close();
         exit();
     }
-    $payment_method = !empty($_POST['payment_method']) ? $_POST['payment_method'] : 'Cash';
+    $payment_method = !empty($_POST['payment_method']) ? $_POST['payment_method'] : null;
     $cheque_number = $_POST['cheque_number'] ?? null;
     $cheque_payee = $_POST['cheque_payee'] ?? null;
 
@@ -89,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Use the latest transaction number to generate the next one
     $nextTransactionNumber = $latestTransactionNumber + 1;
 
-    // Accumulate charges
+    // Accumulate charges, if provided (Electricity and Water are in main payment now)
     $charges = [];
     if (!empty($_POST['chargecusa'])) {
         $charges[] = "Cusa: " . floatval(str_replace(',', '', $_POST['chargecusa']));
@@ -108,24 +104,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
+    // Join all charges into a single string, or use an empty string if no charges
     $chargesString = implode(', ', $charges);
 
     // Prepare the INSERT statement for the main table
-    $query = "INSERT INTO `$tableName` (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, payment_method, cheque_number, cheque_payee, elecbal, paidelec, newelecbal, waterbal, paidwater, newwaterbal, elecarrear, waterarrear, newelecarrear, newwaterarrear, paidelecarrear, paidwaterarrear" .
+    $query = "INSERT INTO $tableName (transaction_number, collector, branch, tenantcode, spacecode, tenantname, rent, rentbal, runningbal, paidrent, paidbal, total, newbalance, newrentbalance, username, collected_date, payment_method, cheque_number, cheque_payee, elecbal, paidelec, newelecbal, waterbal, paidwater, newwaterbal, elecarrear, waterarrear, newelecarrear, newwaterarrear, paidelecarrear, paidwaterarrear" .
         (!empty($chargesString) ? ", charges" : "") . ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" .
         (!empty($chargesString) ? ", ?" : "") . ")";
 
     $insertStmt = $conn->prepare($query);
-
-    if (!$insertStmt) {
-        error_log("Prepare collection failed: " . $conn->error);
-        echo "<div style='background:#fee2e2;border:1px solid #ef4444;color:#b91c1c;padding:16px;border-radius:8px;margin:20px;font-family:sans-serif;'>";
-        echo "<strong>Database Schema Notice:</strong> Table `{$tableName}` is missing one or more required columns.<br>";
-        echo "Please open <a href='migrate.php?run=1' style='color:#1d4ed8;font-weight:bold;text-decoration:underline;'>migrate.php?run=1</a> to automatically update your database tables.";
-        echo "</div>";
-        if (isset($conn) && $conn) $conn->close();
-        exit();
-    }
 
     // Bind parameters for insertion
     if (!empty($chargesString)) {
@@ -145,6 +132,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Execute the INSERT statement
     if ($insertStmt->execute()) {
+        // Update running balance, rent balance, electricity, and water balances based on branch
         $updateTable = '';
         if ($branch === 'Sanko Market') {
             $updateTable = 'sanko';
@@ -152,19 +140,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $updateTable = 'nova';
         } elseif ($branch === 'APM') {
             $updateTable = 'apm';
-        } elseif ($branch === 'ACC' || $branch === 'Ambulant') {
-            $updateTable = 'acc';
         }
 
         if (!empty($updateTable)) {
-            $updateStmt = $conn->prepare("UPDATE `$updateTable` SET runningbal = ?, rentbal = ?, elecbal = ?, waterbal = ?, elecarrear = ?, waterarrear = ? WHERE spacecode = ?");
-            if ($updateStmt) {
-                $updateStmt->bind_param("dddddds", $newbalance, $newrentbalance, $newelecbal, $newwaterbal, $newelecarrear, $newwaterarrear, $spacecode);
-                $updateStmt->execute();
-                $updateStmt->close();
+            $updateStmt = $conn->prepare("UPDATE $updateTable SET runningbal = ?, rentbal = ?, elecbal = ?, waterbal = ?, elecarrear = ?, waterarrear = ? WHERE spacecode = ?");
+            $updateStmt->bind_param("dddddds", $newbalance, $newrentbalance, $newelecbal, $newwaterbal, $newelecarrear, $newwaterarrear, $spacecode);
+
+            if ($updateStmt->execute()) {
+                include 'modalsuccess.php'; // Include modalsuccess.php to display the success modal
+            } else {
+                echo "Error updating balances: " . $conn->error;
             }
+
+            $updateStmt->close();
+        } else {
+            include 'modalsuccess.php';
         }
-        include 'modalsuccess.php';
     } else {
         echo "Error inserting collection: " . $conn->error;
     }
@@ -172,9 +163,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $insertStmt->close();
 }
 
-if (isset($conn) && $conn) {
-    $conn->close();
-}
+$conn->close();
 ?>
 
 

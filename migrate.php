@@ -307,41 +307,7 @@ if ($should_migrate && $conn) {
         }
     }
 
-    // C. Check and Add Performance Indexes on Collection & Tenant Tables
-    $index_configs = [
-        'collected' => ['idx_collected_date' => 'collected_date', 'idx_spacecode' => 'spacecode'],
-        'collectednova' => ['idx_collected_date' => 'collected_date', 'idx_spacecode' => 'spacecode'],
-        'collectedapm' => ['idx_collected_date' => 'collected_date', 'idx_spacecode' => 'spacecode'],
-        'collectedacc' => ['idx_collected_date' => 'collected_date', 'idx_spacecode' => 'spacecode'],
-        'sanko' => ['idx_spacecode' => 'spacecode'],
-        'nova' => ['idx_spacecode' => 'spacecode'],
-        'apm' => ['idx_spacecode' => 'spacecode'],
-        'acc' => ['idx_spacecode' => 'spacecode']
-    ];
-
-    foreach ($index_configs as $idx_tbl => $idx_defs) {
-        if (in_array($idx_tbl, $all_db_tables)) {
-            $existing_indices = [];
-            try {
-                $idx_res = $conn->query("SHOW INDEX FROM `$idx_tbl`");
-                if ($idx_res) {
-                    while ($i_row = $idx_res->fetch_assoc()) {
-                        $existing_indices[] = strtolower(trim($i_row['Key_name']));
-                    }
-                }
-            } catch (Throwable $e) {}
-
-            foreach ($idx_defs as $idx_name => $idx_col) {
-                if (!in_array(strtolower($idx_name), $existing_indices)) {
-                    try {
-                        @$conn->query("ALTER TABLE `$idx_tbl` ADD INDEX `$idx_name` (`$idx_col`)");
-                    } catch (Throwable $e) {}
-                }
-            }
-        }
-    }
-
-    // D. Scan and Clean Legacy Utility Charges from `charges` strings in collection tables
+    // C. Scan and Clean Legacy Utility Charges from `charges` strings in collection tables
     $migrated_utility_records = [];
     foreach ($all_db_tables as $tbl) {
         if (strpos($tbl, 'collected') !== 0) {

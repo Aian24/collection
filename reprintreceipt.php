@@ -1,5 +1,6 @@
 <?php
-ob_start();
+ob_start(); // Start output buffering
+include 'config.php';
 session_start();
 
 // Check if user is logged in
@@ -8,24 +9,22 @@ if (!isset($_SESSION["username"])) {
     exit();
 }
 
-include 'config.php';
-
 $username = $_SESSION["username"];
 
 // Fetch the last name from the users table
-$lname = "Unknown";
-$sql_user = "SELECT lname FROM users WHERE username = ?";
+$sql_user = "SELECT * FROM users WHERE username = ?";
 $stmt_user = $conn->prepare($sql_user);
-if ($stmt_user) {
-    $stmt_user->bind_param("s", $username);
-    $stmt_user->execute();
-    $result_user = $stmt_user->get_result();
-    if ($result_user && $result_user->num_rows > 0) {
-        $row_user = $result_user->fetch_assoc();
-        $lname = $row_user["lname"] ?? "Unknown";
-    }
-    $stmt_user->close();
+$stmt_user->bind_param("s", $username);
+$stmt_user->execute();
+$result_user = $stmt_user->get_result();
+
+if ($result_user->num_rows > 0) {
+    $row_user = $result_user->fetch_assoc();
+    $lname = $row_user["lname"];
+} else {
+    $lname = "Unknown";
 }
+$stmt_user->close();
 
 // Fetch parameters
 $transaction_number = $_POST['transaction_number'] ?? '';
@@ -33,20 +32,16 @@ $branch = $_POST['branch'] ?? '';
 
 // Determine table
 $table = ($branch === 'Nova Market') ? 'collectednova' : 
-         (($branch === 'APM Branch' || $branch === 'APM') ? 'collectedapm' : 
-         (($branch === 'ACC' || $branch === 'Ambulant') ? 'collectedacc' : 'collected'));
+         (($branch === 'APM Branch' || $branch === 'APM') ? 'collectedapm' : 'collected');
 
 // Fetch transaction
-$sql = "SELECT * FROM `$table` WHERE transaction_number = ?";
+$sql = "SELECT * FROM $table WHERE transaction_number = ?";
 $stmt = $conn->prepare($sql);
-$result = false;
-if ($stmt) {
-    $stmt->bind_param("s", $transaction_number);
-    $stmt->execute();
-    $result = $stmt->get_result();
-}
+$stmt->bind_param("s", $transaction_number);
+$stmt->execute();
+$result = $stmt->get_result();
 
-if ($result && $result->num_rows > 0) {
+if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $collected_date = $row["collected_date"];
     $tenantcode = $row["tenantcode"];
