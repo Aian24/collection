@@ -265,4 +265,3 @@ $content = preg_replace($pattern, $replacement, $content);
 
 file_put_contents($file, $content);
 echo "Successfully updated admin UI to compact Tailwind + Modern Sidebar.\n";
-?>

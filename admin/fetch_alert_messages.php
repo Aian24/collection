@@ -73,4 +73,3 @@ foreach ($alerts as $alert) {
             </div>
         </a>';
 }
-?>

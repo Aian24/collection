@@ -75,4 +75,3 @@ if (isset($conn) && $conn) {
 // Return JSON response containing the duplicated transactions
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode($duplicates);
-?>

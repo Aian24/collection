@@ -22,4 +22,3 @@ if (strpos($output, '{') !== false) {
 } else {
     echo "No JSON found in output.";
 }
-?>

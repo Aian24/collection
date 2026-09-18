@@ -26,4 +26,3 @@ $dailyTotal = $totalPaidRent + $totalPaidBalance;
 
 // Output the daily total
 echo json_encode(array('daily_total' => $dailyTotal));
-?>

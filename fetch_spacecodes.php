@@ -35,4 +35,3 @@ if ($table && $selectedTenant) {
 }
 
 $conn->close();
-?>

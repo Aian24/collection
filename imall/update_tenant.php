@@ -25,4 +25,3 @@ if (isset($_POST['contract']) && isset($_POST['branch']) && isset($_POST['compan
         echo 'Error updating tenant: ' . $conn->error;
     }
 }
-?>

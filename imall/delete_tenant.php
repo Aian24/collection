@@ -16,4 +16,3 @@ if (isset($_POST['contract']) && isset($_POST['branch'])) {
     header("Location: update_tenants.php?branch=$branch");
     exit();
 }
-?>

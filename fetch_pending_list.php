@@ -71,5 +71,3 @@ if (isset($conn) && $conn) {
 }
 
 echo json_encode(['success' => true, 'pending' => $pending]);
-?>
-

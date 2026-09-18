@@ -29,4 +29,3 @@ if (file_exists('images/lc.png')) {
     optimizeImage('images/lc.png', 'images/lc_opt.png', 60);
     echo "Done lc.png\n";
 }
-?>

@@ -48,4 +48,3 @@ echo json_encode(array('data' => $data, 'total_paid_rent' => $total_paid_rent, '
 
 // Close the connection
 mysqli_close($conn);
-?>

@@ -22,4 +22,3 @@ while($row = $res->fetch_assoc()) {
         echo "Tx: {$row['transaction_number']} | DB Total: $db_total | Calc Total: $calc_total | Diff: " . ($db_total - $calc_total) . " | Charges String: {$row['charges']}\n";
     }
 }
-?>

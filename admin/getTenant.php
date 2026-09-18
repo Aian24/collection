@@ -13,4 +13,3 @@ if (isset($_GET['id'])) {
     $tenant = $result->fetch_assoc();
     echo json_encode($tenant);
 }
-?>

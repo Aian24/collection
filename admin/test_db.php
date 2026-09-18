@@ -1,1 +1,1 @@
-<?php include '../config.php'; $result = mysqli_query($conn, 'SELECT COUNT(*) as count, MIN(collected_date) as min_date, MAX(collected_date) as max_date FROM collectedapm'); $row = mysqli_fetch_assoc($result); print_r($row); ?>
+<?php include '../config.php'; $result = mysqli_query($conn, 'SELECT COUNT(*) as count, MIN(collected_date) as min_date, MAX(collected_date) as max_date FROM collectedapm'); $row = mysqli_fetch_assoc($result); print_r($row);

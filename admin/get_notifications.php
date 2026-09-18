@@ -124,4 +124,3 @@ $response = array(
     'date' => $today // Include the date in the response for debugging
 );
 echo json_encode($response);
-?> 

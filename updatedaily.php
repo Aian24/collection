@@ -76,4 +76,3 @@ $dailyValue = 500; // Example daily value
 
 // Call the function to update runningbal
 updateRunningBal($tableName, $dailyValue);
-?>

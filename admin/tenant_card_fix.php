@@ -34,4 +34,3 @@ $card_html = <<<EOT
     </div>
 </div>
 EOT;
-?> 

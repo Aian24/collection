@@ -26,6 +26,3 @@ try {
 } catch (Exception $e) {
     echo "Mailer Error: " . $e->getMessage();
 }
-
-
-?>

@@ -78,4 +78,3 @@ if ($result_all && $result_all->num_rows > 0) {
 echo "]";
 
 $conn->close();
-?>

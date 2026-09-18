@@ -117,4 +117,3 @@ mysqli_close($conn);
 // Set the content type to JSON and output the data
 header('Content-Type: application/json');
 echo json_encode(['monthly' => $monthlyData, 'yearly' => $yearlyData]);
-?>

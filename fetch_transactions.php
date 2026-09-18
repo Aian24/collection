@@ -62,4 +62,3 @@ if (isset($conn) && $conn) {
 // Return JSON response containing the fetched transactions
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode($transactions);
-?>

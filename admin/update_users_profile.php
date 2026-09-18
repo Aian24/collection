@@ -131,4 +131,3 @@ try {
 
 // Close connection
 $conn->close();
-?> 

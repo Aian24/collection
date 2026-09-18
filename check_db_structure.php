@@ -38,4 +38,3 @@ foreach ($collection_tables as $table) {
 }
 
 $conn->close();
-?> 

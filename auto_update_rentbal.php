@@ -257,5 +257,3 @@ if (php_sapi_name() === 'cli' || (isset($_SERVER['PHP_SELF']) && basename($_SERV
     echo "Check auto_update_log.txt for details.\n";
     $conn->close();
 }
-?>
-

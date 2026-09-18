@@ -48,4 +48,3 @@ while ($row = $result->fetch_assoc()) {
 
 // Send the HTML response
 echo $html;
-?>

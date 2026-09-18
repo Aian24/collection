@@ -56,5 +56,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['offline_mode']) && $_P
     header("Location: index.php");
     exit();
 }
-?>
-

@@ -23,4 +23,3 @@ if ($_SERVER["REQUEST_METHOD"] == "DELETE") {
         echo "Error: " . mysqli_error($conn);
     }
 }
-?>

@@ -84,4 +84,3 @@ function getTenantChanges($oldData, $newData) {
     
     return implode(', ', $changes);
 }
-?>

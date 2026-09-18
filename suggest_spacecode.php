@@ -61,4 +61,3 @@ if (isset($conn) && $conn) {
 }
 
 echo json_encode($suggestions);
-?>

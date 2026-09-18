@@ -103,4 +103,3 @@ echo json_encode([
     'unpaid' => max(0, $totalCount - $paidCount),
     'unpaidSpaces' => $unpaidSpaces
 ]);
-?>

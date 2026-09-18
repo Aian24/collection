@@ -23,4 +23,3 @@ if (isset($_POST['contract'])) {
 } else {
     echo "invalid";
 }
-?>

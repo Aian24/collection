@@ -24,4 +24,3 @@ $onlineStatusData = mysqli_fetch_all($onlineStatusResult, MYSQLI_ASSOC);
 
 // Return the online status as JSON
 echo json_encode($onlineStatusData);
-?>

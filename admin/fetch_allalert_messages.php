@@ -58,4 +58,3 @@ mysqli_close($conn);
 
 // Output the alerts HTML
 echo $alerts_html;
-?>

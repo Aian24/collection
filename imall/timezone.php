@@ -7,4 +7,3 @@ $timezone = date_default_timezone_get();
 
 // Output the timezone
 echo "Current default timezone: " . $timezone;
-?>

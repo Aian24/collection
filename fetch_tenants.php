@@ -34,4 +34,3 @@ if ($table) {
 }
 
 $conn->close();
-?>

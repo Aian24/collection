@@ -82,5 +82,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         'message' => 'Method not allowed. Please use POST.'
     ]);
 }
-?>
-

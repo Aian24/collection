@@ -21,4 +21,3 @@ $ph_time = date('Y-m-d H:i:s');
 
 // Output the current time in Manila timezone
 echo "Current Time (Manila Timezone): $ph_time<br>";
-?>

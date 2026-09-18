@@ -388,4 +388,3 @@ $content = preg_replace($loader_pattern, $loader_replacement, $content, 1);
 
 file_put_contents($file, $content);
 echo "Successfully updated admin UI and loader in admin.php\n";
-?>

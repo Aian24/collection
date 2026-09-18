@@ -73,5 +73,3 @@ echo json_encode([
     'collected' => $collectedCount,
     'pending' => max(0, $totalCount - $collectedCount)
 ]);
-?>
-

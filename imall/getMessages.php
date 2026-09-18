@@ -27,4 +27,3 @@ foreach ($messages as $message) {
 }
 
 $conn->close();
-?>

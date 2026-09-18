@@ -103,4 +103,3 @@ echo "<h3>Migration Complete!</h3>";
 echo "<p>You can now safely delete this file.</p>";
 
 $conn->close();
-?>
