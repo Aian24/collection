@@ -1,46 +1,50 @@
 <?php
-ob_start(); // Start output buffering
-include 'config.php';
+ob_start();
 session_start();
 
 // Check if user is logged in
 if (!isset($_SESSION["username"])) {
-    // Redirect to login page if not logged in
     header("Location: index.php");
     exit();
 }
 
+include 'config.php';
+
 $username = $_SESSION["username"];
 
 // Fetch the last name from the users table
-$sql_user = "SELECT * FROM users WHERE username = ?";
+$lname = "Unknown";
+$sql_user = "SELECT lname FROM users WHERE username = ?";
 $stmt_user = $conn->prepare($sql_user);
-$stmt_user->bind_param("s", $username);
-$stmt_user->execute();
-$result_user = $stmt_user->get_result();
-
-if ($result_user->num_rows > 0) {
-    $row_user = $result_user->fetch_assoc();
-    $lname = $row_user["lname"]; // Assign the last name to $lname variable
-} else {
-    $lname = "Unknown";
+if ($stmt_user) {
+    $stmt_user->bind_param("s", $username);
+    $stmt_user->execute();
+    $result_user = $stmt_user->get_result();
+    if ($result_user && $result_user->num_rows > 0) {
+        $row_user = $result_user->fetch_assoc();
+        $lname = $row_user["lname"] ?? "Unknown";
+    }
+    $stmt_user->close();
 }
 
-// Close the statement and result set for users table
-$stmt_user->close();
-
 // Determine the correct table to fetch the latest transaction
-$branch = $_SESSION["branch"];
-$tableName = ($branch === 'Nova Market') ? 'collectednova' : (($branch === 'APM') ? 'collectedapm' : 'collected');
+$branch = $_SESSION["branch"] ?? '';
+$tableName = ($branch === 'Nova Market') ? 'collectednova' : 
+             (($branch === 'APM') ? 'collectedapm' : 
+             (($branch === 'ACC' || $branch === 'Ambulant') ? 'collectedacc' : 'collected'));
 
 // Fetch the latest transaction for the current user
-$sql = "SELECT * FROM $tableName WHERE username = ? ORDER BY id DESC LIMIT 1";
+$sql = "SELECT * FROM `$tableName` WHERE username = ? ORDER BY id DESC LIMIT 1";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $username);
-$stmt->execute();
-$result = $stmt->get_result();
+if ($stmt) {
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+} else {
+    $result = false;
+}
 
-if ($result->num_rows > 0) {
+if ($result && $result->num_rows > 0) {
     // Output data of the latest transaction for the current user
     $row = $result->fetch_assoc();
     $transaction_number = $row["transaction_number"];
@@ -73,11 +77,14 @@ if ($result->num_rows > 0) {
     $stmt->close();
 
     // Fetch all charges with the given transaction number to get all charges
-    $sql_charges = "SELECT * FROM $tableName WHERE transaction_number = ?";
+    $sql_charges = "SELECT * FROM `$tableName` WHERE transaction_number = ?";
     $stmt_charges = $conn->prepare($sql_charges);
-    $stmt_charges->bind_param("d", $transaction_number); // Use "d" for transaction_number if it's numeric
-    $stmt_charges->execute();
-    $result_charges = $stmt_charges->get_result();
+    $result_charges = false;
+    if ($stmt_charges) {
+        $stmt_charges->bind_param("s", $transaction_number);
+        $stmt_charges->execute();
+        $result_charges = $stmt_charges->get_result();
+    }
 
     // Start HTML output
     ?>

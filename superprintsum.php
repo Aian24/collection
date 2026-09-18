@@ -1,6 +1,5 @@
 <?php
 ob_start();
-include 'config.php';
 session_start();
 
 if (!isset($_SESSION["username"])) {
@@ -8,69 +7,92 @@ if (!isset($_SESSION["username"])) {
     exit();
 }
 
+include 'config.php';
+
 $username = $_SESSION["username"];
 date_default_timezone_set('Asia/Manila');
 $current_date_time = date('Y-m-d g:i A');
 $total_rent = $total_balance = $total_charges = $total = 0;
-
-$conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Get the selected date or default to today
-$selected_date = isset($_POST['selected_date']) ? $_POST['selected_date'] : date('Y-m-d');
-$selected_branch = isset($_POST['selected_branch']) ? $_POST['selected_branch'] : $_SESSION["branch"];
-
-// Determine the correct table based on the selected branch
-$table = ($selected_branch === 'Sanko Market') ? 'collected' : (($selected_branch === 'APM') ? 'collectedapm' : 'collectednova');
-
-// Fetch totals for the selected date and branch
-$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, (SUM(paidelec) + SUM(IFNULL(paidelecarrear,0))) AS total_elec, (SUM(paidwater) + SUM(IFNULL(paidwaterarrear,0))) AS total_water, SUM(total) AS db_grand_total
-          FROM $table
-          WHERE DATE(collected_date) = '$selected_date' AND username = '$username'";
-$result = $conn->query($query);
-
 $total_elec = 0;
 $total_water = 0;
+$db_grand_total = 0;
 
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $total_rent = $row['total_rent'];
-    $total_balance = $row['total_balance'];
-    $total_elec = $row['total_elec'];
-    $total_water = $row['total_water'];
-    $db_grand_total = $row['db_grand_total'];
+// Get the selected date or default to today
+$selected_date = isset($_POST['selected_date']) && !empty($_POST['selected_date']) ? $_POST['selected_date'] : date('Y-m-d');
+$selected_branch = isset($_POST['selected_branch']) && !empty($_POST['selected_branch']) ? $_POST['selected_branch'] : ($_SESSION["branch"] ?? '');
+
+$startOfDay = $selected_date . ' 00:00:00';
+$endOfDay = $selected_date . ' 23:59:59';
+
+// Determine the correct table based on the selected branch
+$table = ($selected_branch === 'Sanko Market') ? 'collected' : 
+         (($selected_branch === 'APM') ? 'collectedapm' : 
+         (($selected_branch === 'ACC' || $selected_branch === 'Ambulant') ? 'collectedacc' : 'collectednova'));
+
+// Fetch totals for the selected date and branch
+$query = "SELECT SUM(paidrent) AS total_rent, SUM(paidbal) AS total_balance, (SUM(IFNULL(paidelec,0)) + SUM(IFNULL(paidelecarrear,0))) AS total_elec, (SUM(IFNULL(paidwater,0)) + SUM(IFNULL(paidwaterarrear,0))) AS total_water, SUM(total) AS db_grand_total
+          FROM `$table`
+          WHERE collected_date BETWEEN ? AND ? AND username = ?";
+$stmt = $conn->prepare($query);
+if ($stmt) {
+    $stmt->bind_param("sss", $startOfDay, $endOfDay, $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $total_rent = (float)($row['total_rent'] ?? 0);
+        $total_balance = (float)($row['total_balance'] ?? 0);
+        $total_elec = (float)($row['total_elec'] ?? 0);
+        $total_water = (float)($row['total_water'] ?? 0);
+        $db_grand_total = (float)($row['db_grand_total'] ?? 0);
+    }
+    $stmt->close();
 }
 
 // Fetch collector's last name and branch
-$collector_query = "SELECT lname, branch FROM users WHERE username = '$username'";
-$collector_result = $conn->query($collector_query);
-if ($collector_result->num_rows > 0) {
-    $collector_row = $collector_result->fetch_assoc();
-    $lname = $collector_row['lname'];
+$collector_name = "Unknown";
+$collector_branch = $selected_branch;
+$collector_stmt = $conn->prepare("SELECT lname, branch FROM users WHERE username = ?");
+if ($collector_stmt) {
+    $collector_stmt->bind_param("s", $username);
+    $collector_stmt->execute();
+    $collector_result = $collector_stmt->get_result();
+    if ($collector_result && $collector_result->num_rows > 0) {
+        $collector_row = $collector_result->fetch_assoc();
+        $collector_name = $collector_row['lname'] ?? "Unknown";
+        $collector_branch = $collector_row['branch'] ?? $selected_branch;
+    }
+    $collector_stmt->close();
 }
+$lname = $collector_name;
 
 // Fetch charges
-$charges_query = "SELECT charges FROM $table WHERE DATE(collected_date) = '$selected_date' AND username = '$username'";
-$charges_result = $conn->query($charges_query);
-if ($charges_result->num_rows > 0) {
-    while ($charge_row = $charges_result->fetch_assoc()) {
-        preg_match_all('/([^:,]+):\s*([\d,]+(\.\d{1,2})?)/', $charge_row['charges'], $matches);
-        if (count($matches[0]) > 0) {
-            foreach ($matches[1] as $index => $charge_type) {
-                $charge_value = (float) str_replace(',', '', $matches[2][$index]);
-                $lower_type = strtolower(trim($charge_type));
-                if (in_array($lower_type, ['electricity', 'elec', 'electric', 'paidelec', 'electricity bal', 'electricity arrear'])) {
-                    $total_elec += $charge_value;
-                } elseif (in_array($lower_type, ['water', 'paidwater', 'water bal', 'water arrear']) && strpos($lower_type, 'ice') === false) {
-                    $total_water += $charge_value;
-                } else {
-                    $total_charges += $charge_value;
+$charges_stmt = $conn->prepare("SELECT charges FROM `$table` WHERE collected_date BETWEEN ? AND ? AND username = ?");
+if ($charges_stmt) {
+    $charges_stmt->bind_param("sss", $startOfDay, $endOfDay, $username);
+    $charges_stmt->execute();
+    $charges_result = $charges_stmt->get_result();
+    if ($charges_result && $charges_result->num_rows > 0) {
+        while ($charge_row = $charges_result->fetch_assoc()) {
+            if (empty($charge_row['charges'])) continue;
+            preg_match_all('/([^:,]+):\s*([\d,]+(\.\d{1,2})?)/', $charge_row['charges'], $matches);
+            if (count($matches[0]) > 0) {
+                foreach ($matches[1] as $index => $charge_type) {
+                    $charge_value = (float) str_replace(',', '', $matches[2][$index]);
+                    $lower_type = strtolower(trim($charge_type));
+                    if (in_array($lower_type, ['electricity', 'elec', 'electric', 'paidelec', 'electricity bal', 'electricity arrear'])) {
+                        $total_elec += $charge_value;
+                    } elseif (in_array($lower_type, ['water', 'paidwater', 'water bal', 'water arrear']) && strpos($lower_type, 'ice') === false) {
+                        $total_water += $charge_value;
+                    } else {
+                        $total_charges += $charge_value;
+                    }
                 }
             }
         }
     }
+    $charges_stmt->close();
 }
 
 $total_rent = round((float)$total_rent, 2);
@@ -80,7 +102,9 @@ $total_water = round((float)$total_water, 2);
 $total_charges = round((float)$total_charges, 2);
 $total = round((float)$db_grand_total, 2);
 
-$conn->close();
+if (isset($conn) && $conn) {
+    $conn->close();
+}
 ?>
 
 <!DOCTYPE html>

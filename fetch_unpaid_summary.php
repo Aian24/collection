@@ -1,14 +1,21 @@
 <?php
-include 'config.php';
+ob_start();
 session_start();
 
-if (!isset($_SESSION["branch"])) {
+header('Content-Type: application/json; charset=utf-8');
+
+if (!isset($_SESSION["branch"]) || empty($_SESSION["branch"])) {
+    session_write_close();
     echo json_encode(['success' => false]);
     exit();
 }
 
 $branch = $_SESSION["branch"];
-$date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+session_write_close(); // Release session lock immediately
+
+$date = isset($_GET['date']) && !empty($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+$startOfDay = $date . ' 00:00:00';
+$endOfDay = $date . ' 23:59:59';
 
 // Determine tables
 $table = '';
@@ -26,41 +33,74 @@ switch ($branch) {
         $table = 'apm';
         $collectedTable = 'collectedapm';
         break;
+    case 'ACC':
+    case 'Ambulant':
+        $table = 'acc';
+        $collectedTable = 'collectedacc';
+        break;
     default:
         echo json_encode(['success' => false]);
         exit();
 }
 
+include 'config.php';
+
 // Get total unique spaces in branch (excluding Ambulant)
-$totalQuery = $conn->prepare("SELECT COUNT(DISTINCT spacecode) as total FROM $table WHERE spacecode != 'Ambulant'");
-$totalQuery->execute();
-$totalResult = $totalQuery->get_result()->fetch_assoc();
-$totalCount = $totalResult['total'];
+$totalCount = 0;
+$totalQuery = $conn->prepare("SELECT COUNT(DISTINCT spacecode) as total FROM `$table` WHERE spacecode != 'Ambulant'");
+if ($totalQuery) {
+    $totalQuery->execute();
+    $totalResult = $totalQuery->get_result();
+    if ($totalResult) {
+        $totalCount = (int)($totalResult->fetch_assoc()['total'] ?? 0);
+    }
+    $totalQuery->close();
+}
 
 // Get unique spaces already collected today
-$paidQuery = $conn->prepare("SELECT COUNT(DISTINCT spacecode) as paid FROM $collectedTable WHERE LEFT(collected_date, 10) = ? AND spacecode != 'Ambulant'");
-$paidQuery->bind_param("s", $date);
-$paidQuery->execute();
-$paidResult = $paidQuery->get_result()->fetch_assoc();
-$paidCount = $paidResult['paid'];
+$paidCount = 0;
+$paidQuery = $conn->prepare("SELECT COUNT(DISTINCT spacecode) as paid FROM `$collectedTable` WHERE collected_date BETWEEN ? AND ? AND spacecode != 'Ambulant'");
+if ($paidQuery) {
+    $paidQuery->bind_param("ss", $startOfDay, $endOfDay);
+    $paidQuery->execute();
+    $paidResult = $paidQuery->get_result();
+    if ($paidResult) {
+        $paidCount = (int)($paidResult->fetch_assoc()['paid'] ?? 0);
+    }
+    $paidQuery->close();
+}
 
-// Get list of unpaid spaces (limit to a reasonable number or just count)
-$unpaidListQuery = $conn->prepare("SELECT spacecode FROM $table WHERE spacecode != 'Ambulant' AND spacecode NOT IN (SELECT spacecode FROM $collectedTable WHERE LEFT(collected_date, 10) = ?) ORDER BY spacecode ASC");
-$unpaidListQuery->bind_param("s", $date);
-$unpaidListQuery->execute();
-$listResult = $unpaidListQuery->get_result();
+// Get list of unpaid spaces using fast LEFT JOIN
 $unpaidSpaces = [];
-while ($row = $listResult->fetch_assoc()) {
-    $unpaidSpaces[] = $row['spacecode'];
+$unpaidListQuery = $conn->prepare("SELECT t.spacecode 
+    FROM `$table` t
+    LEFT JOIN `$collectedTable` c 
+        ON t.spacecode = c.spacecode 
+        AND c.collected_date BETWEEN ? AND ?
+    WHERE t.spacecode != 'Ambulant' AND c.spacecode IS NULL
+    ORDER BY t.spacecode ASC");
+
+if ($unpaidListQuery) {
+    $unpaidListQuery->bind_param("ss", $startOfDay, $endOfDay);
+    $unpaidListQuery->execute();
+    $listResult = $unpaidListQuery->get_result();
+    if ($listResult) {
+        while ($row = $listResult->fetch_assoc()) {
+            $unpaidSpaces[] = $row['spacecode'];
+        }
+    }
+    $unpaidListQuery->close();
+}
+
+if (isset($conn) && $conn) {
+    $conn->close();
 }
 
 echo json_encode([
     'success' => true,
     'total' => $totalCount,
     'paid' => $paidCount,
-    'unpaid' => $totalCount - $paidCount,
+    'unpaid' => max(0, $totalCount - $paidCount),
     'unpaidSpaces' => $unpaidSpaces
 ]);
-
-$conn->close();
 ?>
