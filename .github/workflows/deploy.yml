@@ -31,6 +31,8 @@ jobs:
           node_modules/**
           vendor/**
           error_log
+          config.php
+          imall/config.php
           images/**
           imall/images/**
           *.log

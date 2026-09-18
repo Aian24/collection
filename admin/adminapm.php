@@ -2261,9 +2261,8 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             let notificationInterval;
             
             function startAutoUpdate() {
-                if (document.hidden) return;
                 updateNotifications(); // Initial load
-                notificationInterval = setInterval(updateNotifications, 60000); // Update every 60 seconds (optimized for shared hosting)
+                notificationInterval = setInterval(updateNotifications, 30000); // Update every 30 seconds
             }
 
             function stopAutoUpdate() {

@@ -15,13 +15,6 @@ $branch_filter = isset($_GET['branch']) ? $_GET['branch'] : '';
 $queries = [];
 $count_queries = [];
 
-$has_acc = false;
-$check_acc = @mysqli_query($conn, "SHOW TABLES LIKE 'collectedacc'");
-if ($check_acc && mysqli_num_rows($check_acc) > 0) {
-    $has_acc = true;
-    mysqli_free_result($check_acc);
-}
-
 if ($branch_filter === 'Sanko Market') {
     $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
     $count_queries[] = "SELECT transaction_number FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
@@ -31,9 +24,6 @@ if ($branch_filter === 'Sanko Market') {
 } elseif ($branch_filter === 'APM') {
     $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedapm' as source_table FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
     $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-} elseif (($branch_filter === 'ACC' || $branch_filter === 'Ambulant') && $has_acc) {
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedacc' as source_table FROM collectedacc WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-    $count_queries[] = "SELECT transaction_number FROM collectedacc WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
 } else {
     // All branches
     $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
@@ -43,11 +33,6 @@ if ($branch_filter === 'Sanko Market') {
     $count_queries[] = "SELECT transaction_number FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
     $count_queries[] = "SELECT transaction_number FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
     $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-
-    if ($has_acc) {
-        $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedacc' as source_table FROM collectedacc WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-        $count_queries[] = "SELECT transaction_number FROM collectedacc WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-    }
 }
 
 $query = implode(" UNION ALL ", $queries) . " ORDER BY collected_date DESC LIMIT 10";

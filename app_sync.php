@@ -1,51 +1,19 @@
 <?php
-date_default_timezone_set('Asia/Manila');
+// Database connection details
+$servername = "localhost";
+$username = "wqxgzpmy_app";
+$password = "R4styL0p3z";
+$dbname = "wqxgzpmy_app";
 
-if (function_exists('mysqli_report')) {
-    mysqli_report(MYSQLI_REPORT_OFF);
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+  // Log database connection error (important for debugging)
+  error_log("Database connection failed: " . $conn->connect_error);
+  die(json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . $conn->connect_error]));
 }
-
-$isCli = (php_sapi_name() === 'cli');
-$hostHeader = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
-$isLocal = in_array($hostHeader, ['localhost', '127.0.0.1', '::1'])
-           || (isset($_SERVER['DOCUMENT_ROOT']) && (strpos($_SERVER['DOCUMENT_ROOT'], 'xampp') !== false || strpos($_SERVER['DOCUMENT_ROOT'], 'wamp') !== false))
-           || ($isCli && strtoupper(substr(PHP_OS, 0, 3)) === 'WIN');
-
-if ($isLocal) {
-    $servername = "localhost";
-    $username   = "root";
-    $password   = "";
-    $dbname     = "app";
-    $fallbackUser = "wqxgzpmy_app";
-    $fallbackPass = "R4styL0p3z";
-    $fallbackName = "wqxgzpmy_app";
-} else {
-    $servername = "localhost";
-    $username   = "wqxgzpmy_app";
-    $password   = "R4styL0p3z";
-    $dbname     = "wqxgzpmy_app";
-    $fallbackUser = "root";
-    $fallbackPass = "";
-    $fallbackName = "app";
-}
-
-$conn = @new mysqli($servername, $username, $password, $dbname);
-
-if (!$conn || $conn->connect_error) {
-    $conn = @new mysqli($servername, $fallbackUser, $fallbackPass, $fallbackName);
-}
-
-if (!$conn || $conn->connect_error) {
-    error_log("Database connection failed: " . ($conn ? $conn->connect_error : "Server busy"));
-    die(json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . ($conn ? $conn->connect_error : "Server busy")]));
-}
-
-@$conn->set_charset("utf8mb4");
-register_shutdown_function(function() use (&$conn) {
-    if ($conn instanceof mysqli && @$conn->ping()) {
-        @$conn->close();
-    }
-});
 
 // Function to send progress updates
 function sendProgress($insertedCount, $totalRows, $duplicateCount = 0, $isComplete = false) {

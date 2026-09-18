@@ -106,14 +106,9 @@ $(document).ready(function() {
 
     let notificationInterval;
     function startNotificationInterval() {
-        if (document.hidden) return;
-        if (notificationInterval) {
-            clearInterval(notificationInterval);
-            notificationInterval = null;
-        }
         if ($('#autoUpdateToggleNotifications').is(':checked')) {
             updateNotifications();
-            notificationInterval = setInterval(updateNotifications, 60000); // Every 60s
+            notificationInterval = setInterval(updateNotifications, 60000); // Every 60s (was 30s)
         }
     }
 
