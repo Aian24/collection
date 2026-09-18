@@ -1,19 +1,52 @@
 <?php
 header('Content-Type: application/json');
 
-// Database credentials (Replace with your Bluehost MySQL credentials)
-$servername = "localhost"; // Replace with your actual server name
-$username = "wqxgzpmy_app";       // Replace with your actual username
-$password = "R4styL0p3z";       // Replace with your actual password
-$dbname = "wqxgzpmy_app";    // Replace with your actual database name
+date_default_timezone_set('Asia/Manila');
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die(json_encode(array("error" => "Connection failed: " . $conn->connect_error)));
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
 }
+
+$isCli = (php_sapi_name() === 'cli');
+$hostHeader = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
+$isLocal = in_array($hostHeader, ['localhost', '127.0.0.1', '::1'])
+           || (isset($_SERVER['DOCUMENT_ROOT']) && (strpos($_SERVER['DOCUMENT_ROOT'], 'xampp') !== false || strpos($_SERVER['DOCUMENT_ROOT'], 'wamp') !== false))
+           || ($isCli && strtoupper(substr(PHP_OS, 0, 3)) === 'WIN');
+
+if ($isLocal) {
+    $servername = "localhost";
+    $username   = "root";
+    $password   = "";
+    $dbname     = "app";
+    $fallbackUser = "wqxgzpmy_app";
+    $fallbackPass = "R4styL0p3z";
+    $fallbackName = "wqxgzpmy_app";
+} else {
+    $servername = "localhost";
+    $username   = "wqxgzpmy_app";
+    $password   = "R4styL0p3z";
+    $dbname     = "wqxgzpmy_app";
+    $fallbackUser = "root";
+    $fallbackPass = "";
+    $fallbackName = "app";
+}
+
+$conn = @new mysqli($servername, $username, $password, $dbname);
+
+if (!$conn || $conn->connect_error) {
+    $conn = @new mysqli($servername, $fallbackUser, $fallbackPass, $fallbackName);
+}
+
+if (!$conn || $conn->connect_error) {
+    die(json_encode(array("error" => "Connection failed: " . ($conn ? $conn->connect_error : "Server busy"))));
+}
+
+@$conn->set_charset("utf8mb4");
+register_shutdown_function(function() use (&$conn) {
+    if ($conn instanceof mysqli && @$conn->ping()) {
+        @$conn->close();
+    }
+});
 
 // Get data from request body
 $json_data = file_get_contents("php://input");

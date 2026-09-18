@@ -36,6 +36,16 @@ if ($branch === 'Nova Market') {
     $table = 'collectednova';
 } elseif ($branch === 'APM') {
     $table = 'collectedapm';
+} elseif ($branch === 'ACC' || $branch === 'Ambulant') {
+    $table = 'collectedacc';
+}
+
+// Discover available collected tables
+$available_collected_tables = ['collected', 'collectednova', 'collectedapm'];
+$check_acc = @mysqli_query($conn, "SHOW TABLES LIKE 'collectedacc'");
+if ($check_acc && mysqli_num_rows($check_acc) > 0) {
+    $available_collected_tables[] = 'collectedacc';
+    mysqli_free_result($check_acc);
 }
 
 // Initialize response array
@@ -73,6 +83,7 @@ $query_users = "SELECT COUNT(*) AS total_users FROM users";
 $result_users = mysqli_query($conn, $query_users);
 if ($result_users && $row = mysqli_fetch_assoc($result_users)) {
     $response['totalUsers'] = $row['total_users'];
+    mysqli_free_result($result_users);
 }
 
 // Get monthly data (last 12 months)
@@ -97,27 +108,11 @@ if ($branch) {
         WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
         AND branch = '$escaped_branch'";
 } else {
-    $monthly_query = "
-            SELECT 
-                DATE_FORMAT(collected_date, '%Y-%m') as month,
-                (paidrent + paidbal) as base_total,
-                charges
-            FROM collected
-            WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-            UNION ALL
-            SELECT 
-                DATE_FORMAT(collected_date, '%Y-%m') as month,
-                (paidrent + paidbal) as base_total,
-                charges
-            FROM collectednova
-            WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-            UNION ALL
-            SELECT 
-                DATE_FORMAT(collected_date, '%Y-%m') as month,
-                (paidrent + paidbal) as base_total,
-                charges
-            FROM collectedapm
-            WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)";
+    $union_monthly = [];
+    foreach ($available_collected_tables as $tbl) {
+        $union_monthly[] = "SELECT DATE_FORMAT(collected_date, '%Y-%m') as month, (paidrent + paidbal) as base_total, charges FROM $tbl WHERE collected_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)";
+    }
+    $monthly_query = implode(" UNION ALL ", $union_monthly);
 }
 
 $monthly_result = mysqli_query($conn, $monthly_query);
@@ -130,6 +125,7 @@ if ($monthly_result) {
             $response['monthlyChartData']['data'][$month_index] += $total;
         }
     }
+    mysqli_free_result($monthly_result);
 }
 
 // Get yearly data (last 5 years)
@@ -150,27 +146,11 @@ if ($branch) {
         WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4
         AND branch = '$escaped_branch'";
 } else {
-    $yearly_query = "
-            SELECT 
-                YEAR(collected_date) as year,
-                (paidrent + paidbal) as base_total,
-                charges
-            FROM collected
-            WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4
-            UNION ALL
-            SELECT 
-                YEAR(collected_date) as year,
-                (paidrent + paidbal) as base_total,
-                charges
-            FROM collectednova
-            WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4
-            UNION ALL
-            SELECT 
-                YEAR(collected_date) as year,
-                (paidrent + paidbal) as base_total,
-                charges
-            FROM collectedapm
-            WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4";
+    $union_yearly = [];
+    foreach ($available_collected_tables as $tbl) {
+        $union_yearly[] = "SELECT YEAR(collected_date) as year, (paidrent + paidbal) as base_total, charges FROM $tbl WHERE YEAR(collected_date) >= YEAR(CURDATE()) - 4";
+    }
+    $yearly_query = implode(" UNION ALL ", $union_yearly);
 }
 
 $yearly_result = mysqli_query($conn, $yearly_query);
@@ -182,24 +162,21 @@ if ($yearly_result) {
             $response['yearlyChartData']['data'][$year_index] += $total;
         }
     }
+    mysqli_free_result($yearly_result);
 }
 
 // Get transactions for the table AND calculate totals
 if ($branch) {
-    $query_transactions = "SELECT * FROM $table 
+    $query_transactions = "SELECT spacecode, transaction_number, collector, collected_date, branch, tenantcode, tenantname, paidrent, paidbal, charges FROM $table 
         WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime' 
         AND branch = '$escaped_branch' 
         ORDER BY collected_date ASC, transaction_number ASC";
 } else {
-    $query_transactions = "(SELECT * FROM collected 
-        WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime')
-        UNION ALL 
-        (SELECT * FROM collectednova 
-        WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime')
-        UNION ALL 
-        (SELECT * FROM collectedapm 
-        WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime')
-        ORDER BY collected_date ASC, transaction_number ASC";
+    $union_transactions = [];
+    foreach ($available_collected_tables as $tbl) {
+        $union_transactions[] = "(SELECT spacecode, transaction_number, collector, collected_date, branch, tenantcode, tenantname, paidrent, paidbal, charges FROM $tbl WHERE collected_date BETWEEN '$start_datetime' AND '$end_datetime')";
+    }
+    $query_transactions = implode(" UNION ALL ", $union_transactions) . " ORDER BY collected_date ASC, transaction_number ASC";
 }
 
 $tenant_codes = [];
@@ -222,9 +199,12 @@ if ($result_transactions) {
         $response['totalCollection'] += (float)$row['paidrent'] + (float)$row['paidbal'] + extractCharges($row['charges']);
     }
     $response['totalTenants'] = count($tenant_codes);
+    mysqli_free_result($result_transactions);
 }
 
-mysqli_close($conn);
+if (isset($conn) && $conn) {
+    mysqli_close($conn);
+}
 
 // Send JSON response
 header('Content-Type: application/json');
