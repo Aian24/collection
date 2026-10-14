@@ -498,32 +498,10 @@ $conn->close(); // Close the database connection
         .btn-primary { background-color: var(--accent-indigo); border-color: var(--accent-indigo); }
         .btn-info { background-color: #0ea5e9; border-color: #0ea5e9; }
 
-        /* DataTables Buttons Styling */
+        /* Hide DataTables buttons in table toolbar so export only appears beside Add Tenant */
         .dt-buttons {
-            display: inline-flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 0;
+            display: none !important;
         }
-        .dt-buttons .btn {
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 0.4rem 0.85rem;
-            border-radius: var(--radius-md) !important;
-            border: 1px solid #e2e8f0;
-            background-color: white;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-        }
-        .dt-buttons .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
-            background-color: #f8fafc;
-        }
-        .dt-buttons .btn-csv { color: #10b981; }
-        .dt-buttons .btn-excel { color: #0ea5e9; }
         
         .dataTables_length select { 
             border-radius: var(--radius-sm) !important; 
@@ -1349,60 +1327,8 @@ $conn->close(); // Close the database connection
                         [10, 25, 50, 100, "All"]
                     ],
                     responsive: true, // Use DataTables responsive plugin
-                    // Ensure modern flexbox styling is applied correctly with Buttons (B)
-                    "dom": '<"d-flex flex-wrap align-items-center justify-content-between mb-3"l B f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-3"i p>',
-                    buttons: [
-                        {
-                            extend: 'csvHtml5',
-                            text: '<i class="fas fa-file-csv mr-1"></i> CSV',
-                            titleAttr: 'Export Tenants to CSV',
-                            className: 'btn btn-csv',
-                            exportOptions: {
-                                columns: ':not(:last-child)'
-                            },
-                            filename: function () {
-                                var today = new Date();
-                                var d = String(today.getDate()).padStart(2, '0');
-                                var m = String(today.getMonth() + 1).padStart(2, '0');
-                                var y = today.getFullYear();
-                                return 'APM_Tenants_' + y + '-' + m + '-' + d;
-                            },
-                            title: null
-                        },
-                        {
-                            extend: 'excelHtml5',
-                            text: '<i class="fas fa-file-excel mr-1"></i> Excel',
-                            titleAttr: 'Export Tenants to Excel',
-                            className: 'btn btn-excel',
-                            exportOptions: {
-                                columns: ':not(:last-child)'
-                            },
-                            filename: function () {
-                                var today = new Date();
-                                var d = String(today.getDate()).padStart(2, '0');
-                                var m = String(today.getMonth() + 1).padStart(2, '0');
-                                var y = today.getFullYear();
-                                return 'APM_Tenants_' + y + '-' + m + '-' + d;
-                            },
-                            title: null,
-                            customizeData: function(data) {
-                                var tenantcodeCol = -1;
-                                var spacecodeCol = -1;
-                                for (var k = 0; k < data.header.length; k++) {
-                                    if (data.header[k] === 'Tenant Code') tenantcodeCol = k;
-                                    if (data.header[k] === 'Space Code') spacecodeCol = k;
-                                }
-                                for (var i = 0; i < data.body.length; i++) {
-                                    if (tenantcodeCol !== -1 && data.body[i][tenantcodeCol] !== undefined && data.body[i][tenantcodeCol] !== null) {
-                                        data.body[i][tenantcodeCol] = "\u200B" + String(data.body[i][tenantcodeCol]);
-                                    }
-                                    if (spacecodeCol !== -1 && data.body[i][spacecodeCol] !== undefined && data.body[i][spacecodeCol] !== null) {
-                                        data.body[i][spacecodeCol] = "\u200B" + String(data.body[i][spacecodeCol]);
-                                    }
-                                }
-                            }
-                        }
-                    ],
+                    // Ensure modern flexbox styling is applied correctly without center buttons
+                    "dom": '<"d-flex flex-wrap align-items-center justify-content-between mb-3"l f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-3"i p>',
                     "language": {
                          "search": "Search:", // Customize search label
                          "lengthMenu": "Show _MENU_ entries", // Customize length menu label
@@ -1419,6 +1345,58 @@ $conn->close(); // Close the database connection
                      // Prevent the last column (Actions) from being hidden or collapsed
                      "columnDefs": [
                         { "targets": -1, "orderable": false, "width": "140px" }
+                     ]
+                 });
+
+                 // Initialize export buttons instance for header dropdown trigger
+                 new $.fn.dataTable.Buttons(tenantTable, {
+                     buttons: [
+                         {
+                             extend: 'csvHtml5',
+                             className: 'buttons-csv',
+                             exportOptions: {
+                                 columns: ':not(:last-child)'
+                             },
+                             filename: function () {
+                                 var today = new Date();
+                                 var d = String(today.getDate()).padStart(2, '0');
+                                 var m = String(today.getMonth() + 1).padStart(2, '0');
+                                 var y = today.getFullYear();
+                                 return 'APM_Tenants_' + y + '-' + m + '-' + d;
+                             },
+                             title: null
+                         },
+                         {
+                             extend: 'excelHtml5',
+                             className: 'buttons-excel',
+                             exportOptions: {
+                                 columns: ':not(:last-child)'
+                             },
+                             filename: function () {
+                                 var today = new Date();
+                                 var d = String(today.getDate()).padStart(2, '0');
+                                 var m = String(today.getMonth() + 1).padStart(2, '0');
+                                 var y = today.getFullYear();
+                                 return 'APM_Tenants_' + y + '-' + m + '-' + d;
+                             },
+                             title: null,
+                             customizeData: function(data) {
+                                 var tenantcodeCol = -1;
+                                 var spacecodeCol = -1;
+                                 for (var k = 0; k < data.header.length; k++) {
+                                     if (data.header[k] === 'Tenant Code') tenantcodeCol = k;
+                                     if (data.header[k] === 'Space Code') spacecodeCol = k;
+                                 }
+                                 for (var i = 0; i < data.body.length; i++) {
+                                     if (tenantcodeCol !== -1 && data.body[i][tenantcodeCol] !== undefined && data.body[i][tenantcodeCol] !== null) {
+                                         data.body[i][tenantcodeCol] = "\u200B" + String(data.body[i][tenantcodeCol]);
+                                     }
+                                     if (spacecodeCol !== -1 && data.body[i][spacecodeCol] !== undefined && data.body[i][spacecodeCol] !== null) {
+                                         data.body[i][spacecodeCol] = "\u200B" + String(data.body[i][spacecodeCol]);
+                                     }
+                                 }
+                             }
+                         }
                      ]
                  });
 
