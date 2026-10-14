@@ -206,6 +206,231 @@ foreach ($data as $row) {
     $grandTotalOutstanding += $g_out;
 }
 
+// Direct export handling (Excel & CSV)
+if (isset($_GET['export']) && in_array($_GET['export'], ['excel', 'csv'])) {
+    $exportFormat = $_GET['export'];
+    $exportDate = date('Y-m-d');
+    
+    if ($exportFormat === 'csv') {
+        $filename = "APM_Tenants_" . $exportDate . ".csv";
+        
+        if (ob_get_length()) ob_end_clean();
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        $output = fopen('php://output', 'w');
+        fputs($output, "\xEF\xBB\xBF"); // UTF-8 BOM
+        
+        fputcsv($output, [
+            'Tenant Name',
+            'Tenant Code',
+            'Space Code',
+            'Daily Rent',
+            'Rent Bal',
+            'Rent Arrear',
+            'Rent Total Out',
+            'Elec Bal',
+            'Elec Arrear',
+            'Elec Total Out',
+            'Water Bal',
+            'Water Arrear',
+            'Water Total Out',
+            'Total Arrears',
+            'Grand Total Out',
+            'Started Date'
+        ]);
+        
+        foreach ($data as $row) {
+            $r_bal = (float)($row['rentbal'] ?? 0);
+            $r_arr = (float)($row['runningbal'] ?? 0);
+            $e_bal = (float)($row['elecbal'] ?? 0);
+            $e_arr = (float)($row['elecarrear'] ?? 0);
+            $w_bal = (float)($row['waterbal'] ?? 0);
+            $w_arr = (float)($row['waterarrear'] ?? 0);
+
+            $r_out = $r_bal + $r_arr;
+            $e_out = $e_bal + $e_arr;
+            $w_out = $w_bal + $w_arr;
+            $t_arr = $r_arr + $e_arr + $w_arr;
+            $g_out = $r_out + $e_out + $w_out;
+            
+            fputcsv($output, [
+                $row['tenantname'] ?? '',
+                $row['tenantcode'] ?? '',
+                $row['spacecode'] ?? '',
+                number_format((float)($row['daily'] ?? 0), 2, '.', ''),
+                number_format($r_bal, 2, '.', ''),
+                number_format($r_arr, 2, '.', ''),
+                number_format($r_out, 2, '.', ''),
+                number_format($e_bal, 2, '.', ''),
+                number_format($e_arr, 2, '.', ''),
+                number_format($e_out, 2, '.', ''),
+                number_format($w_bal, 2, '.', ''),
+                number_format($w_arr, 2, '.', ''),
+                number_format($w_out, 2, '.', ''),
+                number_format($t_arr, 2, '.', ''),
+                number_format($g_out, 2, '.', ''),
+                $row['started_date'] ?? ''
+            ]);
+        }
+        
+        fputcsv($output, [
+            'TOTAL',
+            '',
+            '',
+            number_format($totalDaily, 2, '.', ''),
+            number_format($totalRentBal, 2, '.', ''),
+            number_format($totalRunningBal, 2, '.', ''),
+            number_format($totalRentOutstanding, 2, '.', ''),
+            number_format($totalElecBal, 2, '.', ''),
+            number_format($totalElecArrear, 2, '.', ''),
+            number_format($totalElecOutstanding, 2, '.', ''),
+            number_format($totalWaterBal, 2, '.', ''),
+            number_format($totalWaterArrear, 2, '.', ''),
+            number_format($totalWaterOutstanding, 2, '.', ''),
+            number_format($totalCombinedArrears, 2, '.', ''),
+            number_format($grandTotalOutstanding, 2, '.', ''),
+            ''
+        ]);
+        
+        fclose($output);
+        $conn->close();
+        exit();
+    } elseif ($exportFormat === 'excel') {
+        require_once '../vendor/autoload.php';
+        
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('APM Tenants');
+        
+        $headers = [
+            'Tenant Name',
+            'Tenant Code',
+            'Space Code',
+            'Daily Rent',
+            'Rent Bal',
+            'Rent Arrear',
+            'Rent Total Out',
+            'Elec Bal',
+            'Elec Arrear',
+            'Elec Total Out',
+            'Water Bal',
+            'Water Arrear',
+            'Water Total Out',
+            'Total Arrears',
+            'Grand Total Out',
+            'Started Date'
+        ];
+        
+        $headerCol = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($headerCol . '1', $header);
+            $headerCol++;
+        }
+        $lastCol = 'P';
+        
+        // Header styling
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1E293B']
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER
+            ]
+        ];
+        $sheet->getStyle("A1:{$lastCol}1")->applyFromArray($headerStyle);
+        $sheet->getRowDimension(1)->setRowHeight(25);
+        
+        $rowIdx = 2;
+        foreach ($data as $row) {
+            $r_bal = (float)($row['rentbal'] ?? 0);
+            $r_arr = (float)($row['runningbal'] ?? 0);
+            $e_bal = (float)($row['elecbal'] ?? 0);
+            $e_arr = (float)($row['elecarrear'] ?? 0);
+            $w_bal = (float)($row['waterbal'] ?? 0);
+            $w_arr = (float)($row['waterarrear'] ?? 0);
+
+            $r_out = $r_bal + $r_arr;
+            $e_out = $e_bal + $e_arr;
+            $w_out = $w_bal + $w_arr;
+            $t_arr = $r_arr + $e_arr + $w_arr;
+            $g_out = $r_out + $e_out + $w_out;
+            
+            $sheet->setCellValue('A' . $rowIdx, $row['tenantname'] ?? '');
+            $sheet->setCellValueExplicit('B' . $rowIdx, $row['tenantcode'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('C' . $rowIdx, $row['spacecode'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('D' . $rowIdx, (float)($row['daily'] ?? 0));
+            $sheet->setCellValue('E' . $rowIdx, $r_bal);
+            $sheet->setCellValue('F' . $rowIdx, $r_arr);
+            $sheet->setCellValue('G' . $rowIdx, $r_out);
+            $sheet->setCellValue('H' . $rowIdx, $e_bal);
+            $sheet->setCellValue('I' . $rowIdx, $e_arr);
+            $sheet->setCellValue('J' . $rowIdx, $e_out);
+            $sheet->setCellValue('K' . $rowIdx, $w_bal);
+            $sheet->setCellValue('L' . $rowIdx, $w_arr);
+            $sheet->setCellValue('M' . $rowIdx, $w_out);
+            $sheet->setCellValue('N' . $rowIdx, $t_arr);
+            $sheet->setCellValue('O' . $rowIdx, $g_out);
+            $sheet->setCellValue('P' . $rowIdx, $row['started_date'] ?? '');
+            
+            $rowIdx++;
+        }
+        
+        // Totals row
+        $sheet->setCellValue('A' . $rowIdx, 'TOTAL');
+        $sheet->setCellValue('D' . $rowIdx, $totalDaily);
+        $sheet->setCellValue('E' . $rowIdx, $totalRentBal);
+        $sheet->setCellValue('F' . $rowIdx, $totalRunningBal);
+        $sheet->setCellValue('G' . $rowIdx, $totalRentOutstanding);
+        $sheet->setCellValue('H' . $rowIdx, $totalElecBal);
+        $sheet->setCellValue('I' . $rowIdx, $totalElecArrear);
+        $sheet->setCellValue('J' . $rowIdx, $totalElecOutstanding);
+        $sheet->setCellValue('K' . $rowIdx, $totalWaterBal);
+        $sheet->setCellValue('L' . $rowIdx, $totalWaterArrear);
+        $sheet->setCellValue('M' . $rowIdx, $totalWaterOutstanding);
+        $sheet->setCellValue('N' . $rowIdx, $totalCombinedArrears);
+        $sheet->setCellValue('O' . $rowIdx, $grandTotalOutstanding);
+        
+        $totalStyle = [
+            'font' => ['bold' => true],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'F1F5F9']
+            ],
+            'borders' => [
+                'top' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN],
+                'bottom' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_DOUBLE]
+            ]
+        ];
+        $sheet->getStyle("A{$rowIdx}:{$lastCol}{$rowIdx}")->applyFromArray($totalStyle);
+        
+        $sheet->getStyle("D2:O{$rowIdx}")->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle("B2:C{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("P2:P{$rowIdx}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        foreach (range('A', $lastCol) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        
+        $filename = "APM_Tenants_" . $exportDate . ".xlsx";
+        
+        if (ob_get_length()) ob_end_clean();
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        $conn->close();
+        exit();
+    }
+}
+
 // Get messages from session
 $successMessage = isset($_SESSION['successMessage']) ? $_SESSION['successMessage'] : '';
 $errorMessage = isset($_SESSION['errorMessage']) ? $_SESSION['errorMessage'] : '';
@@ -234,6 +459,7 @@ $conn->close(); // Close the database connection
     <link href="css/modern-dashboard.css?v=<?= time() ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap4.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <style>
@@ -271,6 +497,33 @@ $conn->close(); // Close the database connection
         .btn-success { background-color: #10b981; border-color: #10b981; }
         .btn-primary { background-color: var(--accent-indigo); border-color: var(--accent-indigo); }
         .btn-info { background-color: #0ea5e9; border-color: #0ea5e9; }
+
+        /* DataTables Buttons Styling */
+        .dt-buttons {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 0;
+        }
+        .dt-buttons .btn {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.4rem 0.85rem;
+            border-radius: var(--radius-md) !important;
+            border: 1px solid #e2e8f0;
+            background-color: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+        .dt-buttons .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+            background-color: #f8fafc;
+        }
+        .dt-buttons .btn-csv { color: #10b981; }
+        .dt-buttons .btn-excel { color: #0ea5e9; }
         
         .dataTables_length select { 
             border-radius: var(--radius-sm) !important; 
@@ -588,6 +841,19 @@ $conn->close(); // Close the database connection
                      <button class="btn btn-primary w-100 w-md-auto mr-md-2 mb-2 mb-md-0" data-toggle="modal" data-target="#createModal" <?= empty($branch) ? 'disabled' : '' ?> style="white-space: nowrap;">
                           <i class="fas fa-plus-circle mr-2"></i> Add Tenant
                      </button>
+                     <div class="dropdown mr-md-2 mb-2 mb-md-0 w-100 w-md-auto">
+                         <button class="btn btn-outline-success dropdown-toggle w-100 w-md-auto" type="button" id="exportDropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="white-space: nowrap;">
+                             <i class="fas fa-file-export mr-1"></i> Export Tenants
+                         </button>
+                         <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="exportDropdownMenu">
+                             <a class="dropdown-item" href="tenantsapm.php?export=excel" id="headerExportExcel">
+                                 <i class="fas fa-file-excel text-success mr-2"></i> Export to Excel (.xlsx)
+                             </a>
+                             <a class="dropdown-item" href="tenantsapm.php?export=csv" id="headerExportCsv">
+                                 <i class="fas fa-file-csv text-info mr-2"></i> Export to CSV (.csv)
+                             </a>
+                         </div>
+                     </div>
                  </div>
             </div>
 
@@ -1031,6 +1297,11 @@ $conn->close(); // Close the database connection
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
@@ -1078,8 +1349,60 @@ $conn->close(); // Close the database connection
                         [10, 25, 50, 100, "All"]
                     ],
                     responsive: true, // Use DataTables responsive plugin
-                    // Ensure modern flexbox styling is applied correctly
-                    "dom": '<"d-flex flex-wrap align-items-center justify-content-between mb-3"l f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-3"i p>',
+                    // Ensure modern flexbox styling is applied correctly with Buttons (B)
+                    "dom": '<"d-flex flex-wrap align-items-center justify-content-between mb-3"l B f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-3"i p>',
+                    buttons: [
+                        {
+                            extend: 'csvHtml5',
+                            text: '<i class="fas fa-file-csv mr-1"></i> CSV',
+                            titleAttr: 'Export Tenants to CSV',
+                            className: 'btn btn-csv',
+                            exportOptions: {
+                                columns: ':not(:last-child)'
+                            },
+                            filename: function () {
+                                var today = new Date();
+                                var d = String(today.getDate()).padStart(2, '0');
+                                var m = String(today.getMonth() + 1).padStart(2, '0');
+                                var y = today.getFullYear();
+                                return 'APM_Tenants_' + y + '-' + m + '-' + d;
+                            },
+                            title: null
+                        },
+                        {
+                            extend: 'excelHtml5',
+                            text: '<i class="fas fa-file-excel mr-1"></i> Excel',
+                            titleAttr: 'Export Tenants to Excel',
+                            className: 'btn btn-excel',
+                            exportOptions: {
+                                columns: ':not(:last-child)'
+                            },
+                            filename: function () {
+                                var today = new Date();
+                                var d = String(today.getDate()).padStart(2, '0');
+                                var m = String(today.getMonth() + 1).padStart(2, '0');
+                                var y = today.getFullYear();
+                                return 'APM_Tenants_' + y + '-' + m + '-' + d;
+                            },
+                            title: null,
+                            customizeData: function(data) {
+                                var tenantcodeCol = -1;
+                                var spacecodeCol = -1;
+                                for (var k = 0; k < data.header.length; k++) {
+                                    if (data.header[k] === 'Tenant Code') tenantcodeCol = k;
+                                    if (data.header[k] === 'Space Code') spacecodeCol = k;
+                                }
+                                for (var i = 0; i < data.body.length; i++) {
+                                    if (tenantcodeCol !== -1 && data.body[i][tenantcodeCol] !== undefined && data.body[i][tenantcodeCol] !== null) {
+                                        data.body[i][tenantcodeCol] = "\u200B" + String(data.body[i][tenantcodeCol]);
+                                    }
+                                    if (spacecodeCol !== -1 && data.body[i][spacecodeCol] !== undefined && data.body[i][spacecodeCol] !== null) {
+                                        data.body[i][spacecodeCol] = "\u200B" + String(data.body[i][spacecodeCol]);
+                                    }
+                                }
+                            }
+                        }
+                    ],
                     "language": {
                          "search": "Search:", // Customize search label
                          "lengthMenu": "Show _MENU_ entries", // Customize length menu label
@@ -1097,6 +1420,16 @@ $conn->close(); // Close the database connection
                      "columnDefs": [
                         { "targets": -1, "orderable": false, "width": "140px" }
                      ]
+                 });
+
+                 // Bind Header Export dropdown items to DataTables export
+                 $('#headerExportExcel').on('click', function(e) {
+                     e.preventDefault();
+                     tenantTable.button('.buttons-excel').trigger();
+                 });
+                 $('#headerExportCsv').on('click', function(e) {
+                     e.preventDefault();
+                     tenantTable.button('.buttons-csv').trigger();
                  });
             }
 
