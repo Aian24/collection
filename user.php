@@ -54,6 +54,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $spacecode = $_POST['spacecode'] ?? '';
     $tenantname = $_POST['tenantname'] ?? '';
     $collected_date = $_POST['collected_date'] ?? '';
+    $collected_date_part = $_POST['collected_date_part'] ?? '';
+    $collected_time_part = $_POST['collected_time_part'] ?? '';
+
+    // Robust backdate handling: ensure selected date is properly saved on mobile & desktop
+    if (!empty($collected_date_part)) {
+        $timeStr = !empty($collected_time_part) ? trim($collected_time_part) : date('H:i:s');
+        if (strlen($timeStr) === 5) {
+            $timeStr .= ':00'; // Mobile HTML5 time picker sends HH:mm
+        }
+        $collected_date = $collected_date_part . ' ' . $timeStr;
+    } elseif (!empty($collected_date)) {
+        $collected_date = str_replace('T', ' ', $collected_date);
+    } else {
+        $collected_date = date('Y-m-d H:i:s');
+    }
 
     if (empty($collector) || empty($spacecode)) {
         echo "Error: Required fields are missing. Please submit the form correctly.";
@@ -608,6 +623,24 @@ if (isset($conn) && $conn) {
             width: 100%;
         }
         .date-bar input:focus { border-color: rgba(255,255,255,.6); }
+        .date-bar input[type="date"],
+        .date-bar input[type="time"] {
+            color-scheme: dark;
+            min-height: 38px;
+            cursor: pointer;
+        }
+        .date-bar input[type="date"]::-webkit-calendar-picker-indicator,
+        .date-bar input[type="time"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
 
         /* â”€â”€ SUBMIT BUTTON â”€â”€ */
         .submit-btn {
@@ -772,20 +805,20 @@ if (isset($conn) && $conn) {
             <!-- DATE BAR -->
             <div class="date-bar mb-4">
                 <div style="flex:1">
-                    <label>Collection Date</label>
-                    <div style="position:relative; display:flex; align-items:center;">
-                        <input type="text" id="collected_date_part"
+                    <label for="collected_date_part">Collection Date</label>
+                    <div class="date-input-wrapper" style="position:relative; display:flex; align-items:center; cursor:pointer;">
+                        <input type="text" id="collected_date_part" name="collected_date_part"
                             value="<?php echo date('Y-m-d'); ?>"
-                            onchange="updateDateTime(true)" style="padding-right:30px; cursor:pointer;" readonly>
+                            onchange="updateDateTime(true)" oninput="updateDateTime(true)" style="padding-right:30px; cursor:pointer;">
                         <i class="far fa-calendar" style="position:absolute; right:10px; color:#fff; pointer-events:none;"></i>
                     </div>
                 </div>
                 <div style="flex:1">
-                    <label>Time</label>
-                    <div style="position:relative; display:flex; align-items:center;">
-                        <input type="text" id="collected_time_part"
+                    <label for="collected_time_part">Time</label>
+                    <div class="date-input-wrapper" style="position:relative; display:flex; align-items:center; cursor:pointer;">
+                        <input type="text" id="collected_time_part" name="collected_time_part"
                             value="<?php echo date('H:i:s'); ?>" step="1"
-                            onchange="updateDateTime()" style="padding-right:30px; cursor:pointer;" readonly>
+                            onchange="window.isManualTimeSet = true; updateDateTime(false);" oninput="window.isManualTimeSet = true; updateDateTime(false);" style="padding-right:30px; cursor:pointer;">
                         <i class="far fa-clock" style="position:absolute; right:10px; color:#fff; pointer-events:none;"></i>
                     </div>
                 </div>
@@ -1197,14 +1230,30 @@ if (isset($conn) && $conn) {
         
         // (Legacy transaction table loader removed - table replaced with modern card modal)
 
+        window.isManualTimeSet = false;
+
         // Function to update the combined datetime field
         function updateDateTime(isDateChange = false) {
-            const datePart = document.getElementById('collected_date_part').value;
-            const timePart = document.getElementById('collected_time_part').value;
+            const dateInput = document.getElementById('collected_date_part');
+            const timeInput = document.getElementById('collected_time_part');
+            const hiddenDate = document.getElementById('collected_date');
+            if (!dateInput || !timeInput || !hiddenDate) return;
+
+            const datePart = dateInput.value;
+            let timePart = timeInput.value;
             
-            if (datePart && timePart) {
+            if (datePart) {
+                if (timePart) {
+                    const parts = timePart.split(':');
+                    if (parts.length === 2) {
+                        timePart = `${timePart}:00`;
+                    }
+                } else {
+                    const now = new Date();
+                    timePart = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                }
                 const combinedValue = `${datePart}T${timePart}`;
-                document.getElementById('collected_date').value = combinedValue;
+                hiddenDate.value = combinedValue;
                 
                 // Only re-fetch tenant details if the date actually changed manually
                 if (isDateChange) {
@@ -1218,16 +1267,24 @@ if (isset($conn) && $conn) {
         
         // Function to update time with seconds in real-time
         function updateTimeWithSeconds() {
+            if (window.isManualTimeSet) return; // Do not overwrite user manually selected time
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             
-            const timeValue = `${hours}:${minutes}:${seconds}`;
-            document.getElementById('collected_time_part').value = timeValue;
+            const timeInput = document.getElementById('collected_time_part');
+            if (timeInput) {
+                // If native mobile time input (HH:mm)
+                if (timeInput.type === 'time') {
+                    timeInput.value = `${hours}:${minutes}`;
+                } else {
+                    timeInput.value = `${hours}:${minutes}:${seconds}`;
+                }
+            }
             
             // Update the combined field
-            updateDateTime();
+            updateDateTime(false);
         }
         
         // Set interval to update time every second
@@ -1401,6 +1458,10 @@ if (isset($conn) && $conn) {
         // Function to gather all values and show comprehensive detailed modal
         function showConfirmationModal(event) {
             event.preventDefault(); // Prevent the form from submitting immediately
+            updateDateTime(); // Ensure date and time are fully synchronized
+
+            // Collection Date
+            const collectionDateVal = document.getElementById('collected_date_part') ? document.getElementById('collected_date_part').value : '';
 
             // Tenant & General Info
             const tenantName = document.getElementById('tenantname').value.trim() || 'N/A';
@@ -1513,6 +1574,9 @@ if (isset($conn) && $conn) {
                         <div class="text-[10px] text-gray-500 font-medium">
                             <span class="font-bold text-blue-700">Space:</span> ${spaceCode} &bull; <span class="font-bold text-blue-700">Code:</span> ${tenantCode}
                         </div>
+                        <div class="text-[10px] text-blue-800 font-bold mt-1 flex items-center gap-1">
+                            <i class="far fa-calendar-alt text-blue-600"></i> Collection Date: <span class="font-black text-blue-950">${collectionDateVal}</span>
+                        </div>
                     </div>
                     <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${paymentMethod === 'Cheque' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
                         ${paymentMethod}${paymentMethod === 'Cheque' && chequeNum ? ` #${chequeNum}` : ''}
@@ -1579,6 +1643,9 @@ if (isset($conn) && $conn) {
                 this.disabled = true;
                 this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
                 
+                // Final synchronization before submit
+                updateDateTime();
+
                 // Submit the form programmatically
                 document.getElementById('collectionForm').submit();
             });
@@ -2127,27 +2194,110 @@ if (isset($conn) && $conn) {
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            flatpickr("#collected_date_part", {
-                dateFormat: "Y-m-d",
-                altInput: true,
-                altFormat: "m/d/Y",
-                disableMobile: true,
-                onChange: function(selectedDates, dateStr, instance) {
-                    updateDateTime();
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                || (window.matchMedia && window.matchMedia("(max-width: 768px)").matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+
+            const dateInput = document.getElementById('collected_date_part');
+            const timeInput = document.getElementById('collected_time_part');
+
+            if (isMobileDevice) {
+                // Mobile Browsers: Use native HTML5 date & time pickers
+                // Native pickers are touch-optimized, fully accessible, immune to click delegation bugs, and support OS date wheels/sheets
+                if (dateInput) {
+                    dateInput.type = 'date';
+                    dateInput.removeAttribute('readonly');
+                    dateInput.addEventListener('change', function() { updateDateTime(true); });
+                    dateInput.addEventListener('input', function() { updateDateTime(true); });
+
+                    // Allow tapping anywhere on the container or calendar icon to trigger native picker
+                    const wrapper = dateInput.closest('.date-input-wrapper');
+                    if (wrapper) {
+                        wrapper.addEventListener('click', function(e) {
+                            if (dateInput.showPicker) {
+                                try { dateInput.showPicker(); } catch (err) { dateInput.focus(); }
+                            } else {
+                                dateInput.focus();
+                            }
+                        });
+                    }
                 }
-            });
-            flatpickr("#collected_time_part", {
-                enableTime: true,
-                noCalendar: true,
-                dateFormat: "H:i:S",
-                altInput: true,
-                altFormat: "h:i:S K",
-                disableMobile: true,
-                enableSeconds: true,
-                onChange: function(selectedDates, dateStr, instance) {
-                    updateDateTime();
+
+                if (timeInput) {
+                    timeInput.type = 'time';
+                    timeInput.removeAttribute('readonly');
+                    // Format initial value as HH:mm for native time input
+                    if (timeInput.value && timeInput.value.length > 5) {
+                        timeInput.value = timeInput.value.substring(0, 5);
+                    }
+                    timeInput.addEventListener('change', function() {
+                        window.isManualTimeSet = true;
+                        updateDateTime(false);
+                    });
+                    timeInput.addEventListener('input', function() {
+                        window.isManualTimeSet = true;
+                        updateDateTime(false);
+                    });
+
+                    const wrapper = timeInput.closest('.date-input-wrapper');
+                    if (wrapper) {
+                        wrapper.addEventListener('click', function(e) {
+                            if (timeInput.showPicker) {
+                                try { timeInput.showPicker(); } catch (err) { timeInput.focus(); }
+                            } else {
+                                timeInput.focus();
+                            }
+                        });
+                    }
                 }
-            });
+            } else {
+                // Desktop: Use Flatpickr with full mouse support and styled material calendar
+                if (dateInput && typeof flatpickr !== 'undefined') {
+                    dateInput.readOnly = true;
+                    const fpDate = flatpickr(dateInput, {
+                        dateFormat: "Y-m-d",
+                        altInput: true,
+                        altFormat: "m/d/Y",
+                        allowInput: false,
+                        onChange: function(selectedDates, dateStr, instance) {
+                            updateDateTime(true);
+                        }
+                    });
+
+                    const wrapper = dateInput.closest('.date-input-wrapper');
+                    if (wrapper) {
+                        wrapper.addEventListener('click', function(e) {
+                            if (fpDate && !fpDate.isOpen) fpDate.open();
+                        });
+                    }
+                }
+
+                if (timeInput && typeof flatpickr !== 'undefined') {
+                    timeInput.readOnly = true;
+                    const fpTime = flatpickr(timeInput, {
+                        enableTime: true,
+                        noCalendar: true,
+                        dateFormat: "H:i:S",
+                        altInput: true,
+                        altFormat: "h:i:S K",
+                        enableSeconds: true,
+                        allowInput: false,
+                        onChange: function(selectedDates, dateStr, instance) {
+                            window.isManualTimeSet = true;
+                            updateDateTime(false);
+                        }
+                    });
+
+                    const wrapper = timeInput.closest('.date-input-wrapper');
+                    if (wrapper) {
+                        wrapper.addEventListener('click', function(e) {
+                            if (fpTime && !fpTime.isOpen) fpTime.open();
+                        });
+                    }
+                }
+            }
+
+            // Initial datetime synchronization
+            updateDateTime(false);
         });
     </script>
 </body>
