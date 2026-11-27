@@ -614,12 +614,15 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             color: #fff;
             font-size: 14px;
             font-weight: 700;
-            padding: 8px 32px 8px 11px;
+            padding: 8px 11px;
             font-family: inherit;
             outline: none;
             width: 100%;
             min-height: 40px;
             transition: background 0.15s, border-color 0.15s;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: none !important;
         }
         .date-bar input:focus {
             background: rgba(255, 255, 255, 0.22);
@@ -631,12 +634,15 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             cursor: pointer;
         }
         .date-bar input[type="date"]::-webkit-calendar-picker-indicator,
-        .date-bar input[type="time"]::-webkit-calendar-picker-indicator {
-            position: absolute;
-            right: 0; top: 0;
-            width: 100%; height: 100%;
-            margin: 0; padding: 0;
-            opacity: 0; cursor: pointer;
+        .date-bar input[type="time"]::-webkit-calendar-picker-indicator,
+        .date-bar input::-webkit-inner-spin-button,
+        .date-bar input::-webkit-clear-button {
+            display: none !important;
+            -webkit-appearance: none !important;
+            opacity: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
+            pointer-events: none !important;
         }
         .date-bar-meta {
             grid-column: 1 / -1;
@@ -659,28 +665,49 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             }
         }
 
-        /* ── FORM FIELDS & INPUTS ── */
+        /* ── FORM FIELDS & NOTCHED ATTACHED LABELS ── */
         .pos-field {
             position: relative;
-            margin-top: 4px;
+            margin-top: 9px;
         }
-        .field-top-row {
+        .pos-field-static {
+            position: relative;
+            margin-top: 6px;
+        }
+        .pos-field .field-top-row {
+            position: absolute;
+            top: 0;
+            left: 8px;
+            right: 8px;
+            transform: translateY(-50%);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 6px;
-            margin-bottom: 5px;
+            gap: 4px;
+            z-index: 4;
+            pointer-events: none;
+            margin-bottom: 0;
         }
         .field-label {
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 10px;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
             color: var(--text-muted);
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             margin: 0;
+        }
+        .pos-field .field-label {
+            background: var(--surface, #ffffff);
+            padding: 0 5px;
+            border-radius: 4px;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
         .input-shell {
             position: relative;
@@ -689,16 +716,16 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
         }
         .input-prefix-icon {
             position: absolute;
-            left: 12px;
-            font-size: 13px;
+            left: 11px;
+            font-size: 12.5px;
             color: #94a3b8;
             pointer-events: none;
             z-index: 2;
         }
         .input-currency-prefix {
             position: absolute;
-            left: 12px;
-            font-size: 13.5px;
+            left: 11px;
+            font-size: 13px;
             font-weight: 800;
             color: #64748b;
             pointer-events: none;
@@ -709,7 +736,7 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             height: 46px;
             border: 1.5px solid var(--border);
             border-radius: 11px;
-            padding: 10px 13px;
+            padding: 12px 12px 9px;
             font-size: 15px;
             font-weight: 600;
             font-family: inherit;
@@ -721,14 +748,14 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             font-variant-numeric: tabular-nums;
         }
         .pos-input.has-icon {
-            padding-left: 35px;
+            padding-left: 33px;
         }
         .pos-input.has-currency {
-            padding-left: 28px;
+            padding-left: 26px;
         }
         .pos-input:focus {
             border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.14);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
             background: #ffffff;
         }
         .pos-input[readonly]:not(.is-select-trigger) {
@@ -750,7 +777,7 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
         /* Ledger Mini Tiles inside Tenant Panel */
         .ledger-group {
             border-radius: 13px;
-            padding: 11px;
+            padding: 10px 10px 10px;
             border: 1px solid var(--border);
             background: #f8fafc;
         }
@@ -763,11 +790,11 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             border-color: #bae6fd;
         }
         .ledger-group-title {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -775,35 +802,114 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
         }
         .ledger-group-amber .ledger-group-title { color: #92400e; }
         .ledger-group-sky .ledger-group-title { color: #075985; }
+        .ledger-field {
+            position: relative;
+            margin-top: 4px;
+        }
+        .ledger-label {
+            position: absolute;
+            top: 0;
+            left: 7px;
+            transform: translateY(-50%);
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            background: #f8fafc;
+            padding: 0 4px;
+            border-radius: 3px;
+            line-height: 1.2;
+            white-space: nowrap;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .ledger-group-amber .ledger-label { background: #fffbeb; }
+        .ledger-group-sky .ledger-label { background: #f0f9ff; }
+        .ledger-label-amber-total { background: #fef3c7 !important; color: #92400e !important; }
+        .ledger-label-sky-total { background: #e0f2fe !important; color: #075985 !important; }
         .ledger-group .pos-input {
             height: 40px;
-            font-size: 14px;
-            padding: 8px 10px;
+            font-size: 13.5px;
+            padding: 10px 8px 6px;
             border-radius: 9px;
+            background: #ffffff;
+        }
+        .ledger-group .pos-input[readonly] {
+            background: rgba(255, 255, 255, 0.72);
         }
 
-        /* Quick Fill Chips */
-        .quick-fill-chip {
+        /* Quick Fill Chips (Inside right edge of input when empty) */
+        .input-shell .quick-fill-chip {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 3;
             display: inline-flex;
             align-items: center;
-            gap: 3px;
-            padding: 2px 8px;
-            border-radius: 999px;
+            gap: 2px;
+            padding: 3px 7px;
+            border-radius: 7px;
             font-size: 10.5px;
-            font-weight: 700;
+            font-weight: 800;
             background: #eff6ff;
             color: #1d4ed8;
             border: 1px solid #bfdbfe;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: background 0.15s ease, transform 0.12s ease;
             white-space: nowrap;
+            line-height: 1.25;
+            font-variant-numeric: tabular-nums;
         }
-        .quick-fill-chip:hover {
+        .input-shell .quick-fill-chip:hover {
             background: #dbeafe;
-            transform: translateY(-1px);
         }
-        .quick-fill-chip:active { transform: scale(0.95); }
-        .quick-fill-chip.hidden { display: none; }
+        .input-shell .quick-fill-chip:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        .input-shell .quick-fill-chip.hidden {
+            display: none !important;
+        }
+        .btn-clear-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-clear-chip:hover {
+            background: #f1f5f9;
+            color: #e11d48;
+        }
+
+        /* Sunmi V2s & Small POS Screen Tuning (<= 480px) */
+        @media (max-width: 480px) {
+            body { padding-top: calc(var(--nav-h) + 8px); }
+            .pos-page-wrap { padding: 0 8px; }
+            .pos-workspace-grid { gap: 10px; }
+            .pos-main-col { gap: 10px; }
+            .date-bar { padding: 10px 11px; gap: 8px; border-radius: 15px; }
+            .date-bar input { min-height: 36px; font-size: 13px; padding: 6px 9px; }
+            .pos-panel { padding: 12px 10px; border-radius: 15px; }
+            .pos-panel-header { margin-bottom: 10px; padding-bottom: 8px; }
+            .pos-input { height: 42px; font-size: 14px; padding: 10px 10px 7px; border-radius: 10px; }
+            .pos-input.has-icon { padding-left: 30px; }
+            .pos-input.has-currency { padding-left: 24px; }
+            .pos-field .field-label { font-size: 9.5px; padding: 0 4px; }
+            .input-shell .quick-fill-chip { font-size: 9.5px; padding: 2px 5px; right: 5px; }
+            .ledger-group { padding: 9px 8px 8px; border-radius: 12px; }
+            .ledger-group-title { margin-bottom: 9px; font-size: 10px; }
+            .ledger-group .pos-input { height: 37px; font-size: 12.5px; padding: 9px 7px 5px; }
+            .ledger-label { font-size: 8.5px; left: 6px; }
+        }
 
         .btn-fill-all {
             display: inline-flex;
@@ -1343,18 +1449,18 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                             <label for="collected_date_part">Collection Date</label>
                             <div class="date-input-wrapper">
                                 <input type="text" id="collected_date_part" name="collected_date_part"
+                                    autocomplete="off"
                                     value="<?php echo date('Y-m-d'); ?>"
                                     onchange="updateDateTime(true)" oninput="updateDateTime(true)">
-                                <i class="far fa-calendar" style="position:absolute; right:11px; color:#fff; pointer-events:none; font-size:13px;"></i>
                             </div>
                         </div>
                         <div>
                             <label for="collected_time_part">Time</label>
                             <div class="date-input-wrapper">
                                 <input type="text" id="collected_time_part" name="collected_time_part"
+                                    autocomplete="off"
                                     value="<?php echo date('H:i:s'); ?>" step="1"
                                     onchange="window.isManualTimeSet = true; updateDateTime(false);" oninput="window.isManualTimeSet = true; updateDateTime(false);">
-                                <i class="far fa-clock" style="position:absolute; right:11px; color:#fff; pointer-events:none; font-size:13px;"></i>
                             </div>
                         </div>
                         <div class="date-bar-meta">
@@ -1371,12 +1477,12 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                                 <span class="pos-panel-icon icon-indigo"><i class="fas fa-user-tag"></i></span>
                                 <span>Tenant Lookup &amp; Account Ledger</span>
                             </div>
-                            <button type="button" onclick="resetFullPosForm()" class="quick-fill-chip" style="background:#f8fafc;color:#64748b;border-color:#e2e8f0;">
+                            <button type="button" onclick="resetFullPosForm()" class="btn-clear-chip">
                                 <i class="fas fa-eraser"></i> Clear
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2">
                             <div class="pos-field col-span-1">
                                 <div class="field-top-row">
                                     <label class="field-label" for="spacecode-input">Space Code *</label>
@@ -1417,42 +1523,42 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                         </div>
 
                         <!-- Balances Grid -->
-                        <div class="ledger-group mb-3">
+                        <div class="ledger-group mb-2.5">
                             <div class="ledger-group-title">
                                 <i class="fas fa-coins" style="color:#4f46e5;"></i> Rent Balances
                             </div>
                             <div class="grid grid-cols-3 gap-2">
-                                <div>
-                                    <label class="field-label mb-1" for="rent" style="font-size:10px;">Daily Rent</label>
+                                <div class="ledger-field">
+                                    <label class="ledger-label" for="rent">Daily Rent</label>
                                     <input class="pos-input" id="rent" type="text" name="rent" placeholder="0.00" oninput="calculateNewBalance()">
                                 </div>
-                                <div>
-                                    <label class="field-label mb-1" for="rentbal" style="font-size:10px;">Rent Bal</label>
+                                <div class="ledger-field">
+                                    <label class="ledger-label" for="rentbal">Rent Bal</label>
                                     <input class="pos-input" id="rentbal" type="text" name="rentbal" placeholder="0.00" oninput="calculateNewBalance()">
                                 </div>
-                                <div>
-                                    <label class="field-label mb-1" for="runningbal" style="font-size:10px;">Arrear Bal</label>
+                                <div class="ledger-field">
+                                    <label class="ledger-label" for="runningbal">Arrear Bal</label>
                                     <input class="pos-input" id="runningbal" type="text" name="runningbal" placeholder="0.00" oninput="calculateNewBalance()">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                             <div class="ledger-group ledger-group-amber">
                                 <div class="ledger-group-title">
                                     <i class="fas fa-bolt" style="color:#d97706;"></i> Electricity Balances
                                 </div>
                                 <div class="grid grid-cols-3 gap-2">
-                                    <div>
-                                        <label class="field-label mb-1" for="elecarrear" style="font-size:10px;">Arrears</label>
+                                    <div class="ledger-field">
+                                        <label class="ledger-label" for="elecarrear">Arrears</label>
                                         <input class="pos-input" id="elecarrear" type="text" name="elecarrear" placeholder="0.00" readonly oninput="calculateNewBalance()">
                                     </div>
-                                    <div>
-                                        <label class="field-label mb-1" for="elecbal" style="font-size:10px;">Current</label>
+                                    <div class="ledger-field">
+                                        <label class="ledger-label" for="elecbal">Current</label>
                                         <input class="pos-input" id="elecbal" type="text" name="elecbal" placeholder="0.00" readonly oninput="calculateNewBalance()">
                                     </div>
-                                    <div>
-                                        <label class="field-label mb-1" for="electotal" style="font-size:10px;color:#92400e;">Total</label>
+                                    <div class="ledger-field">
+                                        <label class="ledger-label ledger-label-amber-total" for="electotal">Total</label>
                                         <input class="pos-input font-bold" id="electotal" type="text" name="electotal" placeholder="0.00" readonly style="background:#fef3c7 !important;color:#78350f;border-color:#fcd34d !important;">
                                     </div>
                                 </div>
@@ -1463,16 +1569,16 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                                     <i class="fas fa-tint" style="color:#0284c7;"></i> Water Balances
                                 </div>
                                 <div class="grid grid-cols-3 gap-2">
-                                    <div>
-                                        <label class="field-label mb-1" for="waterarrear" style="font-size:10px;">Arrears</label>
+                                    <div class="ledger-field">
+                                        <label class="ledger-label" for="waterarrear">Arrears</label>
                                         <input class="pos-input" id="waterarrear" type="text" name="waterarrear" placeholder="0.00" readonly oninput="calculateNewBalance()">
                                     </div>
-                                    <div>
-                                        <label class="field-label mb-1" for="waterbal" style="font-size:10px;">Current</label>
+                                    <div class="ledger-field">
+                                        <label class="ledger-label" for="waterbal">Current</label>
                                         <input class="pos-input" id="waterbal" type="text" name="waterbal" placeholder="0.00" readonly oninput="calculateNewBalance()">
                                     </div>
-                                    <div>
-                                        <label class="field-label mb-1" for="watertotal" style="font-size:10px;color:#075985;">Total</label>
+                                    <div class="ledger-field">
+                                        <label class="ledger-label ledger-label-sky-total" for="watertotal">Total</label>
                                         <input class="pos-input font-bold" id="watertotal" type="text" name="watertotal" placeholder="0.00" readonly style="background:#e0f2fe !important;color:#0c4a6e;border-color:#7dd3fc !important;">
                                     </div>
                                 </div>
@@ -1492,91 +1598,89 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="grid grid-cols-2 gap-2.5 sm:gap-3 mb-3">
                             <div class="pos-field">
                                 <div class="field-top-row">
                                     <label class="field-label" for="paidrent" style="color:#047857;">Rent</label>
-                                    <button type="button" id="qf-paidrent" class="quick-fill-chip hidden"></button>
                                 </div>
                                 <div class="input-shell">
                                     <span class="input-currency-prefix">&#x20B1;</span>
                                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                                         class="pos-input has-currency font-bold" style="color:#047857;"
                                         id="paidrent" type="text" name="paidrent" placeholder="0.00" inputmode="decimal">
+                                    <button type="button" id="qf-paidrent" class="quick-fill-chip hidden"></button>
                                 </div>
                             </div>
 
                             <div class="pos-field">
                                 <div class="field-top-row">
                                     <label class="field-label" for="paidbal" style="color:#6d28d9;">Rent Arrear</label>
-                                    <button type="button" id="qf-paidbal" class="quick-fill-chip hidden"></button>
                                 </div>
                                 <div class="input-shell">
                                     <span class="input-currency-prefix">&#x20B1;</span>
                                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                                         class="pos-input has-currency font-bold" style="color:#6d28d9;"
                                         id="paidbal" type="text" name="paidbal" placeholder="0.00" inputmode="decimal">
+                                    <button type="button" id="qf-paidbal" class="quick-fill-chip hidden"></button>
                                 </div>
                             </div>
 
                             <div class="pos-field">
                                 <div class="field-top-row">
                                     <label class="field-label" for="paidelec" style="color:#b45309;">Electricity</label>
-                                    <button type="button" id="qf-paidelec" class="quick-fill-chip hidden"></button>
                                 </div>
                                 <div class="input-shell">
                                     <span class="input-currency-prefix">&#x20B1;</span>
                                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                                         class="pos-input has-currency font-bold" style="color:#b45309;"
                                         id="paidelec" type="text" name="paidelec" placeholder="0.00" inputmode="decimal">
+                                    <button type="button" id="qf-paidelec" class="quick-fill-chip hidden"></button>
                                 </div>
                             </div>
 
                             <div class="pos-field">
                                 <div class="field-top-row">
                                     <label class="field-label" for="paidelecarrear" style="color:#92400e;">Elec Arrear</label>
-                                    <button type="button" id="qf-paidelecarrear" class="quick-fill-chip hidden"></button>
                                 </div>
                                 <div class="input-shell">
                                     <span class="input-currency-prefix">&#x20B1;</span>
                                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                                         class="pos-input has-currency font-bold" style="color:#92400e;"
                                         id="paidelecarrear" type="text" name="paidelecarrear" placeholder="0.00" inputmode="decimal">
+                                    <button type="button" id="qf-paidelecarrear" class="quick-fill-chip hidden"></button>
                                 </div>
                             </div>
 
                             <div class="pos-field">
                                 <div class="field-top-row">
                                     <label class="field-label" for="paidwater" style="color:#0369a1;">Water</label>
-                                    <button type="button" id="qf-paidwater" class="quick-fill-chip hidden"></button>
                                 </div>
                                 <div class="input-shell">
                                     <span class="input-currency-prefix">&#x20B1;</span>
                                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                                         class="pos-input has-currency font-bold" style="color:#0369a1;"
                                         id="paidwater" type="text" name="paidwater" placeholder="0.00" inputmode="decimal">
+                                    <button type="button" id="qf-paidwater" class="quick-fill-chip hidden"></button>
                                 </div>
                             </div>
 
                             <div class="pos-field">
                                 <div class="field-top-row">
                                     <label class="field-label" for="paidwaterarrear" style="color:#075985;">Water Arrear</label>
-                                    <button type="button" id="qf-paidwaterarrear" class="quick-fill-chip hidden"></button>
                                 </div>
                                 <div class="input-shell">
                                     <span class="input-currency-prefix">&#x20B1;</span>
                                     <input oninput="formatNumberAndCalculateNewBalance(this)"
                                         class="pos-input has-currency font-bold" style="color:#075985;"
                                         id="paidwaterarrear" type="text" name="paidwaterarrear" placeholder="0.00" inputmode="decimal">
+                                    <button type="button" id="qf-paidwaterarrear" class="quick-fill-chip hidden"></button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Payment Method Segmented Switch -->
-                        <div class="pos-field pt-1">
-                            <div class="field-top-row">
-                                <label class="field-label" for="payment_method">Payment Method</label>
-                            </div>
+                        <div class="pos-field-static pt-1">
+                            <label class="field-label mb-1.5 block" for="payment_method">Payment Method</label>
                             <div class="method-segment" role="group" aria-label="Payment Method">
                                 <button type="button" class="method-btn active" id="methodBtnCash" onclick="setPaymentMethod('Cash')">
                                     <i class="fas fa-money-bill-wave" style="color:#059669;"></i> Cash
@@ -1619,7 +1723,7 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="grid grid-cols-2 gap-2.5 sm:gap-3 mb-2.5">
                             <div class="pos-field">
                                 <div class="field-top-row">
                                     <label class="field-label" for="chargecusa">CUSA</label>
@@ -1640,8 +1744,8 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                             </div>
                         </div>
 
-                        <div class="flex flex-col gap-3">
-                            <div class="grid grid-cols-2 gap-3 items-end">
+                        <div class="flex flex-col gap-2.5">
+                            <div class="grid grid-cols-2 gap-2.5 sm:gap-3 items-end">
                                 <div class="pos-field">
                                     <div class="field-top-row">
                                         <label class="field-label" for="chargeothers">Other Charge</label>
@@ -2071,7 +2175,15 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             let cleanValue = input.value.replace(/[^\d.-]/g, '');
             let formattedValue = cleanValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             input.value = formattedValue;
+            syncQuickFillChipVisibility(input);
             calculateNewBalance();
+        }
+
+        function syncQuickFillChipVisibility(input) {
+            if (!input || !input.id) return;
+            const btn = document.getElementById('qf-' + input.id);
+            if (!btn || !btn.dataset.hasDue) return;
+            btn.classList.toggle('hidden', String(input.value || '').trim() !== '');
         }
 
         function quickFillField(fieldId, rawAmount) {
@@ -2104,14 +2216,18 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
             let anyDue = false;
             configs.forEach(cfg => {
                 const btn = document.getElementById(cfg.btnId);
+                const input = document.getElementById(cfg.fieldId);
                 if (!btn) return;
-                const targetId = cfg.fieldId;
                 if (cfg.amt > 0) {
                     anyDue = true;
-                    btn.textContent = `${cfg.label} ₱${numberWithCommas(cfg.amt.toFixed(2))}`;
-                    btn.classList.remove('hidden');
-                    btn.onclick = () => quickFillField(targetId, cfg.amt);
+                    btn.dataset.hasDue = '1';
+                    btn.textContent = `+₱${numberWithCommas(cfg.amt.toFixed(2))}`;
+                    btn.title = `Tap to fill ${cfg.label} ₱${numberWithCommas(cfg.amt.toFixed(2))}`;
+                    btn.onclick = () => quickFillField(cfg.fieldId, cfg.amt);
+                    const isEmpty = !input || String(input.value || '').trim() === '';
+                    btn.classList.toggle('hidden', !isEmpty);
                 } else {
+                    delete btn.dataset.hasDue;
                     btn.classList.add('hidden');
                     btn.onclick = null;
                 }
@@ -2141,6 +2257,7 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                 if (el && el.value) {
                     el.value = el.value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
                 }
+                syncQuickFillChipVisibility(el);
             });
             calculateNewBalance();
         }
@@ -2177,7 +2294,7 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
         document.getElementById('addChargeButton').addEventListener('click', function () {
             var container = document.getElementById('additionalChargesContainer');
             var newEntry = document.createElement('div');
-            newEntry.classList.add('grid', 'grid-cols-2', 'gap-3', 'items-end');
+            newEntry.classList.add('grid', 'grid-cols-2', 'gap-2.5', 'sm:gap-3', 'items-end');
             newEntry.innerHTML = `
                 <div class="pos-field custom-select">
                     <div class="field-top-row"><label class="field-label">Other Charge</label></div>
@@ -2203,7 +2320,7 @@ $nextReceiptDisplay = $latestTransactionNumber + 1;
                                 type="text" name="otheramount[]" placeholder="0.00" inputmode="decimal">
                         </div>
                     </div>
-                    <button type="button" class="remove-charge flex items-center justify-center rounded-xl transition" style="height:46px;width:44px;background:#fff1f2;color:#e11d48;border:1px solid #fecdd3;cursor:pointer;" title="Remove charge">
+                    <button type="button" class="remove-charge flex items-center justify-center rounded-xl transition" style="height:42px;width:42px;background:#fff1f2;color:#e11d48;border:1px solid #fecdd3;cursor:pointer;" title="Remove charge">
                         <i class="fas fa-trash-alt text-xs"></i>
                     </button>
                 </div>

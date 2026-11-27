@@ -697,3 +697,14 @@ table.dataTable.no-footer { border-bottom: 1px solid #e2e8f0 !important; }
     border-radius: 20px;
 }
 
+/* Sunmi V2s & Small POS Screen Tuning (<= 480px) */
+@media (max-width: 480px) {
+    .pos-page-wrap { padding: 0 8px; }
+    .pos-panel { padding: 12px 11px; border-radius: 15px; }
+    .pos-kpi-grid { gap: 8px; margin-bottom: 10px; }
+    .pos-kpi-card { padding: 10px 11px; border-radius: 12px; gap: 9px; }
+    .pos-kpi-icon { width: 32px; height: 32px; font-size: 13px; border-radius: 9px; }
+    .pos-kpi-val { font-size: 15px; }
+    .pos-input { height: 42px; font-size: 14px; }
+}
+
