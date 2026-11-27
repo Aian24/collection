@@ -1,126 +1,212 @@
 <?php
 include '../config.php';
+session_start();
 
-// Set timezone
+if (!isset($_SESSION['username'])) {
+    header('HTTP/1.1 401 Unauthorized');
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Unauthorized', 'notifications' => [], 'total' => 0]);
+    exit();
+}
+session_write_close();
+
 date_default_timezone_set('Asia/Manila');
 
-// Get today's date boundaries
 $today = date('Y-m-d');
 $startOfDay = $today . ' 00:00:00';
 $endOfDay = $today . ' 23:59:59';
 
-// Determine which tables to query based on branch filter
-$branch_filter = isset($_GET['branch']) ? $_GET['branch'] : '';
+$branch_filter = isset($_GET['branch']) ? trim($_GET['branch']) : '';
+$limit_param = isset($_GET['limit']) ? $_GET['limit'] : '20';
+$limit = ($limit_param === 'all') ? 250 : max(10, min(100, intval($limit_param)));
 
 $queries = [];
-$count_queries = [];
+$table_branch_map = [
+    'Sanko Market' => 'collected',
+    'Nova Market'  => 'collectednova',
+    'APM'          => 'collectedapm',
+];
 
-if ($branch_filter === 'Sanko Market') {
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-    $count_queries[] = "SELECT transaction_number FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-} elseif ($branch_filter === 'Nova Market') {
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectednova' as source_table FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-    $count_queries[] = "SELECT transaction_number FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-} elseif ($branch_filter === 'APM') {
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedapm' as source_table FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-    $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
+if (isset($table_branch_map[$branch_filter])) {
+    $tbl = $table_branch_map[$branch_filter];
+    $queries[] = "(SELECT transaction_number, tenantname, spacecode, collector, payment_method, paidrent, paidbal, charges, collected_date, branch FROM {$tbl} WHERE collected_date BETWEEN ? AND ?)";
 } else {
-    // All branches
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collected' as source_table FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectednova' as source_table FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-    $queries[] = "(SELECT transaction_number, tenantname, paidrent, paidbal, charges, collected_date, branch, 'collectedapm' as source_table FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay')";
-    
-    $count_queries[] = "SELECT transaction_number FROM collected WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-    $count_queries[] = "SELECT transaction_number FROM collectednova WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-    $count_queries[] = "SELECT transaction_number FROM collectedapm WHERE collected_date BETWEEN '$startOfDay' AND '$endOfDay'";
-}
-
-$query = implode(" UNION ALL ", $queries) . " ORDER BY collected_date DESC LIMIT 10";
-
-
-$result = mysqli_query($conn, $query);
-
-if (!$result) {
-
-}
-
-$notifications = array();
-
-if ($result) {
-
-    
-    while ($row = mysqli_fetch_assoc($result)) {
-        $message = '';
-        $amount = 0;
-        
-        // Build notification message based on what was paid
-        if ($row['paidrent'] > 0) {
-            $message = "paid rent";
-            $amount = $row['paidrent'];
-        }
-        if ($row['paidbal'] > 0) {
-            $message = $message ? $message . " and balance" : "paid balance";
-            $amount += $row['paidbal'];
-        }
-        if (!empty($row['charges'])) {
-            // Extract total charges
-            $charges_array = explode(',', $row['charges']);
-            $charges_total = 0;
-            foreach ($charges_array as $charge) {
-                $parts = explode(':', $charge);
-                if (isset($parts[1])) {
-                    $charges_total += floatval(trim($parts[1]));
-                }
-            }
-            if ($charges_total > 0) {
-                $message = $message ? $message . " and charges" : "paid charges";
-                $amount += $charges_total;
-            }
-        }
-
-        // Format the time to be more readable
-        $time_diff = time() - strtotime($row['collected_date']);
-        if ($time_diff < 60) {
-            $time = "just now";
-        } elseif ($time_diff < 3600) {
-            $mins = floor($time_diff / 60);
-            $time = $mins . " min" . ($mins > 1 ? "s" : "") . " ago";
-        } else {
-            $time = date('h:i A', strtotime($row['collected_date']));
-        }
-
-        $notifications[] = array(
-            'message' => $row['tenantname'] . " " . $message,
-            'amount' => $amount,
-            'time' => $time,
-            'branch' => $row['branch'],
-            'transaction_number' => $row['transaction_number']
-        );
+    $branch_filter = '';
+    foreach ($table_branch_map as $tbl) {
+        $queries[] = "(SELECT transaction_number, tenantname, spacecode, collector, payment_method, paidrent, paidbal, charges, collected_date, branch FROM {$tbl} WHERE collected_date BETWEEN ? AND ?)";
     }
-    mysqli_free_result($result);
 }
 
-// Get total number of transactions today
-$count_query = "SELECT COUNT(*) as total FROM (" . implode(" UNION ALL ", $count_queries) . ") as combined_transactions";
+function parse_charges_total($chargesRaw) {
+    if (empty($chargesRaw)) return 0.0;
+    $sum = 0.0;
+    $decoded = json_decode($chargesRaw, true);
+    if (is_array($decoded)) {
+        foreach ($decoded as $val) {
+            $sum += floatval($val);
+        }
+        return $sum;
+    }
+    foreach (explode(',', $chargesRaw) as $entry) {
+        $parts = explode(':', $entry);
+        if (isset($parts[1])) {
+            $sum += floatval(trim($parts[1]));
+        }
+    }
+    return $sum;
+}
 
-$count_result = mysqli_query($conn, $count_query);
-$total_transactions = 0;
+function format_relative_time($timestamp) {
+    if (!$timestamp) return '';
+    $diff = time() - $timestamp;
+    if ($diff < 60) return 'just now';
+    if ($diff < 3600) {
+        $mins = (int) floor($diff / 60);
+        return $mins . ' min' . ($mins > 1 ? 's' : '') . ' ago';
+    }
+    return date('h:i A', $timestamp);
+}
 
-if ($count_result && $row = mysqli_fetch_assoc($count_result)) {
-    $total_transactions = $row['total'];
+$all_items = [];
+$total_payments = 0;
+$total_collected = 0.0;
+$branch_counts = [
+    'APM'          => 0,
+    'Sanko Market' => 0,
+    'Nova Market'  => 0,
+];
 
-    mysqli_free_result($count_result);
-} else {
-    error_log("Count query error: " . mysqli_error($conn));
+// Fetch today's payment transactions
+$sql = implode(' UNION ALL ', $queries) . ' ORDER BY collected_date DESC';
+$stmt = mysqli_prepare($conn, $sql);
+if ($stmt) {
+    $param_count = count($queries) * 2;
+    $types = str_repeat('s', $param_count);
+    $bind_params = [];
+    for ($i = 0; $i < count($queries); $i++) {
+        $bind_params[] = $startOfDay;
+        $bind_params[] = $endOfDay;
+    }
+    mysqli_stmt_bind_param($stmt, $types, ...$bind_params);
+    if (mysqli_stmt_execute($stmt)) {
+        $res = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($res)) {
+            $paidrent = floatval($row['paidrent'] ?? 0);
+            $paidbal = floatval($row['paidbal'] ?? 0);
+            $charges_total = parse_charges_total($row['charges'] ?? '');
+            $amount = $paidrent + $paidbal + $charges_total;
+
+            $parts = [];
+            if ($paidrent > 0) $parts[] = 'rent';
+            if ($paidbal > 0) $parts[] = 'balance';
+            if ($charges_total > 0) $parts[] = 'charges';
+            $action = empty($parts) ? 'payment recorded' : 'paid ' . implode(' & ', $parts);
+
+            $branch = trim((string)($row['branch'] ?? ''));
+            if ($branch !== '') {
+                $branch_counts[$branch] = ($branch_counts[$branch] ?? 0) + 1;
+            }
+
+            $ts = strtotime($row['collected_date'] ?? '') ?: time();
+            $tx = (string)($row['transaction_number'] ?? '');
+            $tenant = trim((string)($row['tenantname'] ?? 'Tenant'));
+
+            $total_payments++;
+            $total_collected += $amount;
+
+            $all_items[] = [
+                'id'                 => 'pay-' . ($branch ?: 'br') . '-' . ($tx ?: $ts . '-' . $total_payments),
+                'type'               => 'payment',
+                'transaction_number' => $tx,
+                'tenantname'         => $tenant,
+                'spacecode'          => (string)($row['spacecode'] ?? ''),
+                'collector'          => (string)($row['collector'] ?? ''),
+                'payment_method'     => (string)($row['payment_method'] ?? ''),
+                'note'               => '',
+                'paidrent'           => round($paidrent, 2),
+                'paidbal'            => round($paidbal, 2),
+                'charges_total'      => round($charges_total, 2),
+                'amount'             => round($amount, 2),
+                'message'            => $tenant . ' ' . $action,
+                'branch'             => $branch,
+                'time'               => format_relative_time($ts),
+                'time_exact'         => date('h:i A', $ts),
+                'timestamp'          => $ts,
+            ];
+        }
+        mysqli_free_result($res);
+    }
+    mysqli_stmt_close($stmt);
+}
+
+// Fetch today's voided transactions for operational alerts
+$void_count = 0;
+$void_sql = "SELECT transaction_number, branch, spacecode, note, void_date, paidrent, paidbal, charges, collector, tenantname FROM void WHERE void_date BETWEEN ? AND ?";
+if ($branch_filter !== '') {
+    $void_sql .= " AND branch = ?";
+}
+$void_sql .= " ORDER BY void_date DESC LIMIT 50";
+
+$void_stmt = mysqli_prepare($conn, $void_sql);
+if ($void_stmt) {
+    if ($branch_filter !== '') {
+        mysqli_stmt_bind_param($void_stmt, 'sss', $startOfDay, $endOfDay, $branch_filter);
+    } else {
+        mysqli_stmt_bind_param($void_stmt, 'ss', $startOfDay, $endOfDay);
+    }
+    if (mysqli_stmt_execute($void_stmt)) {
+        $vres = mysqli_stmt_get_result($void_stmt);
+        while ($vrow = mysqli_fetch_assoc($vres)) {
+            $vrent = floatval($vrow['paidrent'] ?? 0);
+            $vbal = floatval($vrow['paidbal'] ?? 0);
+            $vcharges = parse_charges_total($vrow['charges'] ?? '');
+            $vamt = $vrent + $vbal + $vcharges;
+            $vts = strtotime($vrow['void_date'] ?? '') ?: time();
+            $vtx = (string)($vrow['transaction_number'] ?? '');
+            $vbranch = trim((string)($vrow['branch'] ?? ''));
+            $vtenant = trim((string)($vrow['tenantname'] ?? 'Transaction'));
+            $vnote = trim((string)($vrow['note'] ?? 'Voided receipt'));
+
+            $void_count++;
+            $all_items[] = [
+                'id'                 => 'void-' . ($vbranch ?: 'br') . '-' . ($vtx ?: $vts . '-' . $void_count),
+                'type'               => 'void',
+                'transaction_number' => $vtx,
+                'tenantname'         => $vtenant,
+                'spacecode'          => (string)($vrow['spacecode'] ?? ''),
+                'collector'          => (string)($vrow['collector'] ?? ''),
+                'payment_method'     => 'Voided',
+                'note'               => $vnote,
+                'paidrent'           => round($vrent, 2),
+                'paidbal'            => round($vbal, 2),
+                'charges_total'      => round($vcharges, 2),
+                'amount'             => round($vamt, 2),
+                'message'            => 'Voided: ' . $vtenant . ($vnote !== '' ? ' (' . $vnote . ')' : ''),
+                'branch'             => $vbranch,
+                'time'               => format_relative_time($vts),
+                'time_exact'         => date('h:i A', $vts),
+                'timestamp'          => $vts,
+            ];
+        }
+        mysqli_free_result($vres);
+    }
+    mysqli_stmt_close($void_stmt);
 }
 
 mysqli_close($conn);
 
-// Return JSON response
+usort($all_items, function ($a, $b) {
+    return $b['timestamp'] <=> $a['timestamp'];
+});
+
+$notifications = array_slice($all_items, 0, $limit);
+
 header('Content-Type: application/json');
-$response = array(
-    'notifications' => $notifications,
-    'total' => $total_transactions,
-    'date' => $today // Include the date in the response for debugging
-);
-echo json_encode($response);
+echo json_encode([
+    'notifications'   => $notifications,
+    'total'           => $total_payments,
+    'void_count'      => $void_count,
+    'total_collected' => round($total_collected, 2),
+    'branch_counts'   => $branch_counts,
+    'date'            => $today,
+]);

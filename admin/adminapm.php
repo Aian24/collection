@@ -1112,40 +1112,7 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
 
                         <div class="topbar-divider d-none d-sm-block"></div>
 
-                        <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-bell fa-fw"></i>
-                                <span class="badge badge-danger badge-counter" id="unreadCounter">0</span>
-                            </a>
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="alertsDropdown">
-                                <h6 class="dropdown-header">
-                                    Alerts Center
-                                </h6>
-                                <div id="alertMessages" class="dropdown-notifications-container" style="max-height: 500px; overflow-y: auto;">
-                                    <a class="dropdown-item d-flex align-items-center" href="#">
-                                        <div class="mr-3">
-                                            <div class="icon-circle bg-primary">
-                                                <i class="fas fa-file-alt text-white"></i>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="small text-gray-500">Loading...</div>
-                                            <span class="font-weight-bold">Loading alerts...</span>
-                                        </div>
-                                    </a>
-                                </div>
-                                <div class="dropdown-item text-center small text-gray-500">
-                                    <div class="custom-control custom-switch mb-2">
-                                        <input type="checkbox" class="custom-control-input" id="autoUpdateToggle" checked>
-                                        <label class="custom-control-label" for="autoUpdateToggle">Auto Update</label>
-                                    </div>
-                                </div>
-                                <a class="dropdown-item text-center small text-gray-500" href="#"
-                                    id="viewAllTransactions">View All Messages Today</a>
-                            </div>
-                        </li>
+                        <?php include 'notification_bell.php'; ?>
 
                         <div class="topbar-divider d-none d-sm-block"></div>
 
@@ -2324,56 +2291,6 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             // Add animation to alerts
             $('.alert').addClass('fade show');
 
-            // Function to update notifications
-            let notificationInterval;
-            
-            function startAutoUpdate() {
-                updateNotifications(); // Initial load
-                notificationInterval = setInterval(updateNotifications, 30000); // Update every 30 seconds
-            }
-
-            function stopAutoUpdate() {
-                if (notificationInterval) {
-                    clearInterval(notificationInterval);
-                    notificationInterval = null;
-                }
-            }
-
-            // Handle auto-update toggle
-            $('#autoUpdateToggle').change(function() {
-                if ($(this).is(':checked')) {
-                    startAutoUpdate();
-                    localStorage.setItem('autoUpdateEnabled', 'true');
-                } else {
-                    stopAutoUpdate();
-                    localStorage.setItem('autoUpdateEnabled', 'false');
-                }
-            });
-
-            // Check saved preference on page load
-            const autoUpdateEnabled = localStorage.getItem('autoUpdateEnabled') !== 'false';
-            $('#autoUpdateToggle').prop('checked', autoUpdateEnabled);
-            if (autoUpdateEnabled) {
-                startAutoUpdate();
-            }
-            
-            // Add manual refresh button
-            $('.dropdown-header').append(
-                $('<button>')
-                    .addClass('btn btn-link btn-sm float-right text-white p-0')
-                    
-                    .attr('title', 'Refresh Notifications')
-                    .css('fontSize', '0.8rem')
-                    .click(function(e) {
-                        e.preventDefault();
-                        $(this).children('i').addClass('fa-spin');
-                        updateNotifications();
-                        setTimeout(() => {
-                            $(this).children('i').removeClass('fa-spin');
-                        }, 1000);
-                    })
-            );
-
             // Dashboard Auto Update Functions
             let dashboardInterval;
             let lastUpdateTime;
@@ -2581,13 +2498,9 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                 document.addEventListener('visibilitychange', function() {
                     if (document.hidden) {
                         stopDashboardAutoUpdate();
-                        stopAutoUpdate();
                     } else {
                         if (localStorage.getItem('dashboardAutoUpdateEnabled') !== 'false') {
                             startDashboardAutoUpdate();
-                        }
-                        if (localStorage.getItem('autoUpdateEnabled') !== 'false') {
-                            startAutoUpdate();
                         }
                     }
                 });
@@ -2598,21 +2511,6 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                 clearInterval(countdownInterval);
             }
             countdownInterval = setInterval(updateCountdown, 1000);
-
-            // Handle manual refresh of notifications
-            $('#refreshNotifications').on('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent dropdown from closing
-                $(this).children('i').addClass('fa-spin');
-                
-                // Force refresh notifications
-                updateNotifications();
-                
-                // Remove spin class after 1 second
-                setTimeout(() => {
-                    $(this).children('i').removeClass('fa-spin');
-                }, 1000);
-            });
 
             // Show loaders when filter form is submitted
             $('#dashboardFilterForm').on('submit', function() {
@@ -2627,100 +2525,6 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
         function formatCurrency(amount) {
             return '₱' + number_format(amount, 2);
         }
-
-        // Update the updateNotifications function to handle the refresh icon
-        function updateNotifications() {
-            // Show loader in notifications area
-            const loadingHtml = `
-                <a class="dropdown-item" href="#">
-                    <div class="mr-3">
-                        <div class="icon-circle bg-primary">
-                            <i class="fas fa-sync fa-spin text-white"></i>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="small text-gray-500">Loading...</div>
-                        <span class="font-weight-bold">Loading notifications...</span>
-                    </div>
-                </a>
-            `;
-            $('#alertMessages').html(loadingHtml);
-            
-            $.ajax({
-                url: 'get_notifications.php',
-                type: 'GET',
-                dataType: 'json',
-                cache: false,
-                data: { 
-                    _: new Date().getTime(), // Add cache-busting parameter
-                    limit: 'all' // Request all notifications
-                },
-                success: function(response) {
-                    // Update notification counter
-                    $('#unreadCounter').text(response.total);
-
-                    // Clear existing notifications
-                    $('#alertMessages').empty();
-
-                    // Add new notifications
-                    if (response.notifications.length > 0) {
-                        // Sort notifications with newest first (if they aren't already)
-                        response.notifications.sort((a, b) => {
-                            return new Date(b.time) - new Date(a.time);
-                        });
-                        
-                        // Show all notifications
-                        response.notifications.forEach(function(notification, index) {
-                            var notificationHtml = `
-                                <a class="dropdown-item notification-item-${index}" href="#">
-                                    <div>
-                                        <div class="icon-circle bg-primary">
-                                            <i class="fas fa-file-alt text-white"></i>
-                                        </div>
-                                        <div class="small text-gray-500">${notification.time} - ${notification.branch}</div>
-                                        <span class="font-weight-bold">${truncateText(notification.message, 30)}</span><br>
-                                        <span class="text-primary">${formatCurrency(notification.amount)}</span>
-                                    </div>
-                                </a>
-                            `;
-                            $('#alertMessages').append(notificationHtml);
-                        });
-
-                        // Update the view all transactions modal content with all notifications
-                        var modalContent = response.notifications.map(function(notification) {
-                            return `
-                                <div class="alert alert-info">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1">${notification.message}</h6>
-                                            <small class="text-muted">Transaction #: ${notification.transaction_number}</small>
-                                        </div>
-                                        <div class="text-right">
-                                            <div class="text-primary font-weight-bold">${formatCurrency(notification.amount)}</div>
-                                            <small class="text-muted">${notification.time} - ${notification.branch}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('');
-                        
-                        $('#allTransactionsContent').html(modalContent);
-                    } else {
-                        $('#alertMessages').html('<a class="dropdown-item text-center" href="#">No new transactions today</a>');
-                        $('#allTransactionsContent').html('<div class="alert alert-info">No transactions recorded today.</div>');
-                    }
-                },
-                error: function() {
-                    console.error('Failed to fetch notifications');
-                }
-            });
-        }
-
-        // Handle click on "View All Messages Today"
-        $('#viewAllTransactions').click(function(e) {
-            e.preventDefault();
-            $('#allTransactionsModal').modal('show');
-        });
 
         // Add this JavaScript function to help with date validation
         function isValidDate(dateString) {
@@ -3389,32 +3193,7 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
         });
     </script>
     <script src="js/modern-ui.js?v=<?= time() ?>"></script>
-
-    <!-- All Transactions Today Modal -->
-    <div class="modal fade" id="allTransactionsModal" tabindex="-1" role="dialog"
-        aria-labelledby="allTransactionsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="allTransactionsModalLabel">
-                        <span class="kpi-icon-wrap kpi-icon-indigo" style="width:30px; height:30px; font-size:0.8rem;"><i class="fas fa-bell"></i></span>
-                        <span>All Transactions Today</span>
-                    </h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div id="allTransactionsContent">
-                        Loading all transactions...
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-compact btn-light text-secondary" data-dismiss="modal" style="border: 1px solid var(--border-color);">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php include 'notification_script.php'; ?>
 
     <!-- Missing Transactions Modal -->
     <div class="modal fade" id="missingTransactionsModal" tabindex="-1" role="dialog"

@@ -1,53 +1,77 @@
-<li class="nav-item dropdown no-arrow mx-1">
-    <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <i class="fas fa-bell fa-fw"></i>
-        <span class="badge badge-danger badge-counter" id="unreadCounter">0</span>
+<?php
+$__notifScript = strtolower(basename($_SERVER['PHP_SELF'] ?? ''));
+$__collectionTarget = 'collection.php';
+if (strpos($__notifScript, 'apm.php') !== false) {
+    $__collectionTarget = 'collectionapm.php';
+} elseif (strpos($__notifScript, 'acc.php') !== false) {
+    $__collectionTarget = 'collectionacc.php';
+}
+?>
+<li class="nav-item dropdown no-arrow mx-1 notif-nav-item">
+    <a class="nav-link dropdown-toggle notif-bell-btn" href="#" id="alertsDropdown" role="button"
+        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Activity &amp; Alerts Center">
+        <i class="fas fa-bell"></i>
+        <span class="notif-badge d-none" id="unreadCounter">0</span>
     </a>
-    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-        aria-labelledby="alertsDropdown">
-        <h6 class="dropdown-header">
-            Alerts Center
-        </h6>
-        <div id="alertMessages" class="dropdown-notifications-container" style="max-height: 500px; overflow-y: auto;">
-            <a class="dropdown-item d-flex align-items-center" href="#">
-                <div class="mr-3">
-                    <div class="icon-circle bg-primary">
-                        <i class="fas fa-file-alt text-white"></i>
+
+    <div class="dropdown-menu dropdown-menu-right shadow notif-dropdown" aria-labelledby="alertsDropdown" id="alertsCenterMenu">
+        <!-- Modern Header -->
+        <div class="notif-header">
+            <div class="notif-header-top">
+                <div class="d-flex align-items-center" style="gap: 8px;">
+                    <span class="notif-header-icon"><i class="fas fa-bell"></i></span>
+                    <div>
+                        <div class="notif-header-title">
+                            Alerts Center
+                            <span class="notif-live-pill" id="notifLivePill"><span class="dot"></span>Live</span>
+                        </div>
+                        <div class="notif-header-sub" id="notifTodaySummary">Loading today's activity...</div>
                     </div>
                 </div>
-                <div>
-                    <div class="small text-gray-500">Loading...</div>
-                    <span class="font-weight-bold">Loading alerts...</span>
+                <div class="notif-header-actions">
+                    <button type="button" class="notif-icon-btn" id="notifSoundToggle" title="Toggle alert sound">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <button type="button" class="notif-icon-btn" id="notifMarkAllRead" title="Mark all as read">
+                        <i class="fas fa-check-double"></i>
+                    </button>
+                    <button type="button" class="notif-icon-btn" id="notifRefreshBtn" title="Refresh alerts">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
                 </div>
+            </div>
+
+            <!-- Filter Tabs & Inline Search -->
+            <div class="notif-controls">
+                <div class="notif-tabs" role="tablist">
+                    <button type="button" class="notif-tab active" data-filter="all">All <span class="notif-tab-count" id="notifTabAllCount">0</span></button>
+                    <button type="button" class="notif-tab" data-filter="unread">Unread <span class="notif-tab-count" id="notifTabUnreadCount">0</span></button>
+                    <button type="button" class="notif-tab" data-filter="payment">Paid</button>
+                    <button type="button" class="notif-tab" data-filter="void">Void <span class="notif-tab-count notif-tab-rose d-none" id="notifTabVoidCount">0</span></button>
+                </div>
+                <div class="notif-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="notifQuickSearch" class="notif-search-input" placeholder="Search tenant, space, trans #..." autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Feed -->
+        <div id="alertMessages" class="notif-feed">
+            <div class="notif-empty">
+                <i class="fas fa-circle-notch fa-spin text-primary mb-2"></i>
+                <div>Loading latest alerts...</div>
+            </div>
+        </div>
+
+        <!-- Clean Utility Footer -->
+        <div class="notif-footer">
+            <button type="button" class="btn btn-compact btn-soft-indigo notif-footer-btn" id="viewAllTransactionsBtn">
+                <i class="fas fa-layer-group"></i> All Activity Today
+            </button>
+            <a href="<?php echo htmlspecialchars($__collectionTarget); ?>" class="btn btn-compact btn-light text-secondary notif-footer-link">
+                Ledger <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </div>
-        <div class="dropdown-item text-center small text-gray-500">
-            <div class="custom-control custom-switch mb-2">
-                <input type="checkbox" class="custom-control-input" id="autoUpdateToggleNotifications" checked>
-                <label class="custom-control-label" for="autoUpdateToggleNotifications">Auto Update Notifications</label>
-            </div>
-        </div>
-        <a class="dropdown-item text-center small text-gray-500" href="#"
-            id="viewAllTransactionsBtn">View All Messages Today</a>
     </div>
 </li>
-
-<div class="modal fade" id="allTransactionsModal" tabindex="-1" role="dialog"
-    aria-labelledby="allTransactionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="allTransactionsModalLabel">All Transactions Today</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="allTransactionsContent">
-                    Loading all transactions...
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
