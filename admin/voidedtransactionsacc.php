@@ -47,111 +47,19 @@ if ($branchResult) {
     
     <!-- SB Admin 2 / Modern Dashboard Styles -->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <link href="css/modern-dashboard.css?v=<?= time() ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
     <style>
-        /* DataTables Custom Overrides */
-        .table-container {
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-card);
-            overflow: hidden;
-            background-color: var(--card-bg);
-            border: 1px solid #e5e7eb;
-            margin-top: 1.5rem;
-        }
-
-        .table thead th {
-            background-color: #1e293b !important;
-            color: #fff !important;
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-            border-bottom: none !important;
-            padding: 12px 30px 12px 15px !important;
-        }
-
-        #tenantTable tbody td {
-            font-size: 0.85rem;
-            vertical-align: middle;
-            color: var(--text-secondary);
-        }
-
-        .table tbody tr:hover {
-            background-color: rgba(99, 102, 241, 0.04);
-        }
-
-        /* Specific Button Colors for Tenants */
-        
-        
-        
-        
-        .dataTables_length select { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 28px 4px 12px !important; 
-            margin: 0 6px !important;
-            outline: none !important;
-            width: auto !important;
-            display: inline-block !important;
-        }
-        .dataTables_filter input { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 12px !important; 
-            margin-left: 8px !important;
-            outline: none !important;
-            display: inline-block !important;
-            width: auto !important;
-        }
-        
-        /* Modern Select overrides */
-        .form-control-modern {
-            border-radius: var(--radius-md);
-            border: 1px solid #e2e8f0;
-            padding: 0.6rem 1rem;
-            font-size: 0.95rem;
-            color: #1e293b;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-        }
-        .form-control-modern:focus {
-            border-color: var(--accent-indigo);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
-            outline: none;
-        }
-
-        .totals-section {
-            background-color: #f8fafc;
-            border-radius: var(--radius-lg);
-            padding: 1.25rem;
-            margin-top: 1.5rem;
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 1rem;
-            border: 1px solid #e2e8f0;
-            box-shadow: var(--shadow-sm);
-        }
-        .total-item {
-            text-align: center;
-        }
-        .total-label {
-            font-weight: 600;
-            color: #64748b;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .total-value {
-            font-size: 1.25rem;
-            color: var(--accent-indigo);
-            font-weight: 700;
-        }
+        /* Datepicker Overrides (Matches Collection Page) */
+        .ui-datepicker { z-index: 10000 !important; font-family: 'Inter', sans-serif; box-shadow: var(--shadow-hover); border-radius: var(--radius-md); border: 1px solid var(--border-color); }
+        .ui-datepicker-header { background: var(--card-bg); border: none; border-bottom: 1px solid var(--border-color); font-weight: 600; }
+        .ui-datepicker-title { color: var(--text-primary); }
 
         /* SweetAlert2 custom styling */
         .swal2-popup { font-size: 0.875rem; }
@@ -281,12 +189,44 @@ if ($branchResult) {
                 <!-- End of Topbar -->
 
                 <div class="container-fluid dashboard-container">
-        <div class="card shadow mb-4" style="border:none;">
-            <div class="card-header py-2 bg-white" style="border-bottom: 1px solid #e5e7eb;">
-                <h1 class="h6 font-weight-bold text-gray-800 mb-0" style="margin-top: 4px; margin-bottom: 4px !important;"><i class="fas fa-undo-alt mr-2"></i> Void Transaction Log</h1>
+        <!-- Single-Line Hero + Inline KPI Pills -->
+        <div class="page-hero anim-fade-up">
+            <div class="page-hero-left">
+                <div class="page-hero-icon" style="background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); box-shadow: 0 4px 14px -2px rgba(244,63,94,0.34);">
+                    <i class="fas fa-ban"></i>
+                </div>
+                <div>
+                    <h1 class="page-hero-title">Voided Transactions</h1>
+                    <p class="page-hero-subtitle">Audit trail of voided receipts &amp; reversal notes.</p>
+                </div>
             </div>
+            <div class="d-flex flex-wrap align-items-center" style="gap: 8px;">
+                <div class="kpi-card" style="padding: 0.42rem 0.78rem; gap: 0.55rem; border-radius: 10px;">
+                    <div class="kpi-icon-wrap kpi-icon-rose" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fas fa-ban"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label" style="font-size: 0.58rem;">Voided</div>
+                        <div class="kpi-value" id="voidKpiCount" style="font-size: 0.96rem;">0</div>
+                    </div>
+                </div>
+                <div class="kpi-card" style="padding: 0.42rem 0.78rem; gap: 0.55rem; border-radius: 10px;">
+                    <div class="kpi-icon-wrap kpi-icon-amber" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fas fa-receipt"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label" style="font-size: 0.58rem;">Paid Rent</div>
+                        <div class="kpi-value" id="voidKpiPaidRent" style="font-size: 0.96rem;">₱0.00</div>
+                    </div>
+                </div>
+                <div class="kpi-card" style="padding: 0.42rem 0.78rem; gap: 0.55rem; border-radius: 10px;">
+                    <div class="kpi-icon-wrap kpi-icon-indigo" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fas fa-balance-scale-left"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label" style="font-size: 0.58rem;">Paid Bal</div>
+                        <div class="kpi-value" id="voidKpiPaidBal" style="font-size: 0.96rem;">₱0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="card-body">
+        <div class="card shadow mb-4 interactive-card anim-fade-up" style="border:none; --delay: 60ms;">
+            <div class="card-body p-3">
                  <?php if (isset($errorMessage) && !empty($errorMessage)): ?>
                      <div class="alert alert-danger alert-dismissible fade show" role="alert" id="errorMessage">
                          <?= htmlspecialchars($errorMessage) ?>
@@ -296,33 +236,51 @@ if ($branchResult) {
                      </div>
                  <?php endif; ?>
 
-                <!-- Filters -->
-                <div class="d-flex flex-wrap align-items-end mb-4" style="gap: 12px; background-color: #f8fafc; padding: 16px; border-radius: var(--radius-lg); border: 1px solid #e2e8f0;">
-                    <div style="min-width: 150px;">
-                        <label for="from" class="form-label text-gray-700 font-weight-bold small mb-1"><i class="fas fa-calendar-alt"></i> From Date:</label>
-                        <input type="date" id="from" class="form-control form-control-modern" />
+                <!-- Single-Line Filters + Quick Date Dropdown -->
+                <div class="filter-bar mb-3">
+                    <div class="filter-pill" onclick="document.getElementById('from').focus();" style="cursor:pointer;">
+                        <i class="fas fa-calendar-alt"></i>
+                        <div class="d-flex flex-column">
+                            <label for="from" class="mb-0 filter-label">From</label>
+                            <input type="text" id="from" class="datepicker border-0 p-0" readonly style="width: 78px;" />
+                        </div>
                     </div>
-                    <div style="min-width: 150px;">
-                        <label for="to" class="form-label text-gray-700 font-weight-bold small mb-1"><i class="fas fa-calendar-alt"></i> To Date:</label>
-                        <input type="date" id="to" class="form-control form-control-modern" />
+                    <div class="filter-pill" onclick="document.getElementById('to').focus();" style="cursor:pointer;">
+                        <i class="fas fa-calendar-alt"></i>
+                        <div class="d-flex flex-column">
+                            <label for="to" class="mb-0 filter-label">To</label>
+                            <input type="text" id="to" class="datepicker border-0 p-0" readonly style="width: 78px;" />
+                        </div>
                     </div>
-                    <div style="min-width: 200px;">
-                        <label for="branch" class="form-label text-gray-700 font-weight-bold small mb-1"><i class="fas fa-building"></i> Branch:</label>
-                        <select id="branch" class="form-control form-control-modern">
-                            <option value="">All Branches</option>
-                            <?php foreach ($branches as $b): ?>
-                                <option value="<?= htmlspecialchars($b) ?>"><?= htmlspecialchars(strtoupper($b)) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                    <div class="filter-pill">
+                        <i class="fas fa-building"></i>
+                        <div class="d-flex flex-column">
+                            <label for="branch" class="mb-0 filter-label">Branch</label>
+                            <select id="branch">
+                                <option value="">All Branches</option>
+                                <?php foreach ($branches as $b): ?>
+                                    <option value="<?= htmlspecialchars($b) ?>"><?= htmlspecialchars(strtoupper($b)) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <button id="applyFilters" class="btn btn-primary shadow-sm" style="border-radius: var(--radius-sm); padding: 7px 16px; font-size: 0.875rem; font-weight: 600; background-color: var(--accent-indigo); border-color: var(--accent-indigo);">
-                            <i class="fas fa-filter mr-2"></i> Apply
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-compact btn-soft-indigo dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-bolt"></i> Quick Date
                         </button>
+                        <div class="dropdown-menu shadow">
+                            <a class="dropdown-item void-preset active" href="#" data-preset="today"><i class="fas fa-clock mr-2 text-primary"></i>Today</a>
+                            <a class="dropdown-item void-preset" href="#" data-preset="last7"><i class="fas fa-calendar-week mr-2 text-primary"></i>Last 7 Days</a>
+                            <a class="dropdown-item void-preset" href="#" data-preset="month"><i class="fas fa-calendar-alt mr-2 text-primary"></i>This Month</a>
+                            <a class="dropdown-item void-preset" href="#" data-preset="lastmonth"><i class="fas fa-history mr-2 text-primary"></i>Last Month</a>
+                        </div>
                     </div>
-                    <div>
-                        <button id="resetFilters" class="btn btn-light shadow-sm text-secondary" style="border-radius: var(--radius-sm); padding: 7px 16px; font-size: 0.875rem; border: 1px solid #e5e7eb; font-weight: 600;">
-                            <i class="fas fa-redo mr-2"></i> Reset
+                    <div class="d-flex ml-auto" style="gap: 6px;">
+                        <button id="applyFilters" class="btn btn-compact btn-modern-gradient">
+                            <i class="fas fa-filter"></i> Apply
+                        </button>
+                        <button id="resetFilters" class="btn btn-compact btn-light text-secondary" style="border: 1px solid var(--border-color);">
+                            <i class="fas fa-redo"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -394,6 +352,11 @@ if ($branchResult) {
 
     <script>
         $(document).ready(function () {
+            // Initialize jQuery UI Datepickers (matches Collection page)
+            $(".datepicker").datepicker({
+                dateFormat: 'yy-mm-dd'
+            });
+
             // Set default dates to today
             const today = new Date().toISOString().split('T')[0];
             $('#from').val(today);
@@ -441,10 +404,19 @@ if ($branchResult) {
                 },
                 "columns": [
                     { "data": null, "defaultContent": "" },
-                    { "data": "transaction_number" },
-                    { "data": "branch", "render": function(data) { return data ? data.toUpperCase() : ''; } },
+                    { "data": "transaction_number", "render": function(data, type) {
+                        if (type === 'display') return '<span class="font-weight-bold text-primary">#' + $('<div>').text(data || '').html() + '</span>';
+                        return data;
+                    }},
+                    { "data": "branch", "render": function(data, type) {
+                        if (type === 'display') return data ? '<span class="badge-soft-indigo">' + $('<div>').text(data.toUpperCase()).html() + '</span>' : '';
+                        return data ? data.toUpperCase() : '';
+                    }},
                     { "data": "spacecode" },
-                    { "data": "note" },
+                    { "data": "note", "render": function(data, type) {
+                        if (type === 'display') return data ? '<span class="badge-soft-rose">' + $('<div>').text(data).html() + '</span>' : '<span class="text-muted">-</span>';
+                        return data;
+                    }},
                     { 
                         "data": "void_date",
                         "render": function(data, type, row) {
@@ -501,6 +473,7 @@ if ($branchResult) {
 
             $('#applyFilters').on('click', function () {
                 table.ajax.reload(null, false);
+                if (typeof ModernUI !== 'undefined') ModernUI.toast('info', 'Filters Applied', 'Refreshing voided transactions...');
             });
 
             $('#resetFilters').on('click', function () {
@@ -508,7 +481,42 @@ if ($branchResult) {
                 $('#from').val(today);
                 $('#to').val(today);
                 $('#branch').val('');
+                $('.void-preset').removeClass('active').filter('[data-preset="today"]').addClass('active');
                 table.ajax.reload(null, false);
+                if (typeof ModernUI !== 'undefined') ModernUI.toast('info', 'Filters Reset', 'Showing today\'s voided transactions.');
+            });
+
+            // Quick Date Presets (dropdown)
+            $('.void-preset').on('click', function (e) {
+                e.preventDefault();
+                if (typeof ModernUI === 'undefined') return;
+                $('.void-preset').removeClass('active');
+                $(this).addClass('active');
+                const range = ModernUI.getDatePresetRange($(this).data('preset'));
+                $('#from').val(range.start);
+                $('#to').val(range.end);
+                table.ajax.reload(null, false);
+            });
+
+            // Update Void KPI Strip on AJAX completion
+            table.on('xhr.dt', function (e, settings, json) {
+                if (!json) return;
+                const count = parseInt(json.recordsFiltered || json.recordsTotal || 0, 10);
+                let paidRentSum = 0;
+                let paidBalSum = 0;
+                if (Array.isArray(json.data)) {
+                    json.data.forEach(function (row) {
+                        paidRentSum += parseFloat(row.paidrent) || 0;
+                        paidBalSum += parseFloat(row.paidbal) || 0;
+                    });
+                }
+                if (typeof ModernUI !== 'undefined') {
+                    ModernUI.animateNumber(document.getElementById('voidKpiCount'), 0, count, 600, '', '', 0);
+                    ModernUI.animateNumber(document.getElementById('voidKpiPaidRent'), 0, paidRentSum, 600, '₱', '', 2);
+                    ModernUI.animateNumber(document.getElementById('voidKpiPaidBal'), 0, paidBalSum, 600, '₱', '', 2);
+                } else {
+                    $('#voidKpiCount').text(count);
+                }
             });
 
             setTimeout(function() {
@@ -580,6 +588,8 @@ if ($branchResult) {
         });
     </script>
 
+<?php include 'includes/admin_modals.php'; ?>
 <?php include 'notification_script.php'; ?>
+<script src="js/modern-ui.js?v=<?= time() ?>"></script>
 </body>
 </html>

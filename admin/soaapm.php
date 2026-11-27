@@ -27,35 +27,89 @@ $selectedBranch = "APM";
     <title>Statement of Account</title>
 
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="css/modern-dashboard.css" rel="stylesheet">
+    <link href="css/modern-dashboard.css?v=<?= time() ?>" rel="stylesheet">
     
     <style>
+        .soa-workspace {
+            display: grid;
+            grid-template-columns: 1.55fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+        @media (max-width: 992px) {
+            .soa-workspace { grid-template-columns: 1fr; }
+        }
+
         .soa-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-card);
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--border-color);
             padding: 2rem;
-            max-width: 800px;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
         }
-        
-        /* Modern Select overrides */
-        .form-control-modern {
+
+        /* Step Progress Bar */
+        .soa-steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.75rem;
+        }
+        @media (max-width: 576px) {
+            .soa-steps { grid-template-columns: repeat(2, 1fr); }
+        }
+        .soa-step {
+            background: var(--card-subtle);
+            border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            border: 1px solid #e2e8f0;
-            padding: 0.6rem 1rem;
-            font-size: 0.95rem;
-            color: #1e293b;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s;
+            padding: 0.7rem 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: var(--transition);
         }
-        .form-control-modern:focus {
+        .soa-step-num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.74rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: var(--transition);
+        }
+        .soa-step-label {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .soa-step.active {
             border-color: var(--accent-indigo);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
-            outline: none;
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .soa-step.active .soa-step-num {
+            background: var(--accent-indigo);
+            color: #fff;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        .soa-step.done {
+            border-color: rgba(16, 185, 129, 0.45);
+            background: rgba(16, 185, 129, 0.07);
+        }
+        .soa-step.done .soa-step-num {
+            background: #10b981;
+            color: #fff;
+        }
+        .soa-step.done .soa-step-label {
+            color: var(--text-primary);
         }
         
         /* Custom Dropdown list for tenants */
@@ -63,28 +117,31 @@ $selectedBranch = "APM";
             position: absolute;
             width: 100%;
             z-index: 1000;
-            background: white;
-            border: 1px solid #e2e8f0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-hover);
             max-height: 250px;
             overflow-y: auto;
             display: none;
-            margin-top: 4px;
+            margin-top: 6px;
+            animation: fadeSlideUp 0.22s var(--ease-spring) both;
         }
         
         #tenantDropdown option {
             padding: 10px 16px;
             cursor: pointer;
-            transition: background-color 0.2s;
-            font-size: 0.9rem;
-            color: #334155;
+            transition: background-color 0.15s ease, padding-left 0.15s ease;
+            font-size: 0.88rem;
+            color: var(--text-primary);
             display: block;
         }
-        #tenantDropdown option:hover {
-            background-color: #f8fafc;
+        #tenantDropdown option:hover,
+        #tenantDropdown option.highlighted {
+            background-color: rgba(99, 102, 241, 0.08);
             color: var(--accent-indigo);
-            font-weight: 500;
+            font-weight: 600;
+            padding-left: 20px;
         }
         #tenantDropdown option[style*="display: none"] { display: none; }
         
@@ -97,12 +154,36 @@ $selectedBranch = "APM";
             left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: #94a3b8;
+            color: var(--accent-indigo);
             pointer-events: none;
+            z-index: 2;
         }
         .input-icon-wrapper .form-control-modern {
-            padding-left: 2.5rem !important;
+            padding-left: 2.55rem !important;
         }
+
+        /* Live Preview Card (Light Modern Glass) */
+        .soa-preview-card {
+            background: linear-gradient(145deg, #ffffff 0%, #f5f7ff 100%);
+            color: var(--text-primary);
+            border-radius: var(--radius-lg);
+            padding: 1.35rem;
+            border: 1px solid #c7d2fe;
+            box-shadow: var(--shadow-card);
+            position: sticky;
+            top: 72px;
+        }
+        .soa-preview-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.55rem 0;
+            border-bottom: 1px dashed var(--border-color);
+            font-size: 0.8rem;
+        }
+        .soa-preview-row:last-of-type { border-bottom: none; }
+        .soa-preview-label { color: var(--text-muted); font-weight: 600; }
+        .soa-preview-val { color: var(--text-primary); font-weight: 700; text-align: right; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 
@@ -219,74 +300,154 @@ $selectedBranch = "APM";
                 <!-- End of Topbar -->
 
                 <div class="container-fluid dashboard-container">
-                    
-                    <div class="soa-card">
-                        <div class="text-center mb-5">
-                            <h2 class="h3 font-weight-bold text-gray-800" style="letter-spacing: -0.5px;">Generate Statement of Account</h2>
-                            <p class="text-muted text-sm mt-2">Select the branch, tenant, space code, and date range to generate the Statement of Account.</p>
+
+                    <!-- Single-Line Page Hero + Quick Period Dropdown -->
+                    <div class="page-hero anim-fade-up">
+                        <div class="page-hero-left">
+                            <div class="page-hero-icon">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <div>
+                                <h1 class="page-hero-title">Statement of Account</h1>
+                                <p class="page-hero-subtitle">Interactive APM SOA builder with live tenant search.</p>
+                            </div>
                         </div>
-                        
-                        <form method="POST" action="soaprint.php">
-                            <div class="row">
-                                <!-- Left Column -->
-                                <div class="col-md-6 mb-4">
-                                    <div class="form-group mb-4">
-                                        <label for="branchFilter" class="font-weight-bold text-gray-700 small text-uppercase">Select Branch</label>
-                                        <div class="input-icon-wrapper">
-                                            <i class="fas fa-store icon"></i>
-                                            <select class="form-control form-control-modern w-100" disabled style="background-color: #e2e8f0; cursor: not-allowed;">
-                                                <option value="APM" selected>APM</option>
-                                            </select>
-                                            <input type="hidden" id="branchFilter" name="branchFilter" value="APM">
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-compact btn-soft-indigo dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-calendar-alt"></i> Quick Period
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right shadow">
+                                <a class="dropdown-item soa-preset" href="#" data-preset="month"><i class="fas fa-calendar-alt mr-2 text-primary"></i>This Month</a>
+                                <a class="dropdown-item soa-preset" href="#" data-preset="lastmonth"><i class="fas fa-history mr-2 text-primary"></i>Last Month</a>
+                                <a class="dropdown-item soa-preset" href="#" data-preset="last30"><i class="fas fa-clock mr-2 text-primary"></i>Last 30 Days</a>
+                                <a class="dropdown-item soa-preset" href="#" data-preset="ytd"><i class="fas fa-chart-line mr-2 text-primary"></i>Year to Date</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="soa-workspace">
+                        <div class="soa-card interactive-card anim-fade-up" style="--delay: 60ms;">
+                            <!-- Step Progress Bar -->
+                            <div class="soa-steps">
+                                <div class="soa-step done" id="stepBranch">
+                                    <span class="soa-step-num">1</span>
+                                    <span class="soa-step-label">Branch</span>
+                                </div>
+                                <div class="soa-step active" id="stepTenant">
+                                    <span class="soa-step-num">2</span>
+                                    <span class="soa-step-label">Tenant</span>
+                                </div>
+                                <div class="soa-step" id="stepSpace">
+                                    <span class="soa-step-num">3</span>
+                                    <span class="soa-step-label">Space</span>
+                                </div>
+                                <div class="soa-step" id="stepPeriod">
+                                    <span class="soa-step-num">4</span>
+                                    <span class="soa-step-label">Period</span>
+                                </div>
+                            </div>
+
+                            <form method="POST" action="soaprint.php" id="soaForm">
+                                <div class="row">
+                                    <!-- Left Column -->
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-group mb-4">
+                                            <label for="branchFilter" class="font-weight-bold text-gray-700 small text-uppercase">Select Branch</label>
+                                            <div class="input-icon-wrapper">
+                                                <i class="fas fa-store icon"></i>
+                                                <select class="form-control form-control-modern w-100" disabled style="background-color: #f1f5f9; cursor: not-allowed; opacity: 0.85;">
+                                                    <option value="APM" selected>APM</option>
+                                                </select>
+                                                <input type="hidden" id="branchFilter" name="branchFilter" value="APM">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group mb-4 position-relative">
+                                            <label for="tenantFilter" class="font-weight-bold text-gray-700 small text-uppercase">Select Tenant</label>
+                                            <div class="input-icon-wrapper">
+                                                <i class="fas fa-user icon"></i>
+                                                <input type="text" id="tenantFilter" name="tenantFilter" placeholder="Type to search tenants..." class="form-control form-control-modern w-100" value="<?php echo isset($_POST['tenantFilter']) ? htmlspecialchars($_POST['tenantFilter']) : ''; ?>" autocomplete="off">
+                                            </div>
+                                            <div id="tenantDropdown"></div>
+                                        </div>
+
+                                        <div class="form-group mb-4">
+                                            <label for="spacecodeFilter" class="font-weight-bold text-gray-700 small text-uppercase">Select Space Code</label>
+                                            <div class="input-icon-wrapper">
+                                                <i class="fas fa-key icon"></i>
+                                                <select id="spacecodeFilter" name="spacecodeFilter" class="form-control form-control-modern w-100">
+                                                    <option value="">Select Space Code</option>
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <div class="form-group mb-4 position-relative">
-                                        <label for="tenantFilter" class="font-weight-bold text-gray-700 small text-uppercase">Select Tenant</label>
-                                        <div class="input-icon-wrapper">
-                                            <i class="fas fa-user icon"></i>
-                                            <input type="text" id="tenantFilter" name="tenantFilter" placeholder="Type to search tenants..." class="form-control form-control-modern w-100" value="<?php echo isset($_POST['tenantFilter']) ? htmlspecialchars($_POST['tenantFilter']) : ''; ?>" autocomplete="off">
+                                    <!-- Right Column -->
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-group mb-4">
+                                            <label for="fromDateFilter" class="font-weight-bold text-gray-700 small text-uppercase">From Date</label>
+                                            <div class="input-icon-wrapper">
+                                                <i class="fas fa-calendar-alt icon"></i>
+                                                <input type="date" id="fromDateFilter" name="fromDateFilter" class="form-control form-control-modern w-100" value="<?php echo isset($_POST['fromDateFilter']) ? htmlspecialchars($_POST['fromDateFilter']) : ''; ?>">
+                                            </div>
                                         </div>
-                                        <div id="tenantDropdown"></div>
-                                    </div>
+                                        
+                                        <div class="form-group mb-4">
+                                            <label for="toDateFilter" class="font-weight-bold text-gray-700 small text-uppercase">To Date</label>
+                                            <div class="input-icon-wrapper">
+                                                <i class="fas fa-calendar-alt icon"></i>
+                                                <input type="date" id="toDateFilter" name="toDateFilter" class="form-control form-control-modern w-100" value="<?php echo isset($_POST['toDateFilter']) ? htmlspecialchars($_POST['toDateFilter']) : ''; ?>">
+                                            </div>
+                                        </div>
 
-                                    <div class="form-group mb-4">
-                                        <label for="spacecodeFilter" class="font-weight-bold text-gray-700 small text-uppercase">Select Space Code</label>
-                                        <div class="input-icon-wrapper">
-                                            <i class="fas fa-key icon"></i>
-                                            <select id="spacecodeFilter" name="spacecodeFilter" class="form-control form-control-modern w-100">
-                                                <option value="">Select Space Code</option>
-                                            </select>
+                                        <div class="p-3 rounded" style="background: var(--card-subtle); border: 1px dashed var(--border-color);">
+                                            <div class="small font-weight-bold text-primary mb-1"><i class="fas fa-magic mr-1"></i> Quick Tip</div>
+                                            <div class="small text-muted">Search by tenant name to auto-load their assigned APM space codes, then pick a period.</div>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <!-- Right Column -->
-                                <div class="col-md-6 mb-4">
-                                    <div class="form-group mb-4">
-                                        <label for="fromDateFilter" class="font-weight-bold text-gray-700 small text-uppercase">From Date</label>
-                                        <div class="input-icon-wrapper">
-                                            <i class="fas fa-calendar-alt icon"></i>
-                                            <input type="date" id="fromDateFilter" name="fromDateFilter" class="form-control form-control-modern w-100" value="<?php echo isset($_POST['fromDateFilter']) ? htmlspecialchars($_POST['fromDateFilter']) : ''; ?>">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-group mb-4">
-                                        <label for="toDateFilter" class="font-weight-bold text-gray-700 small text-uppercase">To Date</label>
-                                        <div class="input-icon-wrapper">
-                                            <i class="fas fa-calendar-alt icon"></i>
-                                            <input type="date" id="toDateFilter" name="toDateFilter" class="form-control form-control-modern w-100" value="<?php echo isset($_POST['toDateFilter']) ? htmlspecialchars($_POST['toDateFilter']) : ''; ?>">
-                                        </div>
-                                    </div>
+                                <hr class="mt-2 mb-4" style="border-color: var(--border-color);">
+                                
+                                <button type="submit" class="btn btn-modern-gradient btn-block font-weight-bold py-3 d-flex justify-content-center align-items-center" style="font-size: 1rem;">
+                                    <i class="fas fa-file-invoice mr-2"></i> Generate Statement
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Live Interactive Preview Summary -->
+                        <div class="soa-preview-card interactive-card anim-fade-up" style="--delay: 140ms;">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge-soft-indigo">LIVE PREVIEW</span>
+                                <i class="fas fa-file-alt text-primary" style="font-size: 1rem;"></i>
+                            </div>
+                            <h6 class="font-weight-bold mb-1" style="color: var(--text-primary);">SOA Parameters</h6>
+                            <p class="small mb-3 text-muted">Verify details before generating printable statement.</p>
+
+                            <div class="soa-preview-row">
+                                <span class="soa-preview-label"><i class="fas fa-store text-primary mr-2"></i>Branch</span>
+                                <span class="soa-preview-val" id="previewBranch">APM</span>
+                            </div>
+                            <div class="soa-preview-row">
+                                <span class="soa-preview-label"><i class="fas fa-user text-primary mr-2"></i>Tenant</span>
+                                <span class="soa-preview-val" id="previewTenant">Not selected</span>
+                            </div>
+                            <div class="soa-preview-row">
+                                <span class="soa-preview-label"><i class="fas fa-key text-primary mr-2"></i>Space Code</span>
+                                <span class="soa-preview-val" id="previewSpace">Not selected</span>
+                            </div>
+                            <div class="soa-preview-row">
+                                <span class="soa-preview-label"><i class="fas fa-calendar text-primary mr-2"></i>Period</span>
+                                <span class="soa-preview-val" id="previewPeriod">Not selected</span>
+                            </div>
+
+                            <div class="mt-3 pt-2" style="border-top: 1px solid var(--border-color);">
+                                <div class="d-flex align-items-center justify-content-between small text-muted">
+                                    <span>Readiness</span>
+                                    <span id="previewStatusBadge" class="badge badge-secondary">Incomplete</span>
                                 </div>
                             </div>
-                            
-                            <hr class="mt-2 mb-4 border-gray-200">
-                            
-                            <button type="submit" class="btn btn-primary btn-block font-weight-bold py-3 shadow-sm d-flex justify-content-center align-items-center" style="background-color: var(--accent-indigo); border-color: var(--accent-indigo); border-radius: var(--radius-md); font-size: 1.05rem; transition: transform 0.2s;">
-                                <i class="fas fa-file-invoice mr-2"></i> Generate Statement
-                            </button>
-                        </form>
+                        </div>
                     </div>
 
                 </div>
@@ -814,8 +975,51 @@ $selectedBranch = "APM";
                 updateTimeRemaining();
             }
 
+            // Live SOA Preview & Step Tracker
+            function syncSoaPreview() {
+                const branch = $('#branchFilter').val();
+                const tenant = $('#tenantFilter').val().trim();
+                const space = $('#spacecodeFilter').val();
+                const fromD = $('#fromDateFilter').val();
+                const toD = $('#toDateFilter').val();
+
+                $('#previewBranch').text(branch || 'Not selected');
+                $('#previewTenant').text(tenant || 'Not selected');
+                $('#previewSpace').text(space || 'Not selected');
+                $('#previewPeriod').text((fromD && toD) ? `${fromD} → ${toD}` : 'Not selected');
+
+                $('#stepBranch').toggleClass('done', !!branch).toggleClass('active', !branch);
+                $('#stepTenant').toggleClass('done', !!tenant).toggleClass('active', !!branch && !tenant);
+                $('#stepSpace').toggleClass('done', !!space).toggleClass('active', !!tenant && !space);
+                $('#stepPeriod').toggleClass('done', !!(fromD && toD)).toggleClass('active', !!space && !(fromD && toD));
+
+                const ready = !!(branch && tenant && space && fromD && toD);
+                $('#previewStatusBadge')
+                    .text(ready ? 'Ready to Generate' : 'Incomplete')
+                    .removeClass('badge-secondary badge-success')
+                    .addClass(ready ? 'badge-success' : 'badge-secondary');
+            }
+
+            $('#branchFilter, #tenantFilter, #spacecodeFilter, #fromDateFilter, #toDateFilter').on('change input', syncSoaPreview);
+            $('#tenantDropdown').on('click', 'option', function() { setTimeout(syncSoaPreview, 80); });
+            syncSoaPreview();
+
+            // SOA Quick Date Presets (dropdown)
+            $('.soa-preset').on('click', function(e) {
+                e.preventDefault();
+                if (typeof ModernUI === 'undefined') return;
+                $('.soa-preset').removeClass('active');
+                $(this).addClass('active');
+                const range = ModernUI.getDatePresetRange($(this).data('preset'));
+                $('#fromDateFilter').val(range.start);
+                $('#toDateFilter').val(range.end);
+                syncSoaPreview();
+                ModernUI.toast('info', 'Period Selected', `${range.start} to ${range.end}`);
+            });
+
         });
     </script>
 <?php include 'notification_script.php'; ?>
+<script src="js/modern-ui.js?v=<?= time() ?>"></script>
 </body>
 </html>

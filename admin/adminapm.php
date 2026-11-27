@@ -1005,9 +1005,9 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
     <title>Admin Dashboard</title>
 
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="css/modern-dashboard.css" rel="stylesheet">
+    <link href="css/modern-dashboard.css?v=<?= time() ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.bootstrap5.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/3.0.2/css/responsive.bootstrap5.css">
@@ -1146,62 +1146,6 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                                     id="viewAllTransactions">View All Messages Today</a>
                             </div>
                         </li>
-                         <div class="modal fade" id="allTransactionsModal" tabindex="-1" role="dialog"
-                            aria-labelledby="allTransactionsModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="allTransactionsModalLabel">All Transactions Today
-                                        </h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div id="allTransactionsContent">
-                                            Loading all transactions...
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                         </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Missing Transactions Modal -->
-                        <div class="modal fade" id="missingTransactionsModal" tabindex="-1" role="dialog"
-                            aria-labelledby="missingTransactionsModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="missingTransactionsModalLabel">
-                                            Tenants With No Transactions
-                                        </h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <small class="text-muted">
-                                                Date Range: <?php echo date('M d, Y', strtotime($start_date)); ?> to
-                                                <?php echo date('M d, Y', strtotime($end_date)); ?>
-                                                <?php echo $branch ? " - " . htmlspecialchars($branch) : " - All Branches"; ?>
-                                            </small>
-                                        </div>
-                                        <div id="missingTransactionsContent">
-                                            <div class="alert alert-info">
-                                                Loading tenants with missing transactions...
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                         </div>
-                                </div>
-                            </div>
-                        </div>
-
 
                         <div class="topbar-divider d-none d-sm-block"></div>
 
@@ -1254,42 +1198,55 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
         </div>
     <?php endif; ?>
 
-    <!-- Top Section (Header & Filter) -->
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end mb-4">
-        <!-- Header Section -->
-        <div class="dash-header mb-3 mb-lg-0">
+    <!-- Top Section (Single-Line Header & Filter Bar) -->
+    <?php $totalCollection = $totalPaidRent + $totalPaidBal + $totalCharges; ?>
+    <div class="page-hero anim-fade-up">
+        <div class="page-hero-left">
+            <div class="page-hero-icon">
+                <i class="fas fa-crown"></i>
+            </div>
             <div>
-                <h1>Dashboard Overview</h1>
-                <p>Welcome back, <?php echo htmlspecialchars($lname); ?>. Here is your current data.</p>
+                <h1 class="page-hero-title">Dashboard Overview</h1>
+                <p class="page-hero-subtitle">Welcome back, <?php echo htmlspecialchars($lname); ?> — live APM collection analytics.</p>
             </div>
         </div>
 
-        <!-- Filter Bar -->
         <form method="GET" id="dashboardFilterForm" class="mb-0">
             <div class="filter-bar mb-0">
+                <!-- Quick Preset Dropdown -->
+                <div class="dropdown">
+                    <button type="button" class="btn btn-compact btn-soft-indigo dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-bolt"></i> Quick
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right shadow">
+                        <a class="dropdown-item dash-preset" href="#" data-preset="today"><i class="fas fa-clock mr-2 text-primary"></i>Today</a>
+                        <a class="dropdown-item dash-preset" href="#" data-preset="week"><i class="fas fa-calendar-week mr-2 text-primary"></i>This Week</a>
+                        <a class="dropdown-item dash-preset" href="#" data-preset="month"><i class="fas fa-calendar-alt mr-2 text-primary"></i>This Month</a>
+                        <a class="dropdown-item dash-preset" href="#" data-preset="lastmonth"><i class="fas fa-history mr-2 text-primary"></i>Last Month</a>
+                    </div>
+                </div>
+
                 <div class="filter-pill" style="cursor: pointer;" onclick="document.getElementById('start_date').showPicker && document.getElementById('start_date').showPicker();">
                     <i class="fas fa-calendar-alt"></i>
                     <div>
-                        <div class="filter-label">Start Date</div>
+                        <div class="filter-label">From</div>
                         <input type="date" name="start_date" id="start_date" value="<?php echo htmlspecialchars($start_date); ?>" onclick="event.stopPropagation(); this.showPicker && this.showPicker();">
                     </div>
                 </div>
-                
-                <span class="filter-arrow d-none d-md-inline"><i class="fas fa-arrow-right"></i></span>
 
                 <div class="filter-pill" style="cursor: pointer;" onclick="document.getElementById('end_date').showPicker && document.getElementById('end_date').showPicker();">
                     <i class="fas fa-calendar-check"></i>
                     <div>
-                        <div class="filter-label">End Date</div>
+                        <div class="filter-label">To</div>
                         <input type="date" name="end_date" id="end_date" value="<?php echo htmlspecialchars($end_date); ?>" onclick="event.stopPropagation(); this.showPicker && this.showPicker();">
                     </div>
                 </div>
 
-                <div class="filter-pill" style="cursor: pointer;" onclick="document.getElementById('branch').focus();">
+                <div class="filter-pill" style="background: #f1f5f9; opacity: 0.85; cursor: not-allowed;">
                     <i class="fas fa-building"></i>
                     <div>
-                        <div class="filter-label">Branch Filter</div>
-                                                <select disabled style="background-color: #e2e8f0; cursor: not-allowed; opacity: 0.7; width: 100%; border: none; padding: 5px; border-radius: 5px;">
+                        <div class="filter-label">Branch</div>
+                        <select disabled style="cursor: not-allowed; background: transparent; border: none; font-weight: 700; color: var(--text-primary); pointer-events: none;">
                             <option value="APM" selected>APM</option>
                         </select>
                         <input type="hidden" id="branch" name="branch" value="APM">
@@ -1303,171 +1260,280 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
         </form>
     </div>
 
-    <!-- New Dynamic Dark Cards Grid -->
+    <!-- Interactive KPI Summary Strip -->
+    <div class="kpi-strip stagger-children">
+        <div class="kpi-card justify-content-between" style="border-top: 3px solid #4f46e5;">
+            <div class="kpi-body">
+                <div class="kpi-label">Total Collection</div>
+                <div class="kpi-value total-collection" style="font-size: 1.32rem;" data-count-target="<?php echo round($totalCollection, 2); ?>" data-count-prefix="₱" data-count-decimals="2">
+                    <?php echo '₱' . number_format($totalCollection, 2); ?>
+                </div>
+                <div class="kpi-meta mt-1">
+                    <span class="badge-soft-indigo">Rent ₱<?php echo number_format($totalPaidRent, 0); ?></span>
+                    <span class="badge-soft-cyan">Bal ₱<?php echo number_format($totalPaidBal, 0); ?></span>
+                </div>
+            </div>
+            <div class="kpi-icon-wrap kpi-icon-indigo" style="width: 42px; height: 42px; font-size: 1.05rem;">
+                <i class="fas fa-wallet"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card justify-content-between" style="border-top: 3px solid #10b981;">
+            <div class="kpi-body">
+                <div class="kpi-label">Total Transactions</div>
+                <div class="kpi-value total-transactions" style="font-size: 1.32rem;" data-count-target="<?php echo count($transactions); ?>" data-count-decimals="0">
+                    <?php echo number_format(count($transactions)); ?>
+                </div>
+                <div class="kpi-meta mt-1">
+                    <span class="badge-soft-emerald"><span class="total-tenants"><?php echo number_format($total_tenants); ?></span> Active Tenants</span>
+                </div>
+            </div>
+            <div class="kpi-icon-wrap kpi-icon-emerald" style="width: 42px; height: 42px; font-size: 1.05rem;">
+                <i class="fas fa-receipt"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card justify-content-between" style="border-top: 3px solid #f43f5e;">
+            <div class="kpi-body">
+                <div class="kpi-label">Missing Days Alert</div>
+                <div class="kpi-value" style="font-size: 1.32rem;" data-count-target="<?php echo intval($tenants_no_transactions); ?>" data-count-decimals="0">
+                    <?php echo number_format($tenants_no_transactions); ?>
+                </div>
+                <div class="kpi-meta mt-1">
+                    <button type="button" id="viewMissingTransactionsBtn" class="btn btn-sm btn-soft-rose py-0 px-2" style="height: 22px; font-size:0.7rem; border-radius:999px !important; font-weight:700; background:#fff1f2; color:#be123c; border:1px solid #fecdd3;">
+                        <i class="fas fa-eye mr-1"></i> View Details
+                    </button>
+                </div>
+            </div>
+            <div class="kpi-icon-wrap kpi-icon-rose" style="width: 42px; height: 42px; font-size: 1.05rem;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card justify-content-between" style="border-top: 3px solid #8b5cf6;">
+            <div class="kpi-body">
+                <div class="kpi-label">Registered Users</div>
+                <div class="kpi-value total-users" style="font-size: 1.32rem;" data-count-target="<?php echo intval($totalUsers); ?>" data-count-decimals="0">
+                    <?php echo number_format($totalUsers); ?>
+                </div>
+                <div class="kpi-meta mt-1">
+                    <span class="badge-soft-indigo"><i class="fas fa-shield-alt mr-1"></i> Active Accounts</span>
+                </div>
+            </div>
+            <div class="kpi-icon-wrap kpi-icon-purple" style="width: 42px; height: 42px; font-size: 1.05rem;">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balanced 12-Column Light Bento Analytics Grid (Zero Orphan Cards) -->
     <style>
         .dashboard-dark-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .bento-span-5 { grid-column: span 5; }
+        .bento-span-3 { grid-column: span 3; }
+        .bento-span-4 { grid-column: span 4; }
+        .bento-span-6 { grid-column: span 6; }
+
+        @media (max-width: 1200px) {
+            .bento-span-5, .bento-span-3, .bento-span-4, .bento-span-6 { grid-column: span 6; }
+            .bento-span-4.bento-mix { grid-column: span 12; }
         }
         @media (max-width: 768px) {
-            .dashboard-dark-grid {
-                grid-template-columns: 1fr;
-            }
+            .dashboard-dark-grid { grid-template-columns: 1fr; }
+            .bento-span-5, .bento-span-3, .bento-span-4, .bento-span-6, .bento-span-4.bento-mix { grid-column: span 1; }
         }
         .dark-card {
-            background: #151b2b;
-            border-radius: 12px;
-            padding: 24px;
-            color: #fff;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 15px 18px;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
         }
+        .dark-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--card-accent, linear-gradient(90deg, #4f46e5, #06b6d4));
+            opacity: 0.9;
+        }
+        .dark-card.accent-indigo { --card-accent: linear-gradient(90deg, #4f46e5, #818cf8); }
+        .dark-card.accent-cyan { --card-accent: linear-gradient(90deg, #0284c7, #38bdf8); }
+        .dark-card.accent-purple { --card-accent: linear-gradient(90deg, #7c3aed, #c084fc); }
+        .dark-card.accent-emerald { --card-accent: linear-gradient(90deg, #059669, #34d399); }
+        .dark-card.accent-amber { --card-accent: linear-gradient(90deg, #d97706, #fbbf24); }
+
         .dark-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            font-size: 0.75rem;
+            margin-bottom: 6px;
+            font-size: 0.69rem;
             font-weight: 700;
-            letter-spacing: 1px;
-            color: #94a3b8;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
             text-transform: uppercase;
+            position: relative;
+            z-index: 2;
         }
         .dark-card-title {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
         .dark-card-title i {
-            background: rgba(255,255,255,0.08);
-            padding: 8px;
-            border-radius: 8px;
-            color: #cbd5e1;
-            font-size: 1rem;
+            background: #eef2ff;
+            padding: 6px 7px;
+            border-radius: 7px;
+            color: #4f46e5;
+            font-size: 0.82rem;
+            transition: transform 0.22s ease;
+        }
+        .dark-card.accent-cyan .dark-card-title i { background: #ecfeff; color: #0284c7; }
+        .dark-card.accent-purple .dark-card-title i { background: #f5f3ff; color: #7c3aed; }
+        .dark-card.accent-emerald .dark-card-title i { background: #ecfdf5; color: #059669; }
+        .dark-card.accent-amber .dark-card-title i { background: #fffbeb; color: #d97706; }
+
+        .dark-card:hover .dark-card-title i {
+            transform: scale(1.08) rotate(-4deg);
         }
         .dark-card-value {
-            font-size: 1.75rem;
+            font-size: 1.42rem;
             font-weight: 800;
-            margin-bottom: 5px;
-            color: #f8fafc;
+            margin-bottom: 2px;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            position: relative;
+            z-index: 2;
         }
         .dark-card-subtitle {
-            font-size: 0.65rem;
+            font-size: 0.63rem;
             font-weight: 700;
-            color: #64748b;
-            margin-bottom: 20px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            position: relative;
+            z-index: 2;
         }
         .dark-chart-container {
             position: relative;
-            height: 220px;
+            height: 205px !important;
             width: 100%;
             flex-grow: 1;
+            z-index: 2;
         }
         .badge-pill-dark {
-            background: rgba(255,255,255,0.1);
-            padding: 4px 10px;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #4338ca;
+            padding: 2px 8px;
             border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.66rem;
+            font-weight: 700;
         }
     </style>
 
-    <div class="dashboard-dark-grid">
-        <!-- Card 1: Total Collection Trend (Formerly Sales/Collection) -->
-        <div class="dark-card">
+    <div class="dashboard-dark-grid stagger-children">
+        <!-- Row 1, Card 1 (Span 5): Total Collection Trend -->
+        <div class="dark-card interactive-card accent-indigo bento-span-5">
             <div class="dark-card-header">
                 <div class="dark-card-title">
                     <i class="fas fa-shopping-bag"></i>
-                    <span>COLLECTION FROM <?php echo strtoupper(date('M d', strtotime($start_date))); ?> TO <?php echo strtoupper(date('M d', strtotime($end_date))); ?></span>
+                    <span>COLLECTION (<?php echo strtoupper(date('M d', strtotime($start_date))); ?> - <?php echo strtoupper(date('M d', strtotime($end_date))); ?>)</span>
                 </div>
+                <span class="badge-pill-dark">TREND</span>
             </div>
-            <div class="dark-card-value">
-                <?php 
-                    $totalCollection = $totalPaidRent + $totalPaidBal + $totalCharges;
-                    echo '₱' . number_format($totalCollection, 2); 
-                ?>
+            <div class="dark-card-value" data-count-target="<?php echo round($totalCollection, 2); ?>" data-count-prefix="₱" data-count-decimals="2">
+                <?php echo '₱' . number_format($totalCollection, 2); ?>
             </div>
             <div class="dark-card-subtitle">TOTAL AMOUNT</div>
-            <div class="dark-chart-container" style="height: 250px;">
+            <div class="dark-chart-container">
                 <canvas id="collectionLineChart"></canvas>
             </div>
         </div>
 
-        <!-- Card 2: Total Transactions Trend -->
-        <div class="dark-card">
+        <!-- Row 1, Card 2 (Span 3): Total Transactions Trend -->
+        <div class="dark-card interactive-card accent-cyan bento-span-3">
             <div class="dark-card-header">
                 <div class="dark-card-title">
                     <i class="fas fa-box"></i>
-                    <span>TOTAL TRANSACTIONS</span>
+                    <span>TRANSACTIONS</span>
                 </div>
+                <span class="badge-soft-cyan">VOLUME</span>
             </div>
-            <div class="dark-card-value">
+            <div class="dark-card-value" data-count-target="<?php echo count($transactions); ?>" data-count-decimals="0">
                 <?php echo number_format(count($transactions)); ?>
             </div>
-            <div class="dark-card-subtitle">TRANSACTIONS</div>
-            <div class="dark-chart-container" style="height: 250px;">
+            <div class="dark-card-subtitle">COUNT</div>
+            <div class="dark-chart-container">
                 <canvas id="transactionsLineChart"></canvas>
             </div>
         </div>
 
-        <!-- Card 3: Daily Collection Trend -->
-        <div class="dark-card">
+        <!-- Row 1, Card 3 (Span 4): Collection Breakdown -->
+        <div class="dark-card interactive-card accent-purple bento-span-4 bento-mix">
+            <div class="dark-card-header">
+                <div class="dark-card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>COLLECTION BREAKDOWN</span>
+                </div>
+                <span class="badge-soft-indigo">QTY: <?php echo number_format(count($transactions)); ?></span>
+            </div>
+            <div class="dark-card-value">
+                <span data-count-target="<?php echo round($totalCollection, 2); ?>" data-count-prefix="₱" data-count-decimals="2"><?php echo '₱' . number_format($totalCollection, 2); ?></span>
+            </div>
+            <div class="dark-card-subtitle">RENT • BALANCE • CHARGES</div>
+            <div class="dark-chart-container">
+                <canvas id="typePieChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Row 2, Card 4 (Span 6): Daily Collection Trend -->
+        <div class="dark-card interactive-card accent-emerald bento-span-6">
             <div class="dark-card-header">
                 <div class="dark-card-title">
                     <i class="fas fa-calendar-day"></i>
                     <span>DAILY COLLECTION</span>
                 </div>
+                <span class="badge-soft-emerald">LAST 7 DAYS</span>
             </div>
-            <div class="dark-card-value">
+            <div class="dark-card-value" data-count-target="<?php echo round($daily_total_today, 2); ?>" data-count-prefix="₱" data-count-decimals="2">
                 <?php echo '₱' . number_format($daily_total_today, 2); ?>
             </div>
             <div class="dark-card-subtitle">TODAY'S TOTAL</div>
-            <div class="dark-chart-container" style="height: 250px;">
+            <div class="dark-chart-container">
                 <canvas id="dailyLineChart"></canvas>
             </div>
         </div>
 
-        <!-- Card 4: Yearly Collection Trend -->
-        <div class="dark-card">
+        <!-- Row 2, Card 5 (Span 6): Yearly Collection Trend -->
+        <div class="dark-card interactive-card accent-amber bento-span-6">
             <div class="dark-card-header">
                 <div class="dark-card-title">
                     <i class="fas fa-calendar-alt"></i>
                     <span>YEARLY COLLECTION (<?php echo date('Y'); ?>)</span>
                 </div>
+                <span class="badge-soft-amber">ANNUAL</span>
             </div>
-            <div class="dark-card-value">
+            <div class="dark-card-value" data-count-target="<?php echo round($yearly_total_this_year, 2); ?>" data-count-prefix="₱" data-count-decimals="2">
                 <?php echo '₱' . number_format($yearly_total_this_year, 2); ?>
             </div>
             <div class="dark-card-subtitle">THIS YEAR'S TOTAL</div>
-            <div class="dark-chart-container" style="height: 250px;">
-                <canvas id="yearlyLineChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Card 5: Collection by Type (Breakdown) -->
-        <div class="dark-card">
-            <div class="dark-card-header">
-                <div class="dark-card-title">
-                    <i class="fas fa-crown"></i>
-                    <span>COLLECTION BREAKDOWN</span>
-                </div>
-            </div>
-            <div class="dark-card-value">
-                <span class="badge-pill-dark" style="font-size: 0.9rem;">QTY: <?php echo number_format(count($transactions)); ?></span>
-                <?php echo '₱' . number_format($totalCollection, 2); ?>
-            </div>
-            <div class="dark-card-subtitle">OVERALL TOTAL</div>
             <div class="dark-chart-container">
-                <canvas id="typePieChart"></canvas>
+                <canvas id="yearlyLineChart"></canvas>
             </div>
         </div>
     </div>
@@ -1855,15 +1921,15 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             
             // --- New Dynamic Charts ---
             
-            // Common chart options
+            // Common chart options (Light Modern UI)
             const darkTooltipOptions = {
-                backgroundColor: '#1e293b',
-                titleFontColor: '#fff',
-                bodyFontColor: '#e2e8f0',
-                borderColor: '#334155',
+                backgroundColor: '#ffffff',
+                titleFontColor: '#0f172a',
+                bodyFontColor: '#475569',
+                borderColor: '#e2e8f0',
                 borderWidth: 1,
                 cornerRadius: 8,
-                padding: 12,
+                padding: 10,
                 displayColors: true,
                 callbacks: {
                     label: function(tooltipItem, data) {
@@ -1882,10 +1948,10 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             };
             
             const darkGridOptions = {
-                color: 'rgba(255, 255, 255, 0.05)',
-                zeroLineColor: 'rgba(255, 255, 255, 0.1)',
+                color: 'rgba(15, 23, 42, 0.06)',
+                zeroLineColor: 'rgba(15, 23, 42, 0.1)',
                 drawBorder: false,
-                borderDash: [5, 5]
+                borderDash: [4, 4]
             };
 
 
@@ -1898,15 +1964,16 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                         labels: pieTypeData.labels,
                         datasets: [{
                             data: pieTypeData.data,
-                            backgroundColor: ['#6366f1', '#14b8a6', '#f43f5e'],
-                            borderWidth: 0,
+                            backgroundColor: ['#4f46e5', '#10b981', '#f43f5e'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
                             hoverOffset: 4
                         }]
                     },
                     options: {
                         maintainAspectRatio: false,
-                        cutoutPercentage: 75,
-                        legend: { position: 'right', labels: { fontColor: '#94a3b8', padding: 15, boxWidth: 12, usePointStyle: true } },
+                        cutoutPercentage: 72,
+                        legend: { position: 'right', labels: { fontColor: '#475569', padding: 14, boxWidth: 12, usePointStyle: true } },
                         tooltips: darkTooltipOptions
                     }
                 });
@@ -1915,9 +1982,9 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             // 3. Collection Line Chart
             var ctxCollection = document.getElementById("collectionLineChart");
             if (ctxCollection) {
-                var gradientCol = ctxCollection.getContext('2d').createLinearGradient(0, 0, 0, 300);
-                gradientCol.addColorStop(0, 'rgba(168, 85, 247, 0.5)');
-                gradientCol.addColorStop(1, 'rgba(168, 85, 247, 0.05)');
+                var gradientCol = ctxCollection.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                gradientCol.addColorStop(0, 'rgba(99, 102, 241, 0.25)');
+                gradientCol.addColorStop(1, 'rgba(99, 102, 241, 0.01)');
 
                 new Chart(ctxCollection, {
                     type: 'line',
@@ -1926,14 +1993,14 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                         datasets: [{
                             label: "Collection",
                             data: trendChartData.collections,
-                            borderColor: '#a855f7',
+                            borderColor: '#6366f1',
                             backgroundColor: gradientCol,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#151b2b',
-                            pointBorderColor: '#a855f7',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#6366f1',
                             pointBorderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
+                            pointRadius: 3.5,
+                            pointHoverRadius: 5.5,
                             fill: true,
                             lineTension: 0.4
                         }]
@@ -1964,9 +2031,9 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             // 4. Transactions Line Chart
             var ctxTrans = document.getElementById("transactionsLineChart");
             if (ctxTrans) {
-                var gradientTrans = ctxTrans.getContext('2d').createLinearGradient(0, 0, 0, 300);
-                gradientTrans.addColorStop(0, 'rgba(56, 189, 248, 0.5)');
-                gradientTrans.addColorStop(1, 'rgba(56, 189, 248, 0.05)');
+                var gradientTrans = ctxTrans.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                gradientTrans.addColorStop(0, 'rgba(14, 165, 233, 0.25)');
+                gradientTrans.addColorStop(1, 'rgba(14, 165, 233, 0.01)');
 
                 new Chart(ctxTrans, {
                     type: 'line',
@@ -1975,14 +2042,14 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                         datasets: [{
                             label: "Transactions",
                             data: trendChartData.transactions,
-                            borderColor: '#38bdf8',
+                            borderColor: '#0ea5e9',
                             backgroundColor: gradientTrans,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#151b2b',
-                            pointBorderColor: '#38bdf8',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#0ea5e9',
                             pointBorderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
+                            pointRadius: 3.5,
+                            pointHoverRadius: 5.5,
                             fill: true,
                             lineTension: 0.4
                         }]
@@ -1991,13 +2058,13 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                         maintainAspectRatio: false,
                         legend: { display: false },
                         tooltips: {
-                            backgroundColor: '#1e293b',
-                            titleFontColor: '#fff',
-                            bodyFontColor: '#e2e8f0',
-                            borderColor: '#334155',
+                            backgroundColor: '#ffffff',
+                            titleFontColor: '#0f172a',
+                            bodyFontColor: '#475569',
+                            borderColor: '#e2e8f0',
                             borderWidth: 1,
                             cornerRadius: 8,
-                            padding: 12,
+                            padding: 10,
                             displayColors: true
                         },
                         scales: {
@@ -2011,9 +2078,9 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             // 5. Daily Collection Line Chart
             var ctxDaily = document.getElementById("dailyLineChart");
             if (ctxDaily) {
-                var gradientDaily = ctxDaily.getContext('2d').createLinearGradient(0, 0, 0, 300);
-                gradientDaily.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); // emerald green
-                gradientDaily.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
+                var gradientDaily = ctxDaily.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                gradientDaily.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+                gradientDaily.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
 
                 new Chart(ctxDaily, {
                     type: 'line',
@@ -2024,12 +2091,12 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                             data: dailyChartData.data,
                             borderColor: '#10b981',
                             backgroundColor: gradientDaily,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#151b2b',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#ffffff',
                             pointBorderColor: '#10b981',
                             pointBorderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
+                            pointRadius: 3.5,
+                            pointHoverRadius: 5.5,
                             fill: true,
                             lineTension: 0.4
                         }]
@@ -2060,9 +2127,9 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
             // 6. Yearly Collection Line Chart
             var ctxYearly = document.getElementById("yearlyLineChart");
             if (ctxYearly) {
-                var gradientYearly = ctxYearly.getContext('2d').createLinearGradient(0, 0, 0, 300);
-                gradientYearly.addColorStop(0, 'rgba(245, 158, 11, 0.5)'); // amber
-                gradientYearly.addColorStop(1, 'rgba(245, 158, 11, 0.05)');
+                var gradientYearly = ctxYearly.getContext('2d').createLinearGradient(0, 0, 0, 220);
+                gradientYearly.addColorStop(0, 'rgba(245, 158, 11, 0.25)');
+                gradientYearly.addColorStop(1, 'rgba(245, 158, 11, 0.01)');
 
                 new Chart(ctxYearly, {
                     type: 'line',
@@ -2073,12 +2140,12 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                             data: yearlyChartData.data,
                             borderColor: '#f59e0b',
                             backgroundColor: gradientYearly,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#151b2b',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#ffffff',
                             pointBorderColor: '#f59e0b',
                             pointBorderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
+                            pointRadius: 3.5,
+                            pointHoverRadius: 5.5,
                             fill: true,
                             lineTension: 0.4
                         }]
@@ -3307,7 +3374,79 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
         window.addEventListener('load', function() {
             setTimeout(hideLoader, 400); // Hide loader after everything is loaded
         });
+
+        // Quick date presets for dashboard filter
+        document.querySelectorAll('.dash-preset').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (typeof ModernUI === 'undefined') return;
+                const range = ModernUI.getDatePresetRange(this.dataset.preset);
+                document.getElementById('start_date').value = range.start;
+                document.getElementById('end_date').value = range.end;
+                showLoader();
+                document.getElementById('dashboardFilterForm').submit();
+            });
+        });
     </script>
+    <script src="js/modern-ui.js?v=<?= time() ?>"></script>
+
+    <!-- All Transactions Today Modal -->
+    <div class="modal fade" id="allTransactionsModal" tabindex="-1" role="dialog"
+        aria-labelledby="allTransactionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="allTransactionsModalLabel">
+                        <span class="kpi-icon-wrap kpi-icon-indigo" style="width:30px; height:30px; font-size:0.8rem;"><i class="fas fa-bell"></i></span>
+                        <span>All Transactions Today</span>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="allTransactionsContent">
+                        Loading all transactions...
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-compact btn-light text-secondary" data-dismiss="modal" style="border: 1px solid var(--border-color);">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Missing Transactions Modal -->
+    <div class="modal fade" id="missingTransactionsModal" tabindex="-1" role="dialog"
+        aria-labelledby="missingTransactionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="missingTransactionsModalLabel">
+                        <span class="kpi-icon-wrap kpi-icon-rose" style="width:32px; height:32px; font-size:0.85rem;"><i class="fas fa-user-clock"></i></span>
+                        <span>Tenants With Missing Transactions</span>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 8px;">
+                        <span class="badge-soft-indigo"><i class="fas fa-calendar-alt mr-1"></i> <?php echo date('M d, Y', strtotime($start_date)); ?> – <?php echo date('M d, Y', strtotime($end_date)); ?></span>
+                        <span class="badge-soft-cyan"><i class="fas fa-building mr-1"></i> <?php echo $branch ? htmlspecialchars($branch) : 'All Branches'; ?></span>
+                    </div>
+                    <div id="missingTransactionsContent">
+                        <div class="alert alert-info">
+                            Loading tenants with missing transactions...
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-compact btn-light text-secondary" data-dismiss="modal" style="border: 1px solid var(--border-color);">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 

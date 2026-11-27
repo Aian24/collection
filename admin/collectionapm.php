@@ -517,9 +517,9 @@ if ($isAjax) {
     <title>Collection Report</title>
 
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="css/modern-dashboard.css" rel="stylesheet">
+    <link href="css/modern-dashboard.css?v=<?= time() ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
@@ -527,146 +527,95 @@ if ($isAjax) {
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
     <style>
-        /* DataTables Custom Overrides */
-        .table-container {
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-card);
-            overflow: hidden;
-            background-color: var(--card-bg);
-            border: 1px solid #e5e7eb;
+        /* Filter Modal Checkboxes & Search */
+        .filter-search {
+            margin-bottom: 12px;
         }
-
-        .table thead th {
-            background-color: #1e293b !important;
-            color: #fff !important;
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-            border-bottom: none !important;
-            padding: 12px 30px 12px 15px !important;
+        .filter-search input {
+            height: 36px !important;
+            border-radius: var(--radius-sm) !important;
         }
-
-        #dataTable tbody td {
-            font-size: 0.85rem;
-            vertical-align: middle;
-            color: var(--text-secondary);
-        }
-
-        .table tbody tr:hover {
-            background-color: rgba(99, 102, 241, 0.04);
-        }
-
-        /* Filter Modal Checkboxes */
         .checkbox-container {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             position: relative;
-            padding-left: 30px;
-            margin-bottom: 8px;
+            padding: 6px 10px 6px 32px;
+            margin-bottom: 0;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12.5px;
+            font-weight: 500;
             user-select: none;
             color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--card-subtle);
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .checkbox-container:hover {
+            background: #eef2ff;
+            border-color: #c7d2fe;
         }
         .checkbox-container input {
             position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0;
         }
         .checkmark {
-            position: absolute; top: 0; left: 0; height: 20px; width: 20px;
-            background-color: #e2e8f0; border-radius: 4px; transition: all 0.2s;
+            position: absolute; top: 50%; left: 9px; transform: translateY(-50%);
+            height: 17px; width: 17px;
+            background-color: #ffffff; border: 1.5px solid #cbd5e1;
+            border-radius: 4px; transition: all 0.2s;
         }
-        .checkbox-container:hover input ~ .checkmark { background-color: #cbd5e1; }
-        .checkbox-container input:checked ~ .checkmark { background-color: var(--accent-indigo); }
+        .checkbox-container:hover input ~ .checkmark { border-color: var(--accent-indigo); }
+        .checkbox-container input:checked ~ .checkmark { background-color: var(--accent-indigo); border-color: var(--accent-indigo); }
         .checkmark:after { content: ""; position: absolute; display: none; }
         .checkbox-container input:checked ~ .checkmark:after { display: block; }
         .checkbox-container .checkmark:after {
-            left: 7px; top: 3px; width: 5px; height: 10px;
+            left: 5px; top: 1.5px; width: 4.5px; height: 9px;
             border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);
         }
         
         /* Badges */
         .count-badge {
-            background-color: var(--accent-rose);
-            color: white; border-radius: 10px; padding: 2px 6px;
-            font-size: 12px; margin-left: 5px;
+            background-color: #eef2ff;
+            color: #4338ca; border-radius: 10px; padding: 1px 6px;
+            font-size: 11px; font-weight: 700; margin-left: 4px;
         }
 
         .filter-columns, .filter-columns-2 {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 10px;
+            gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 8px;
         }
 
-        /* Tooltip */
+        /* Light Frosted Tooltip */
         .spacecode-tooltip {
             position: absolute;
-            background: #1e293b; color: white;
-            padding: 15px; border-radius: var(--radius-md); font-size: 13px;
-            z-index: 10000; box-shadow: var(--shadow-hover);
-            min-width: 280px; display: none; pointer-events: none;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 12px 14px; border-radius: var(--radius-md); font-size: 12px;
+            z-index: 10000; box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+            min-width: 260px; display: none; pointer-events: none;
         }
-        .spacecode-tooltip .tooltip-header { font-weight: 600; color: #60a5fa; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px; }
-        .spacecode-tooltip .tooltip-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
-        .spacecode-tooltip .tooltip-label { color: #94a3b8; }
-        .spacecode-tooltip .tooltip-value { font-weight: 600; }
-        .spacecode-cell { cursor: pointer; color: var(--accent-indigo); font-weight: 500; }
+        .spacecode-tooltip .tooltip-header { font-weight: 700; color: var(--accent-indigo); border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 8px; }
+        .spacecode-tooltip .tooltip-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .spacecode-tooltip .tooltip-label { color: var(--text-muted); }
+        .spacecode-tooltip .tooltip-value { font-weight: 700; color: var(--text-primary); }
+        .spacecode-cell { cursor: pointer; color: var(--accent-indigo); font-weight: 600; }
         .spacecode-cell:hover { text-decoration: underline; }
 
-        /* DataTables Styling Overrides */
-        .dt-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 0;
-        }
-        .dt-buttons .btn {
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 0.4rem 0.85rem;
-            border-radius: var(--radius-md) !important; /* Override btn-group flat edges */
-            border: 1px solid #e2e8f0;
-            background-color: white;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-        }
-        .dt-buttons .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
-            background-color: #f8fafc;
-        }
-        
         /* Specific Button Colors */
-        .dt-buttons .btn-copy { color: #64748b; }
-        .dt-buttons .btn-csv { color: #10b981; }
-        .dt-buttons .btn-excel { color: #0ea5e9; }
-        .dt-buttons .btn-pdf { color: #ef4444; }
-        .dt-buttons .btn-print { color: #8b5cf6; }
-        .dt-buttons .btn-colvis { color: #f59e0b; }
-        .dataTables_length select { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 28px 4px 12px !important; 
-            margin: 0 6px !important;
-            outline: none !important;
-            width: auto !important;
-            display: inline-block !important;
-        }
-        .dataTables_filter input { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 12px !important; 
-            margin-left: 8px !important;
-            outline: none !important;
-            display: inline-block !important;
-            width: auto !important;
-        }
-        
-        /* Custom Dropdown Overrides */
-        .dropdown-item.active, .dropdown-item:active { background-color: var(--accent-indigo) !important; color: white !important; }
-        .dropdown-item:hover { background-color: #f1f5f9; color: var(--accent-indigo); font-weight: 600; }
+        .dt-buttons .btn-copy { color: #475569 !important; }
+        .dt-buttons .btn-csv { color: #059669 !important; }
+        .dt-buttons .btn-excel { color: #0284c7 !important; }
+        .dt-buttons .btn-pdf { color: #e11d48 !important; }
+        .dt-buttons .btn-print { color: #7c3aed !important; }
+        .dt-buttons .btn-colvis { color: #d97706 !important; }
         
         /* Datepicker Overrides */
-        .ui-datepicker { z-index: 10000 !important; font-family: 'Inter', sans-serif; box-shadow: var(--shadow-card); border-radius: var(--radius-md); border: 1px solid #e2e8f0; }
-        .ui-datepicker-header { background: var(--card-bg); border: none; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+        .ui-datepicker { z-index: 10000 !important; font-family: 'Inter', sans-serif; box-shadow: var(--shadow-hover); border-radius: var(--radius-md); border: 1px solid var(--border-color); }
+        .ui-datepicker-header { background: var(--card-bg); border: none; border-bottom: 1px solid var(--border-color); font-weight: 600; }
         .ui-datepicker-title { color: var(--text-primary); }
     </style>
 </head>
@@ -804,83 +753,130 @@ if ($isAjax) {
                 </nav>
                 <div class="container-fluid dashboard-container" id="datatable-container">
         
-        <!-- Title Removed per request -->
-        <div class="filter-bar w-100 mb-4 d-flex flex-wrap align-items-center justify-content-between" style="background: white; padding: 1.25rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-card); border: 1px solid #e5e7eb; gap: 1rem;">
-            
-            <div class="d-flex flex-wrap align-items-center" style="gap: 1rem;">
-                <!-- Branch Filter -->
-                <div class="filter-pill d-flex align-items-center" style="background: #e2e8f0; padding: 4px 12px; border-radius: var(--radius-md); border: 1px solid #cbd5e1; gap: 12px; cursor: not-allowed; opacity: 0.7;">
-                    <i class="fas fa-store text-gray-500"></i>
-                    <div class="d-flex flex-column">
-                        <label class="mb-0 text-xs text-gray-500 font-weight-bold" style="font-size: 0.7rem; text-transform: uppercase;">Branch</label>
-                        <div class="d-flex align-items-center" style="gap: 4px;">
-                            <span id="selectedBranchText" style="font-weight: 600; font-size: 0.9rem; color: #1e293b;">APM</span>
-                        </div>
+        <!-- Single-Line Hero + Inline KPIs -->
+        <div class="page-hero anim-fade-up">
+            <div class="page-hero-left">
+                <div class="page-hero-icon">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+                <div>
+                    <h1 class="page-hero-title">Collection Report</h1>
+                    <p class="page-hero-subtitle">Real-time APM payment ledger &amp; multi-filter analytics.</p>
+                </div>
+            </div>
+
+            <!-- Compact KPI Summary Pills in One Line -->
+            <div class="d-flex flex-wrap align-items-center" style="gap: 8px;">
+                <div class="kpi-card" style="padding: 0.42rem 0.78rem; gap: 0.55rem; border-radius: 10px;">
+                    <div class="kpi-icon-wrap kpi-icon-emerald" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fas fa-coins"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label" style="font-size: 0.58rem;">Collected</div>
+                        <div class="kpi-value" id="kpiTotalCollected" style="font-size: 0.96rem;">₱0.00</div>
                     </div>
                 </div>
-                <!-- Hidden Input for DataTables AJAX -->
+                <div class="kpi-card" style="padding: 0.42rem 0.78rem; gap: 0.55rem; border-radius: 10px;">
+                    <div class="kpi-icon-wrap kpi-icon-rose" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fas fa-balance-scale"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label" style="font-size: 0.58rem;">Balance</div>
+                        <div class="kpi-value" id="kpiTotalBalance" style="font-size: 0.96rem;">₱0.00</div>
+                    </div>
+                </div>
+                <div class="kpi-card" style="padding: 0.42rem 0.78rem; gap: 0.55rem; border-radius: 10px;">
+                    <div class="kpi-icon-wrap kpi-icon-indigo" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fas fa-receipt"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label" style="font-size: 0.58rem;">Records (<span id="kpiBranchLabel">APM</span>)</div>
+                        <div class="kpi-value" id="kpiRecordsCount" style="font-size: 0.96rem;">0</div>
+                    </div>
+                </div>
+                <span class="d-none" id="grandTotal">0.00</span>
+                <span class="d-none" id="grandBalance">0.00</span>
+                <span class="d-none" id="totalRecordsCount">0</span>
+            </div>
+        </div>
+
+        <!-- Single-Line Unified Filter & Action Toolbar -->
+        <div class="filter-bar w-100 justify-content-between anim-fade-up" style="--delay: 50ms;">
+            <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
+                <!-- Locked Branch Filter Pill (APM) -->
+                <div class="filter-pill" style="background: #f1f5f9; opacity: 0.85; cursor: not-allowed;">
+                    <i class="fas fa-store"></i>
+                    <div class="d-flex flex-column">
+                        <label class="mb-0 filter-label">Branch</label>
+                        <span id="selectedBranchText" style="font-weight: 700; font-size: 0.78rem; color: var(--text-primary); line-height:1.1;">APM</span>
+                    </div>
+                </div>
                 <input type="hidden" id="branchFilter" value="APM">
 
                 <!-- From Date -->
-                <div class="filter-pill d-flex align-items-center" onclick="document.getElementById('fromDate').focus();" style="background: #f8fafc; padding: 0 16px; height: 44px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; gap: 12px; cursor: pointer; justify-content: center;">
-                    <i class="fas fa-calendar-alt text-gray-500"></i>
+                <div class="filter-pill" onclick="document.getElementById('fromDate').focus();" style="cursor: pointer;">
+                    <i class="fas fa-calendar-alt"></i>
                     <div class="d-flex flex-column">
-                        <label for="fromDate" class="mb-0 text-xs text-gray-500 font-weight-bold" style="font-size: 0.7rem; text-transform: uppercase;">From Date</label>
-                        <input type="text" id="fromDate" class="datepicker border-0 p-0" readonly style="background: transparent; outline: none; box-shadow: none; font-weight: 600; font-size: 0.9rem; color: #1e293b; width: 90px;" value="<?php echo htmlspecialchars($fromDate); ?>">
+                        <label for="fromDate" class="mb-0 filter-label">From</label>
+                        <input type="text" id="fromDate" class="datepicker border-0 p-0" readonly style="width: 78px;" value="<?php echo htmlspecialchars($fromDate); ?>">
                     </div>
                 </div>
 
                 <!-- To Date -->
-                <div class="filter-pill d-flex align-items-center" onclick="document.getElementById('toDate').focus();" style="background: #f8fafc; padding: 0 16px; height: 44px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; gap: 12px; cursor: pointer; justify-content: center;">
-                    <i class="fas fa-calendar-alt text-gray-500"></i>
+                <div class="filter-pill" onclick="document.getElementById('toDate').focus();" style="cursor: pointer;">
+                    <i class="fas fa-calendar-alt"></i>
                     <div class="d-flex flex-column">
-                        <label for="toDate" class="mb-0 text-xs text-gray-500 font-weight-bold" style="font-size: 0.7rem; text-transform: uppercase;">To Date</label>
-                        <input type="text" id="toDate" class="datepicker border-0 p-0" readonly style="background: transparent; outline: none; box-shadow: none; font-weight: 600; font-size: 0.9rem; color: #1e293b; width: 90px;" value="<?php echo htmlspecialchars($toDate); ?>">
+                        <label for="toDate" class="mb-0 filter-label">To</label>
+                        <input type="text" id="toDate" class="datepicker border-0 p-0" readonly style="width: 78px;" value="<?php echo htmlspecialchars($toDate); ?>">
                     </div>
                 </div>
 
-                <!-- Filter Buttons -->
-                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
-                    <button type="button" class="btn btn-info btn-sm font-weight-bold" data-toggle="modal" data-target="#spaceFilterModal" style="border-radius: var(--radius-md); padding: 0 16px; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <i class="fas fa-building"></i> Spaces (<span id="selectedSpaceCount">0</span>)
+                <!-- Quick Date Range Dropdown -->
+                <div class="dropdown">
+                    <button type="button" class="btn btn-compact btn-soft-indigo dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-bolt"></i> Quick Date
                     </button>
+                    <div class="dropdown-menu shadow">
+                        <a class="dropdown-item col-preset active" href="#" data-preset="today"><i class="fas fa-clock mr-2 text-primary"></i>Today</a>
+                        <a class="dropdown-item col-preset" href="#" data-preset="yesterday"><i class="fas fa-step-backward mr-2 text-primary"></i>Yesterday</a>
+                        <a class="dropdown-item col-preset" href="#" data-preset="week"><i class="fas fa-calendar-week mr-2 text-primary"></i>This Week</a>
+                        <a class="dropdown-item col-preset" href="#" data-preset="month"><i class="fas fa-calendar-alt mr-2 text-primary"></i>This Month</a>
+                    </div>
+                </div>
 
-                    <button type="button" class="btn btn-primary btn-sm font-weight-bold" data-toggle="modal" data-target="#tenantFilterModal" style="border-radius: var(--radius-md); background-color: var(--accent-indigo); border-color: var(--accent-indigo); padding: 0 16px; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <i class="fas fa-users"></i> Tenants (<span id="selectedTenantCount">0</span>)
+                <!-- Consolidated Filters Dropdown (Spaces, Tenants, Collectors, Charges) -->
+                <div class="dropdown">
+                    <button type="button" class="btn btn-compact btn-soft-purple dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-sliders-h"></i> Filters <span class="badge badge-light ml-1" id="totalActiveFiltersCount">0</span>
                     </button>
-
-                    <button type="button" class="btn btn-warning btn-sm font-weight-bold" data-toggle="modal" data-target="#collectorFilterModal" style="border-radius: var(--radius-md); background-color: #f59e0b; border-color: #f59e0b; color: white; padding: 0 16px; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <i class="fas fa-user-tag"></i> Collectors (<span id="selectedCollectorCount">0</span>)
-                    </button>
+                    <div class="dropdown-menu shadow" style="min-width: 215px;">
+                        <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-toggle="modal" data-target="#spaceFilterModal">
+                            <span><i class="fas fa-building text-info mr-2"></i>Spaces</span>
+                            <span class="badge-soft-cyan" id="selectedSpaceCount">0</span>
+                        </a>
+                        <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-toggle="modal" data-target="#tenantFilterModal">
+                            <span><i class="fas fa-users text-primary mr-2"></i>Tenants</span>
+                            <span class="badge-soft-indigo" id="selectedTenantCount">0</span>
+                        </a>
+                        <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-toggle="modal" data-target="#collectorFilterModal">
+                            <span><i class="fas fa-user-tag text-warning mr-2"></i>Collectors</span>
+                            <span class="badge-soft-amber" id="selectedCollectorCount">0</span>
+                        </a>
+                        <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-toggle="modal" data-target="#chargeFilterModal">
+                            <span><i class="fas fa-tags text-purple mr-2" style="color:#7c3aed;"></i>Charges</span>
+                            <span class="badge-soft-indigo" id="selectedChargeCount">0</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
-            <div class="d-flex ml-auto" style="gap: 8px;">
-                <button id="applyFilters" class="btn btn-primary btn-sm font-weight-bold" style="border-radius: var(--radius-md); background-color: var(--accent-indigo); border-color: var(--accent-indigo); padding: 0 16px; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <!-- Action Buttons on Same Single Line -->
+            <div class="d-flex align-items-center ml-auto" style="gap: 6px;">
+                <button id="applyFilters" class="btn btn-compact btn-modern-gradient">
                     <i class="fas fa-filter"></i> Apply
                 </button>
-                <button id="resetFilters" class="btn btn-light btn-sm text-secondary font-weight-bold" style="border-radius: var(--radius-md); padding: 0 16px; height: 44px; border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <button id="resetFilters" class="btn btn-compact btn-light text-secondary" style="border: 1px solid var(--border-color);">
                     <i class="fas fa-sync-alt"></i> Reset
                 </button>
             </div>
         </div>
 
-        <div class="table-container" id="table-wrapper">
-            <div class="d-flex flex-wrap justify-content-between align-items-center p-3" style="background-color: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.05); border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
-                <h6 class="m-0 text-white font-weight-bold"><i class="fas fa-list mr-2"></i>Collection Records</h6>
-                <div class="d-flex flex-wrap" style="gap: 1.5rem;">
-                    <span style="color: #cbd5e1; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                        Total Collected: <span id="grandTotal" class="text-white font-weight-bold" style="background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.5);">0.00</span>
-                    </span>
-                    <span style="color: #cbd5e1; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                        Total Balance: <span id="grandBalance" class="text-white font-weight-bold" style="background: rgba(239, 68, 68, 0.2); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.5);">0.00</span>
-                    </span>
-                    <span style="color: #cbd5e1; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                        Records: <span id="totalRecordsCount" class="text-white font-weight-bold">0</span>
-                    </span>
-                </div>
-            </div>
-            <div class="table-responsive p-3">
+        <div class="table-container interactive-card anim-fade-up" id="table-wrapper" style="--delay: 90ms;">
+            <div class="table-responsive p-2">
                 <table id="dataTable" class="table table-striped table-bordered dt-responsive" style="width:100%">
                     <thead>
                         <tr>
@@ -1541,14 +1537,13 @@ if ($isAjax) {
                 $('#selectedChargeCount').text(selectedCharges);
                 $('#selectedSpaceCount').text(selectedSpaces);
                 $('#selectedCollectorCount').text(selectedCollectors);
+                $('#totalActiveFiltersCount').text(selectedTenants + selectedCharges + selectedSpaces + selectedCollectors);
 
-                // Optional: Change button appearance if filters are applied
+                // Show reset button if filters are applied
                 if (selectedTenants > 0 || selectedCharges > 0 || selectedSpaces > 0 || selectedCollectors > 0) {
-                    $('#applyFilters').removeClass('btn-primary').addClass('btn-success');
-                    $('#resetFilters').show(); // Show reset button
+                    $('#resetFilters').show();
                 } else {
-                    $('#applyFilters').removeClass('btn-success').addClass('btn-primary');
-                    $('#resetFilters').hide(); // Hide reset button
+                    $('#resetFilters').hide();
                 }
             }
 
@@ -1871,6 +1866,14 @@ if ($isAjax) {
                         $('#grandBalance').text(json.totals.balance);
                         $('#totalRecordsCount').text(json.totalRecords);
 
+                        if (typeof ModernUI !== 'undefined') {
+                            const parseNum = (v) => parseFloat(String(v || '0').replace(/[^0-9.-]/g, '')) || 0;
+                            ModernUI.animateNumber(document.getElementById('kpiTotalCollected'), 0, parseNum(json.totals.combined), 650, '₱', '', 2);
+                            ModernUI.animateNumber(document.getElementById('kpiTotalBalance'), 0, parseNum(json.totals.balance), 650, '₱', '', 2);
+                            ModernUI.animateNumber(document.getElementById('kpiRecordsCount'), 0, parseInt(json.totalRecords || 0, 10), 650, '', '', 0);
+                            $('#kpiBranchLabel').text($('#branchFilter').val() || 'APM');
+                        }
+
                         populateTenantFilter(json.tenantCodes, json.tenantCounts);
                         populateSpaceFilter(json.spaceCodes, json.spaceCounts); // Add space filter population
                         populateCollectorFilter(json.collectorCodes, json.collectorCounts); // Add collector filter population
@@ -1979,7 +1982,7 @@ if ($isAjax) {
                     { data: 'total_arrears' }
                     // Make sure the order and data keys match your PHP's $dataForTable structure
                 ],
-                dom: '<"d-flex flex-wrap align-items-center justify-content-between mb-3"l B f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-3"i p>', // Placed l, B, f side by side
+                dom: '<"d-flex align-items-center justify-content-between flex-nowrap mb-2"l B f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-2"i p>', // Single-line l, B, f
                 buttons: [
                     {
                         extend: 'copyHtml5',
@@ -2594,7 +2597,7 @@ if ($isAjax) {
                 }
                 
                 lastUpdateTime = new Date().getTime();
-                if (window.location.pathname.includes('collection.php')) {
+                if (window.location.pathname.includes('collection')) {
                     if (typeof dataTable !== 'undefined') {
                         dataTable.ajax.reload(null, false);
                     }
@@ -2623,9 +2626,23 @@ if ($isAjax) {
                 countdownInterval = setInterval(updateTimeRemaining, 1000);
                 updateTimeRemaining();
             }
+
+            // Quick Date Presets (in dropdown)
+            $('.col-preset').on('click', function(e) {
+                e.preventDefault();
+                if (typeof ModernUI === 'undefined') return;
+                $('.col-preset').removeClass('active');
+                $(this).addClass('active');
+                const range = ModernUI.getDatePresetRange($(this).data('preset'));
+                $('#fromDate').val(range.start);
+                $('#toDate').val(range.end);
+                $('#applyFilters').trigger('click');
+                ModernUI.toast('info', 'Date Range Updated', `${range.start} to ${range.end}`);
+            });
 }); // End $(document).ready
     </script>
 
 <?php include 'notification_script.php'; ?>
+<script src="js/modern-ui.js?v=<?= time() ?>"></script>
 </body>
 </html>
