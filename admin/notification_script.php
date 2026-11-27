@@ -427,8 +427,14 @@ $(document).ready(function() {
         });
     }
 
-    // Event bindings (keep dropdown open while interacting with filters/search/actions)
-    $(document).on('click', '#alertsCenterMenu', function(e) {
+    function closeAlertsDropdown() {
+        try { $('#alertsDropdown').dropdown('hide'); } catch (e) {}
+        $('#alertsCenterMenu').removeClass('show');
+        $('#alertsDropdown').attr('aria-expanded', 'false').closest('.dropdown').removeClass('show');
+    }
+
+    // Keep dropdown open only when interacting with header buttons, tabs, or search
+    $(document).on('click', '#alertsCenterMenu .notif-header, #alertsCenterMenu .notif-controls, #alertsCenterMenu .notif-tabs, #alertsCenterMenu .notif-search-wrap', function(e) {
         e.stopPropagation();
     });
 
@@ -479,7 +485,7 @@ $(document).ready(function() {
         markItemRead(id);
         selectedFocusId = id;
         renderDropdown();
-        $('#alertsDropdown').dropdown('hide');
+        closeAlertsDropdown();
         $('#allTransactionsModal').modal('show');
     });
 
@@ -493,8 +499,12 @@ $(document).ready(function() {
     $(document).on('click', '#viewAllTransactionsBtn', function(e) {
         e.preventDefault();
         selectedFocusId = null;
-        $('#alertsDropdown').dropdown('hide');
+        closeAlertsDropdown();
         $('#allTransactionsModal').modal('show');
+    });
+
+    $(document).on('click', '#alertsCenterMenu .notif-footer-link', function() {
+        closeAlertsDropdown();
     });
 
     $(document).on('click', '#notifModalTabs [data-modal-filter]', function() {

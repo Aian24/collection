@@ -2249,23 +2249,6 @@ $yearly_chart_json = json_encode(['labels' => $yearly_labels, 'data' => array_va
                 $('body').removeClass('loading');
             });
 
-            // Enhance alert center animations
-            $('#alertsDropdown').on('show.bs.dropdown', function () {
-                $('#alertMessages .dropdown-item').each(function(index) {
-                    $(this).css({
-                        'opacity': 0,
-                        'transform': 'translateY(-20px)'
-                    }).animate({
-                        'opacity': 1,
-                        'transform': 'translateY(0)'
-                    }, {
-                        duration: 200,
-                        easing: 'easeOutQuad',
-                        delay: index * 100
-                    });
-                });
-            });
-
             // Add smooth scrolling
             $('.scroll-to-top').on('click', function(e) {
                 e.preventDefault();

@@ -810,13 +810,15 @@ if ($isAjax) {
         <div class="filter-bar w-100 justify-content-between anim-fade-up" style="--delay: 50ms;">
             <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
                 <!-- Branch Filter Dropdown -->
-                <div class="filter-pill dropdown" style="cursor: pointer;" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <i class="fas fa-store"></i>
-                    <div class="d-flex flex-column">
-                        <label class="mb-0 filter-label">Branch</label>
-                        <div class="d-flex align-items-center" style="gap: 5px;">
-                            <span id="selectedBranchText" style="font-weight: 700; font-size: 0.78rem; color: var(--text-primary); line-height:1.1;"><?php echo htmlspecialchars($selectedBranch); ?></span>
-                            <i class="fas fa-chevron-down" style="font-size: 0.62rem; color: var(--text-muted);"></i>
+                <div class="dropdown">
+                    <div class="filter-pill" role="button" style="cursor: pointer;" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-store"></i>
+                        <div class="d-flex flex-column">
+                            <label class="mb-0 filter-label">Branch</label>
+                            <div class="d-flex align-items-center" style="gap: 5px;">
+                                <span id="selectedBranchText" style="font-weight: 700; font-size: 0.78rem; color: var(--text-primary); line-height:1.1;"><?php echo htmlspecialchars($selectedBranch); ?></span>
+                                <i class="fas fa-chevron-down" style="font-size: 0.62rem; color: var(--text-muted);"></i>
+                            </div>
                         </div>
                     </div>
                     <div class="dropdown-menu shadow" style="min-width: 175px; margin-top: 6px;">
@@ -1987,6 +1989,10 @@ if ($isAjax) {
                 $('.branch-option').removeClass('text-primary font-weight-bold bg-light').find('.fa-check').remove();
                 $(this).addClass('text-primary font-weight-bold bg-light')
                     .append('<i class="fas fa-check text-primary" style="font-size:0.65rem;"></i>');
+
+                // Ensure dropdown closes immediately after selection
+                $(this).closest('.dropdown-menu').removeClass('show');
+                $(this).closest('.dropdown').removeClass('show').find('[data-toggle="dropdown"]').attr('aria-expanded', 'false');
             });
 
             // Apply Filters Button Click

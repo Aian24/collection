@@ -738,13 +738,15 @@ if ($isAjax) {
             
             <div class="d-flex flex-wrap align-items-center" style="gap: 1rem;">
                 <!-- Branch Filter -->
-                <div class="filter-pill d-flex align-items-center dropdown" style="background: #f8fafc; padding: 4px 12px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; gap: 12px; cursor: pointer;" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <i class="fas fa-store text-gray-500"></i>
-                    <div class="d-flex flex-column">
-                        <label class="mb-0 text-xs text-gray-500 font-weight-bold" style="font-size: 0.7rem; text-transform: uppercase;">Branch</label>
-                        <div class="d-flex align-items-center" style="gap: 4px;">
-                            <span id="selectedBranchText" style="font-weight: 600; font-size: 0.9rem; color: #1e293b;"><?php echo htmlspecialchars($selectedBranch); ?></span>
-                            <i class="fas fa-chevron-down text-gray-400" style="font-size: 0.7rem; margin-top: 2px;"></i>
+                <div class="dropdown">
+                    <div class="filter-pill d-flex align-items-center" role="button" style="background: #f8fafc; padding: 4px 12px; border-radius: var(--radius-md); border: 1px solid #e2e8f0; gap: 12px; cursor: pointer;" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-store text-gray-500"></i>
+                        <div class="d-flex flex-column">
+                            <label class="mb-0 text-xs text-gray-500 font-weight-bold" style="font-size: 0.7rem; text-transform: uppercase;">Branch</label>
+                            <div class="d-flex align-items-center" style="gap: 4px;">
+                                <span id="selectedBranchText" style="font-weight: 600; font-size: 0.9rem; color: #1e293b;"><?php echo htmlspecialchars($selectedBranch); ?></span>
+                                <i class="fas fa-chevron-down text-gray-400" style="font-size: 0.7rem; margin-top: 2px;"></i>
+                            </div>
                         </div>
                     </div>
                     <!-- Custom Dropdown Menu -->
@@ -1799,6 +1801,10 @@ if ($isAjax) {
                 // Update active styling
                 $('.branch-option').removeClass('text-primary font-weight-bold bg-light');
                 $(this).addClass('text-primary font-weight-bold bg-light');
+
+                // Ensure dropdown closes immediately after selection
+                $(this).closest('.dropdown-menu').removeClass('show');
+                $(this).closest('.dropdown').removeClass('show').find('[data-toggle="dropdown"]').attr('aria-expanded', 'false');
             });
 
             // Apply Filters Button Click
