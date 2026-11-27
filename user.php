@@ -190,295 +190,749 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 if (isset($conn) && $conn) {
     $conn->close();
 }
+$nextReceiptDisplay = $latestTransactionNumber + 1;
 ?>
-
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Collection POS</title>
+    <title>Collection POS — <?php echo htmlspecialchars($branch); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <!-- Google Fonts for fancy styling -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
-    <!-- jQuery first -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.4/css/jquery.dataTables.css">
-    <!-- DataTables JS -->
-    <script type="text/javascript" src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.js"></script>
-    <!-- DataTables Responsive CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.2.6/css/responsive.bootstrap4.min.css">
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+    <link rel="stylesheet" href="modern-bottom-nav.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         :root {
-            --primary:   #2563eb;
+            --primary: #4f46e5;
+            --primary-blue: #2563eb;
             --primary-dark: #1d4ed8;
-            --accent:    #f59e0b;
-            --danger:    #ef4444;
-            --success:   #22c55e;
-            --surface:   #ffffff;
-            --surface2:  #f1f5f9;
-            --border:    #e2e8f0;
-            --text:      #1e293b;
-            --text-muted:#64748b;
-            --nav-h:     56px;
-            --bot-h:     68px;
+            --gradient: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --bg: #f1f5f9;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --emerald: #059669;
+            --amber: #d97706;
+            --sky: #0284c7;
+            --rose: #e11d48;
+            --violet: #7c3aed;
+            --nav-h: 58px;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --shadow-card: 0 2px 12px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.04);
+            --shadow-hover: 0 10px 26px rgba(37, 99, 235, 0.12);
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            overflow-x: hidden;
+        }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--surface2);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.06) 0px, transparent 48%),
+                radial-gradient(at 100% 0%, rgba(79, 70, 229, 0.05) 0px, transparent 42%);
             color: var(--text);
             margin: 0;
             padding: 0;
-            padding-top: var(--nav-h);
-            padding-bottom: calc(var(--bot-h) + env(safe-area-inset-bottom, 0px));
+            padding-top: calc(var(--nav-h) + 10px);
+            padding-bottom: calc(102px + env(safe-area-inset-bottom, 0px)) !important;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* â”€â”€ TOP NAV â”€â”€ */
+        /* ── MOBILE TOP BAR ── */
         .top-bar {
             position: fixed;
             top: 0; left: 0; right: 0;
             height: var(--nav-h);
-            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #4f46e5 100%);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 14px;
-            box-shadow: 0 2px 12px rgba(37,99,235,.35);
+            padding: 0 12px;
+            box-shadow: 0 4px 16px rgba(30, 58, 138, 0.25);
             z-index: 100;
+            gap: 8px;
         }
         .top-bar .brand {
-            display: flex; align-items: center; gap: 8px; color: #fff;
-        }
-        .top-bar .brand i { font-size: 20px; opacity:.9; }
-        .top-bar .brand-name { font-size: 16px; font-weight: 700; letter-spacing: .3px; }
-        .top-bar .brand-sub  { font-size: 10px; font-weight: 500; opacity:.75; margin-top:-2px; }
-        .top-bar .user-pill {
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(255,255,255,.15);
-            border-radius: 20px; padding: 4px 10px 4px 6px;
-            cursor: pointer; border: none; color: #fff;
-            font-family: inherit;
-        }
-        .top-bar .user-pill i { font-size: 18px; }
-        .top-bar .user-pill span { font-size: 12px; font-weight: 600; }
-
-        /* â”€â”€ BOTTOM NAV â”€â”€ */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            height: var(--bot-h);
-            background: #fff;
-            border-top: 1px solid var(--border);
             display: flex;
-            align-items: stretch;
-            box-shadow: 0 -4px 20px rgba(0,0,0,.08);
-            z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom, 0px);
+            align-items: center;
+            gap: 9px;
+            color: #fff;
+            min-width: 0;
         }
-        .bot-btn {
-            flex: 1;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 3px;
-            background: none; border: none;
-            font-family: inherit; cursor: pointer;
-            color: var(--text-muted);
-            transition: color .2s, background .2s;
-            text-decoration: none;
-            padding: 0 2px;
-            font-size: 10px; font-weight: 600;
-            letter-spacing: .2px;
-            position: relative;
+        .top-bar .brand-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
         }
-        .bot-btn i { font-size: 19px; transition: transform .2s; }
-        .bot-btn:active i { transform: scale(0.9); }
-        .bot-btn { font-size: 9px; gap: 2px; padding: 0 1px; }
-        
-        /* Icon Colors */
-        .bot-btn.tx-btn i { color: #3b82f6; }
-        .bot-btn.sum-btn i { color: #8b5cf6; }
-        .bot-btn.dup-btn i { color: #f43f5e; }
-        .bot-btn.new-btn i { color: #10b981; }
-        .bot-btn.mon-btn i { color: #f59e0b; }
-        .bot-btn.void-btn i { color: #ef4444; }
-        .bot-btn.print-btn i { color: #0ea5e9; }
-        .bot-btn.stop-btn i { color: #64748b; }
-
-        .bot-btn.active { border-bottom: 3px solid var(--primary); }
-        .bot-btn.active.tx-btn { border-color: #3b82f6; }
-        .bot-btn.active.mon-btn { border-color: #f59e0b; }
-        .bot-btn.active.void-btn { border-color: #ef4444; }
-        .bot-btn.active.new-btn { border-color: #10b981; }
-        .bot-btn.active.print-btn { border-color: #0ea5e9; }
-
-        .badge {
-            position: absolute; top: 4px; left: 50%; margin-left: 8px;
-            background: #ef4444; color: #fff; font-size: 10px; font-weight: 800;
-            min-width: 17px; height: 17px; border-radius: 999px; padding: 0 4px;
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid #fff;
-            z-index: 10;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        .top-bar .brand-name {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            line-height: 1.15;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-
-        /* STATUS BUBBLE */
-        .status-bubble {
-            position: relative;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 700;
+        .top-bar .brand-sub {
+            font-size: 10.5px;
+            font-weight: 600;
+            opacity: 0.85;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-shrink: 0;
+        }
+        .mobile-live-pill {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            margin-top: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            transition: all .2s;
+            background: rgba(255, 255, 255, 0.96);
+            color: #1e3a8a;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
         }
-        .status-bubble::after {
-            content: '';
-            position: absolute;
-            top: -6px;
-            left: 12px;
-            border-width: 0 6px 6px 6px;
-            border-style: solid;
-            border-color: transparent transparent currentColor transparent;
-            opacity: 0.15;
-        }
-        .status-paid { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .status-unpaid { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-
-        /* ── FORM CARD ── */
-        .pos-card {
-            background: var(--surface);
-            border-radius: 16px;
-            box-shadow: 0 1px 8px rgba(0,0,0,.07);
-            overflow: hidden;
-        }
-
-        /* ── INPUTS & LABELS ── */
-        .pos-input {
-            width: 100%;
-            height: 48px !important;
-            border: 1.5px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 14px !important;
-            font-size: 15px !important;
+        .top-bar .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 999px;
+            padding: 5px 10px 5px 7px;
+            cursor: pointer;
+            color: #fff;
             font-family: inherit;
-            background: var(--surface);
-            color: var(--text);
-            transition: border-color .2s, box-shadow .2s;
-            outline: none;
-            -webkit-appearance: none;
-            box-sizing: border-box;
         }
-        .pos-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37,99,235,.15);
-        }
-        .pos-input-small {
-            padding: 8px 10px !important;
-            font-size: 14px !important;
-            height: 40px !important;
+        .top-bar .user-pill i { font-size: 15px; }
+        .top-bar .user-pill span { font-size: 11.5px; font-weight: 700; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ── SHELL & WORKSPACE GRID ── */
+        .pos-page-wrap {
+            padding: 0 12px;
+            max-width: 1360px;
+            margin: 0 auto;
         }
 
-        /* ── FIELD WITH LEFT-ALIGNED NOTCHED BORDER LABEL ── */
+        .pos-desktop-header {
+            display: none;
+        }
+
+        .pos-workspace-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .pos-main-col {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .pos-summary-col {
+            min-width: 0;
+        }
+
+        @media (min-width: 1024px) {
+            body {
+                padding-top: 20px !important;
+                padding-bottom: 32px !important;
+                padding-left: 260px !important;
+            }
+            .top-bar {
+                display: none !important;
+            }
+            .pos-page-wrap {
+                padding: 0 26px;
+            }
+            .pos-desktop-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-lg);
+                padding: 14px 20px;
+                margin-bottom: 18px;
+                box-shadow: var(--shadow-card);
+            }
+            .pos-workspace-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1.55fr) 390px;
+                gap: 20px;
+                align-items: start;
+                max-width: 100%;
+            }
+            .pos-summary-col {
+                position: sticky;
+                top: 20px;
+            }
+        }
+
+        @media (min-width: 1320px) {
+            .pos-workspace-grid {
+                grid-template-columns: minmax(0, 1.65fr) 415px;
+            }
+        }
+
+        /* ── DESKTOP HEADER ELEMENTS ── */
+        .dh-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .dh-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            background: var(--gradient);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
+        }
+        .dh-title {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin: 0;
+            line-height: 1.2;
+        }
+        .dh-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 3px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .dh-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #eef2ff;
+            color: #4338ca;
+        }
+        .dh-chip-slate {
+            background: #f1f5f9;
+            color: #475569;
+        }
+        .dh-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .progress-widget {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 8px 14px;
+        }
+        .progress-widget-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .progress-widget-val {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+        .progress-bar-track {
+            width: 84px;
+            height: 6px;
+            border-radius: 999px;
+            background: #e2e8f0;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #10b981, #2563eb);
+            border-radius: 999px;
+            transition: width 0.4s ease;
+        }
+        .btn-ghost-reset {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 14px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-ghost-reset:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            color: var(--rose);
+        }
+
+        /* ── POS SECTION CARDS ── */
+        .pos-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 16px;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        @media (min-width: 1024px) {
+            .pos-panel {
+                padding: 18px 20px;
+            }
+        }
+        .pos-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .pos-panel-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+        .pos-panel-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .icon-indigo { background: #eef2ff; color: #4f46e5; }
+        .icon-emerald { background: #ecfdf5; color: #059669; }
+        .icon-amber { background: #fffbeb; color: #d97706; }
+        .icon-sky { background: #f0f9ff; color: #0284c7; }
+
+        /* ── DATE & SHIFT STRIP ── */
+        .date-bar {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #4f46e5 100%);
+            border-radius: var(--radius-lg);
+            padding: 12px 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+        }
+        @media (min-width: 1024px) {
+            .date-bar {
+                grid-template-columns: 1fr 1fr auto;
+                align-items: end;
+                padding: 14px 18px;
+                gap: 14px;
+            }
+        }
+        .date-bar label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(255, 255, 255, 0.8);
+            display: block;
+            margin-bottom: 4px;
+        }
+        .date-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .date-bar input {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 8px 32px 8px 11px;
+            font-family: inherit;
+            outline: none;
+            width: 100%;
+            min-height: 40px;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .date-bar input:focus {
+            background: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.65);
+        }
+        .date-bar input[type="date"],
+        .date-bar input[type="time"] {
+            color-scheme: dark;
+            cursor: pointer;
+        }
+        .date-bar input[type="date"]::-webkit-calendar-picker-indicator,
+        .date-bar input[type="time"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            right: 0; top: 0;
+            width: 100%; height: 100%;
+            margin: 0; padding: 0;
+            opacity: 0; cursor: pointer;
+        }
+        .date-bar-meta {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.88);
+            padding-top: 2px;
+        }
+        @media (min-width: 1024px) {
+            .date-bar-meta {
+                grid-column: auto;
+                flex-direction: column;
+                align-items: flex-end;
+                justify-content: center;
+                padding-top: 0;
+                min-width: 120px;
+            }
+        }
+
+        /* ── FORM FIELDS & INPUTS ── */
         .pos-field {
             position: relative;
-            margin-top: 10px;
+            margin-top: 4px;
         }
-        .pos-field .pos-label {
-            position: absolute;
-            top: 0;
-            left: 12px;
-            transform: translateY(-50%);
-            background: var(--surface, #ffffff);
-            padding: 0 6px;
+        .field-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 5px;
+        }
+        .field-label {
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: .5px;
-            color: var(--text-muted, #64748b);
-            white-space: nowrap;
-            z-index: 2;
-            pointer-events: none;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
             display: inline-flex;
             align-items: center;
-            border-radius: 4px;
-            line-height: 1.2;
-            margin-bottom: 0;
+            gap: 5px;
+            margin: 0;
         }
-        .pos-field .pos-label i { font-size: 9px; }
-        .pos-field .pos-label-yellow { background: #fefce8 !important; }
-        .pos-field .pos-label-blue { background: #eff6ff !important; }
+        .input-shell {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-prefix-icon {
+            position: absolute;
+            left: 12px;
+            font-size: 13px;
+            color: #94a3b8;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .input-currency-prefix {
+            position: absolute;
+            left: 12px;
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #64748b;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .pos-input {
+            width: 100%;
+            height: 46px;
+            border: 1.5px solid var(--border);
+            border-radius: 11px;
+            padding: 10px 13px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text);
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+            outline: none;
+            -webkit-appearance: none;
+            font-variant-numeric: tabular-nums;
+        }
+        .pos-input.has-icon {
+            padding-left: 35px;
+        }
+        .pos-input.has-currency {
+            padding-left: 28px;
+        }
+        .pos-input:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.14);
+            background: #ffffff;
+        }
+        .pos-input[readonly]:not(.is-select-trigger) {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            color: #334155;
+            cursor: default;
+        }
+        .pos-input[readonly]:not(.is-select-trigger):focus {
+            box-shadow: none;
+            border-color: #cbd5e1;
+        }
+        .pos-input::placeholder {
+            color: #94a3b8;
+            font-weight: 500;
+            font-size: 13px;
+        }
 
-        .pos-field .pos-input {
-            height: 48px !important;
-            padding: 12px 14px !important;
-            font-size: 15px !important;
-            text-align: left;
-            border-radius: 10px;
-            box-sizing: border-box;
+        /* Ledger Mini Tiles inside Tenant Panel */
+        .ledger-group {
+            border-radius: 13px;
+            padding: 11px;
+            border: 1px solid var(--border);
+            background: #f8fafc;
         }
-        .pos-field select.pos-input {
-            text-align-last: left;
-            height: 48px !important;
-            padding: 10px 14px !important;
-            font-size: 15px !important;
+        .ledger-group-amber {
+            background: #fffbeb;
+            border-color: #fde68a;
         }
-
-        .pos-label {
-            font-size: 12px;
-            font-weight: 700;
+        .ledger-group-sky {
+            background: #f0f9ff;
+            border-color: #bae6fd;
+        }
+        .ledger-group-title {
+            font-size: 11px;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: .6px;
+            letter-spacing: 0.06em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #475569;
+        }
+        .ledger-group-amber .ledger-group-title { color: #92400e; }
+        .ledger-group-sky .ledger-group-title { color: #075985; }
+        .ledger-group .pos-input {
+            height: 40px;
+            font-size: 14px;
+            padding: 8px 10px;
+            border-radius: 9px;
+        }
+
+        /* Quick Fill Chips */
+        .quick-fill-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 700;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .quick-fill-chip:hover {
+            background: #dbeafe;
+            transform: translateY(-1px);
+        }
+        .quick-fill-chip:active { transform: scale(0.95); }
+        .quick-fill-chip.hidden { display: none; }
+
+        .btn-fill-all {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-size: 11.5px;
+            font-weight: 700;
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-fill-all:hover { background: #d1fae5; }
+        .btn-fill-all.hidden { display: none; }
+
+        /* Status Bubble */
+        .status-bubble {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            margin-top: 8px;
+        }
+        .status-bubble.hidden { display: none !important; }
+        .status-paid {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+        .status-unpaid {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* ── SPACECODE AUTOCOMPLETE ── */
+        #spacecode-suggestions {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1.5px solid #93c5fd;
+            border-radius: 13px;
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+            z-index: 60;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .space-suggestion-item {
+            padding: 11px 14px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.12s;
+        }
+        .space-suggestion-item:last-child { border-bottom: none; }
+        .space-suggestion-item:hover,
+        .space-suggestion-item:active {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        /* ── SEGMENTED PAYMENT METHOD TOGGLE ── */
+        .method-segment {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .method-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            height: 40px;
+            border-radius: 9px;
+            border: none;
+            background: transparent;
             color: var(--text-muted);
-            margin-bottom: 6px;
-            display: flex; align-items: center; gap: 5px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            font-family: inherit;
         }
-        .pos-label i { color: var(--primary); }
-
-        /* Modal Z-Index Overlap Fix */
-        #confirmationModal, #welcomeModal, #logoutConfirmModal, #viewTransactionsModal, #duplicatedTransactionsModal {
-            z-index: 99999 !important;
+        .method-btn.active {
+            background: #ffffff;
+            color: var(--primary-blue);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+        }
+        .sr-only-select {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 1px;
+            height: 1px;
         }
 
-        /* ── CUSTOM SEARCHABLE DROPDOWN ── */
+        /* ── CUSTOM SEARCHABLE DROPDOWN (CHARGES) ── */
         .custom-select {
             position: relative;
         }
         .custom-select .dropdown-menu {
             position: absolute;
-            top: calc(100% + 4px);
+            top: calc(100% + 5px);
             left: 0;
             width: 100%;
-            min-width: 240px;
-            max-width: 300px;
+            min-width: 220px;
             background: #ffffff;
             border: 1.5px solid #93c5fd;
-            border-radius: 12px;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18), 0 4px 10px rgba(0, 0, 0, 0.08);
-            z-index: 1050 !important;
+            border-radius: 13px;
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+            z-index: 65 !important;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -490,12 +944,11 @@ if (isset($conn) && $conn) {
             padding: 8px 10px;
             background: #eff6ff;
             border-bottom: 1px solid #dbeafe;
-            position: relative;
         }
         .custom-select .search-input {
             width: 100%;
-            padding: 6px 10px;
-            font-size: 12px;
+            padding: 7px 10px;
+            font-size: 13px;
             background: #ffffff;
             border: 1px solid #bfdbfe;
             border-radius: 8px;
@@ -505,38 +958,25 @@ if (isset($conn) && $conn) {
         }
         .custom-select .search-input:focus {
             border-color: #2563eb;
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-        }
-        .custom-select .search-icon {
-            position: absolute;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 11px;
-            color: #60a5fa;
-            pointer-events: none;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
         }
         .custom-select .dropdown-options {
-            max-height: 200px;
+            max-height: 210px;
             overflow-y: auto;
             background: #ffffff;
         }
         .custom-select .dropdown-option {
-            padding: 9px 12px;
-            font-size: 12px;
+            padding: 10px 13px;
+            font-size: 13px;
             color: #334155;
             cursor: pointer;
-            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid #f8fafc;
+            transition: background 0.12s;
         }
-        .custom-select .dropdown-option:last-child {
-            border-bottom: none;
-        }
-        .custom-select .dropdown-option:hover,
-        .custom-select .dropdown-option:active {
+        .custom-select .dropdown-option:hover {
             background: #eff6ff;
             color: #1d4ed8;
             font-weight: 600;
@@ -547,479 +987,770 @@ if (isset($conn) && $conn) {
             font-weight: 700;
         }
         .custom-select .dropdown-clear {
-            padding: 8px 12px;
-            font-size: 12px;
+            padding: 9px 13px;
+            font-size: 12.5px;
             font-weight: 700;
-            color: #ef4444;
+            color: #e11d48;
             cursor: pointer;
-            background: #fff5f5;
-            border-bottom: 1px solid #fee2e2;
+            background: #fff1f2;
+            border-bottom: 1px solid #ffe4e6;
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: all 0.15s;
-        }
-        .custom-select .dropdown-clear:hover {
-            background: #fee2e2;
         }
 
-        /* ── SECTION DIVIDER ── */
-        .section-divider {
-            display: flex; align-items: center;
-            margin: 12px 0 6px;
-        }
-        .section-divider::before, .section-divider::after {
-            content: ''; flex: 1;
-            border-bottom: 2px solid #60a5fa; /* More visible blue line */
-        }
-        .section-divider-label {
-            padding: 0 14px;
-            font-size: 12px; font-weight: 800;
-            color: var(--primary);
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-
-        /* â”€â”€ SUMMARY BOXES â”€â”€ */
-        .info-box {
-            border-radius: 12px;
-            padding: 14px;
+        /* ── STICKY LIVE RECEIPT / SUMMARY PANEL ── */
+        .receipt-card {
             background: var(--surface);
-            box-shadow: 0 1px 6px rgba(0,0,0,.07);
-            display: flex; align-items: center; gap: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
         }
-        .info-box .ib-icon {
-            width: 40px; height: 40px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
+        .receipt-head {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
         }
-        .info-label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-        .info-value {
-            font-size: 20px; font-weight: 800;
-            color: var(--text); line-height: 1.1;
+        .receipt-head-title {
+            font-size: 13.5px;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .info-content { flex: 1; }
-
-        /* â”€â”€ COLLECTION DATE BAR â”€â”€ */
-        .date-bar {
-            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        .receipt-badge {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.25);
+            border: 1px solid rgba(96, 165, 250, 0.4);
+            color: #93c5fd;
+            font-variant-numeric: tabular-nums;
+        }
+        .receipt-body {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .receipt-tenant-box {
+            background: #f8fafc;
+            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 12px 16px;
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 10px; color: #fff;
+            padding: 11px 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
         }
-        .date-bar label {
-            font-size: 10px; font-weight: 700;
-            text-transform: uppercase; letter-spacing: 1px;
-            opacity: .8; display: block; margin-bottom: 2px;
+        .receipt-tenant-name {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1.2;
         }
-        .date-bar input {
-            background: rgba(255,255,255,.15);
-            border: 1px solid rgba(255,255,255,.25);
-            border-radius: 8px; color: #fff;
-            font-size: 14px; font-weight: 600;
-            padding: 6px 9px;
-            font-family: inherit; outline: none;
-            width: 100%;
+        .receipt-tenant-sub {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 2px;
         }
-        .date-bar input:focus { border-color: rgba(255,255,255,.6); }
-        .date-bar input[type="date"],
-        .date-bar input[type="time"] {
-            color-scheme: dark;
-            min-height: 38px;
-            cursor: pointer;
+        .receipt-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            max-height: 220px;
+            overflow-y: auto;
         }
-        .date-bar input[type="date"]::-webkit-calendar-picker-indicator,
-        .date-bar input[type="time"]::-webkit-calendar-picker-indicator {
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            opacity: 0;
-            cursor: pointer;
+        .receipt-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12.5px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .receipt-line:last-child { border-bottom: none; padding-bottom: 0; }
+        .receipt-line-label { color: var(--text-secondary); font-weight: 600; }
+        .receipt-line-val { font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+
+        .projected-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .projected-tile {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+        .projected-tile-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+        .projected-tile-val {
+            font-size: 13px;
+            font-weight: 800;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
         }
 
-        /* â”€â”€ SUBMIT BUTTON â”€â”€ */
+        .total-hero-box {
+            background: var(--gradient);
+            border-radius: 14px;
+            padding: 14px 16px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+        }
+        .total-hero-lbl {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.85;
+        }
+        .total-hero-amt {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.1;
+            margin-top: 2px;
+        }
+
         .submit-btn {
             width: 100%;
-            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: #fff;
-            border: none; border-radius: 14px;
-            padding: 16px;
-            font-size: 17px; font-weight: 700;
-            font-family: inherit; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 4px 14px rgba(37,99,235,.4);
-            transition: transform .15s, box-shadow .15s;
-            letter-spacing: .3px;
-        }
-        .submit-btn:active { transform: scale(.97); box-shadow: 0 2px 6px rgba(37,99,235,.3); }
-
-        /* â”€â”€ ADD CHARGE BUTTON â”€â”€ */
-        .pos-button {
-            border-radius: 10px;
-            transition: all .2s;
-            font-weight: 600;
+            border: none;
+            border-radius: 13px;
+            padding: 15px 18px;
+            font-size: 15.5px;
+            font-weight: 800;
             font-family: inherit;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            box-shadow: 0 6px 18px rgba(5, 150, 105, 0.3);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
         }
-        .pos-button:active { transform: scale(.97); }
+        .submit-btn:hover {
+            filter: brightness(1.04);
+            box-shadow: 0 8px 22px rgba(5, 150, 105, 0.38);
+        }
+        .submit-btn:active { transform: scale(0.98); }
 
-        /* â”€â”€ MOBILE MODAL â”€â”€ */
+        .btn-add-charge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px dashed #93c5fd;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-add-charge:hover {
+            background: #dbeafe;
+            border-style: solid;
+        }
+
+        /* ── MODALS & SIDE DRAWER ── */
+        #confirmationModal, #welcomeModal, #logoutConfirmModal, #viewTransactionsModal, #duplicatedTransactionsModal {
+            z-index: 99999 !important;
+        }
         .mobile-modal {
             max-height: 92vh;
             overflow-y: auto;
             border-radius: 20px;
-            animation: slideUp .25s ease-out;
+            animation: slideUp 0.22s ease-out;
         }
         @keyframes slideUp {
-            from { transform: translateY(40px); opacity: 0; }
+            from { transform: translateY(24px); opacity: 0; }
             to   { transform: translateY(0); opacity: 1; }
         }
-
-        /* â”€â”€ SIDE DRAWER â”€â”€ */
-        .side-menu {
-            background: linear-gradient(180deg, #1e3a8a 0%, #2563eb 100%);
-        }
-
-        /* â”€â”€ ANIMATIONS â”€â”€ */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        .animate-fadeIn { animation: fadeIn .4s ease-out; }
-
-        /* â”€â”€ TOGGLE â”€â”€ */
-        .toggle-switch { position:relative; display:inline-block; width:50px; height:24px; }
-        .toggle-switch input { opacity:0; width:0; height:0; }
-        .toggle-slider {
-            position:absolute; cursor:pointer;
-            top:0;left:0;right:0;bottom:0;
-            background:#ccc; transition:.4s; border-radius:24px;
-        }
-        .toggle-slider:before {
-            position:absolute; content:"";
-            height:16px; width:16px; left:4px; bottom:4px;
-            background:#fff; transition:.4s; border-radius:50%;
-        }
-        input:checked + .toggle-slider { background:var(--primary); }
-        input:checked + .toggle-slider:before { transform:translateX(26px); }
-
-        /* â”€â”€ DATATABLE FIX â”€â”€ */
-        .dataTables_wrapper .dataTables_filter input {
-            border:1px solid var(--border); border-radius:8px; padding:6px 10px;
+        .animate-fadeIn { animation: fadeIn 0.32s ease-out; }
+        .side-menu {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
         }
 
-        /* â”€â”€ SPACECODE SUGGESTIONS â”€â”€ */
-        #spacecode-suggestions .cursor-pointer {
-            padding: 12px 16px;
-            font-size: 15px;
-            border-bottom: 1px solid var(--border);
+        /* Custom Confirmation Modal Badges */
+        .cm-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
-        #spacecode-suggestions .cursor-pointer:last-child { border-bottom: none; }
-        #spacecode-suggestions .cursor-pointer:active { background: #dbeafe; }
-
-        /* â”€â”€ MISC â”€â”€ */
-        .collection-date-label { display:none; }
-        .collection-date-center { display:block; }
+        .cm-badge-cash { background: #dcfce7; color: #166534; }
+        .cm-badge-cheque { background: #fef3c7; color: #92400e; }
     </style>
-
-<link rel="stylesheet" href="modern-bottom-nav.css">
 </head>
 <body>
 
-    <!-- TOP BAR -->
+    <!-- MOBILE TOP BAR (hidden on desktop >= 1024px via modern-bottom-nav.css) -->
     <nav class="top-bar">
         <div class="brand">
-            <i class="fas fa-cash-register"></i>
-            <div>
-                <div class="brand-name">
-                    <?php
-                    if ($branch === 'Sanko Market') echo 'Sanko Market';
-                    else echo htmlspecialchars($branch);
-                    ?>
+            <div class="brand-icon">
+                <i class="fas fa-cash-register"></i>
+            </div>
+            <div style="min-width:0;">
+                <div class="brand-name"><?php echo htmlspecialchars($branch); ?></div>
+                <div class="brand-sub">
+                    <span>POS</span>
+                    <span>&bull;</span>
+                    <span>#<?php echo $nextReceiptDisplay; ?></span>
                 </div>
-                <div class="brand-sub">Collection POS</div>
             </div>
         </div>
-        <button class="user-pill" id="burger-menu-btn">
-            <i class="fas fa-user-circle"></i>
-            <span><?php echo htmlspecialchars($username); ?></span>
-            <i class="fas fa-chevron-down" style="font-size:10px;opacity:.7"></i>
-        </button>
+        <div class="top-bar-right">
+            <div class="mobile-live-pill" title="Current Total Collection">
+                <span style="font-size:10px;opacity:0.65;">TOT</span>
+                <span id="mobileHeaderTotal">&#x20B1;0.00</span>
+            </div>
+            <button class="user-pill" id="burger-menu-btn" type="button">
+                <i class="fas fa-user-circle"></i>
+                <span><?php echo htmlspecialchars($username); ?></span>
+                <i class="fas fa-chevron-down" style="font-size:9px;opacity:.75;"></i>
+            </button>
+        </div>
     </nav>
 
-    <!-- SIDE DRAWER -->
+    <!-- MOBILE SIDE DRAWER -->
     <div id="side-nav" class="hidden fixed inset-0 z-50">
         <div class="flex h-full">
             <div id="side-nav-backdrop" class="bg-black opacity-50 flex-1 h-full"></div>
             <div class="side-menu w-72 h-full transform transition-transform duration-300 ease-in-out translate-x-full ml-auto">
-                <div class="flex justify-between items-center p-4 border-b border-blue-800">
+                <div class="flex justify-between items-center p-4" style="border-bottom: 1px solid rgba(255,255,255,0.08);">
                     <div class="flex items-center gap-3">
-                        <i class="fas fa-user-circle text-white text-3xl"></i>
+                        <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">
+                            <i class="fas fa-user"></i>
+                        </div>
                         <div>
                             <div class="text-white font-bold"><?php echo htmlspecialchars($username); ?></div>
                             <div class="text-blue-200 text-xs"><?php echo htmlspecialchars($branch); ?></div>
                         </div>
                     </div>
-                    <button id="close-btn" class="text-white p-2 hover:bg-blue-800 rounded-full">
-                        <i class="fas fa-times text-xl"></i>
+                    <button id="close-btn" class="text-white p-2 rounded-full" type="button" style="background:rgba(255,255,255,0.08);">
+                        <i class="fas fa-times text-lg"></i>
                     </button>
                 </div>
                 <div class="flex flex-col mt-4 px-3 gap-1">
-                    <a href="user.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
+                    <a href="user.php" class="text-white text-sm font-semibold py-3 px-4 flex items-center gap-3 rounded-xl" style="background:rgba(59,130,246,0.22);">
                         <i class="fas fa-plus-circle w-5 text-center text-blue-300"></i> New Collection
                     </a>
-                    <a href="transactions.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
+                    <a href="transactions.php" class="text-gray-200 text-sm font-semibold py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-white hover:bg-opacity-10">
                         <i class="fas fa-list-ul w-5 text-center text-blue-300"></i> Transactions
                     </a>
-                    <a href="reprint.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
+                    <a href="reprint.php" class="text-gray-200 text-sm font-semibold py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-white hover:bg-opacity-10">
                         <i class="fas fa-print w-5 text-center text-blue-300"></i> Reprint Receipt
                     </a>
-                    <a href="void_transaction.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
+                    <a href="void_transaction.php" class="text-gray-200 text-sm font-semibold py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-white hover:bg-opacity-10">
                         <i class="fas fa-ban w-5 text-center text-yellow-300"></i> Void Transaction
                     </a>
-                    <a href="downloads/lclopez-collection.apk" download class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-blue-800">
+                    <a href="monitoring.php" class="text-gray-200 text-sm font-semibold py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-white hover:bg-opacity-10">
+                        <i class="fas fa-chart-pie w-5 text-center text-indigo-300"></i> Monitoring
+                    </a>
+                    <a href="downloads/lclopez-collection.apk" download class="text-gray-200 text-sm font-semibold py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-white hover:bg-opacity-10">
                         <i class="fas fa-download w-5 text-center text-green-300"></i> Download App
                     </a>
                 </div>
-                <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-800">
-                    <a href="index.php" class="text-white text-base py-3 px-4 flex items-center gap-3 rounded-xl hover:bg-red-700 transition">
-                        <i class="fas fa-sign-out-alt w-5 text-center text-red-300"></i> Logout
+                <div class="absolute bottom-0 left-0 right-0 p-4" style="border-top: 1px solid rgba(255,255,255,0.08);">
+                    <a href="logout.php" class="text-white text-sm font-bold py-3 px-4 flex items-center gap-3 rounded-xl" style="background:rgba(239,68,68,0.18);color:#fca5a5;">
+                        <i class="fas fa-sign-out-alt w-5 text-center"></i> Logout
                     </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="px-3 pt-3">
     <?php include 'modern_bottom_nav.php'; ?>
 
-        <form id="collectionForm" method="post" action="user.php" class="mx-auto animate-fadeIn w-full max-w-[520px] lg:max-w-full lg:pr-6">
+    <div class="pos-page-wrap animate-fadeIn">
+        <!-- DESKTOP WORKSTATION HEADER (visible >= 1024px) -->
+        <header class="pos-desktop-header">
+            <div class="dh-left">
+                <div class="dh-icon">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+                <div>
+                    <h1 class="dh-title">Collection POS Terminal</h1>
+                    <div class="dh-meta">
+                        <span class="dh-chip"><i class="fas fa-store"></i> <?php echo htmlspecialchars($branch); ?></span>
+                        <span class="dh-chip dh-chip-slate"><i class="fas fa-user"></i> <?php echo htmlspecialchars($username); ?></span>
+                        <span class="dh-chip dh-chip-slate"><i class="fas fa-hashtag"></i> Next Receipt #<?php echo $nextReceiptDisplay; ?></span>
+                    </div>
+                </div>
+            </div>
+            <div class="dh-right">
+                <div class="progress-widget" title="Today's Branch Collection Progress">
+                    <div>
+                        <div class="progress-widget-label">Today's Progress</div>
+                        <div class="progress-widget-val" id="desktopProgressText">Loading...</div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="desktopProgressFill"></div>
+                        </div>
+                    </div>
+                    <a href="monitoring.php" style="font-size:11px;font-weight:700;color:#2563eb;text-decoration:none;padding:5px 9px;background:#eff6ff;border-radius:8px;">
+                        View
+                    </a>
+                </div>
+                <button type="button" onclick="resetFullPosForm()" class="btn-ghost-reset" title="Clear all entered fields (Esc)">
+                    <i class="fas fa-rotate-left"></i> Reset Form
+                </button>
+            </div>
+        </header>
+
+        <form id="collectionForm" method="post" action="user.php" class="w-full">
             <input readonly hidden type="text" name="collector" id="collector" value="<?php echo htmlspecialchars($lname); ?>">
             <input name="branch" id="branch" type="hidden" value="<?php echo htmlspecialchars($branch); ?>">
 
-            <!-- DATE BAR -->
-            <div class="date-bar mb-4">
-                <div style="flex:1">
-                    <label for="collected_date_part">Collection Date</label>
-                    <div class="date-input-wrapper" style="position:relative; display:flex; align-items:center; cursor:pointer;">
-                        <input type="text" id="collected_date_part" name="collected_date_part"
-                            value="<?php echo date('Y-m-d'); ?>"
-                            onchange="updateDateTime(true)" oninput="updateDateTime(true)" style="padding-right:30px; cursor:pointer;">
-                        <i class="far fa-calendar" style="position:absolute; right:10px; color:#fff; pointer-events:none;"></i>
-                    </div>
-                </div>
-                <div style="flex:1">
-                    <label for="collected_time_part">Time</label>
-                    <div class="date-input-wrapper" style="position:relative; display:flex; align-items:center; cursor:pointer;">
-                        <input type="text" id="collected_time_part" name="collected_time_part"
-                            value="<?php echo date('H:i:s'); ?>" step="1"
-                            onchange="window.isManualTimeSet = true; updateDateTime(false);" oninput="window.isManualTimeSet = true; updateDateTime(false);" style="padding-right:30px; cursor:pointer;">
-                        <i class="far fa-clock" style="position:absolute; right:10px; color:#fff; pointer-events:none;"></i>
-                    </div>
-                </div>
-                <input type="hidden" id="collected_date" name="collected_date"
-                    value="<?php echo date('Y-m-d\TH:i:s'); ?>">
-            </div>
+            <div class="pos-workspace-grid">
+                <!-- LEFT / PRIMARY ENTRY COLUMN -->
+                <div class="pos-main-col">
 
-            <!-- Tenant Info Section -->
-            <div class="section-divider">
-                <div class="section-divider-label"><i class="fas fa-user-tag mr-2"></i>Tenant Information</div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="spacecode-input">Space Code</label>
-                    <div class="relative">
-                        <input required autocomplete="off"
-                            class="pos-input w-full"
-                            id="spacecode-input" type="text" name="spacecode" placeholder="Enter Space Code"
-                            oninput="suggestSpaceCode(this.value)">
-                        <span id="spacecode-error" class="text-red-500 text-sm"></span>
-                        <div id="payment-status-container" class="hidden">
-                            <i id="payment-status-icon" class="fas"></i>
-                            <span id="payment-status-text"></span>
+                    <!-- DATE & TIME BAR -->
+                    <div class="date-bar">
+                        <div>
+                            <label for="collected_date_part">Collection Date</label>
+                            <div class="date-input-wrapper">
+                                <input type="text" id="collected_date_part" name="collected_date_part"
+                                    value="<?php echo date('Y-m-d'); ?>"
+                                    onchange="updateDateTime(true)" oninput="updateDateTime(true)">
+                                <i class="far fa-calendar" style="position:absolute; right:11px; color:#fff; pointer-events:none; font-size:13px;"></i>
+                            </div>
                         </div>
-                        <div id="spacecode-suggestions" class="hidden absolute z-30 bg-white rounded-lg mt-1 shadow-lg w-full"></div>
+                        <div>
+                            <label for="collected_time_part">Time</label>
+                            <div class="date-input-wrapper">
+                                <input type="text" id="collected_time_part" name="collected_time_part"
+                                    value="<?php echo date('H:i:s'); ?>" step="1"
+                                    onchange="window.isManualTimeSet = true; updateDateTime(false);" oninput="window.isManualTimeSet = true; updateDateTime(false);">
+                                <i class="far fa-clock" style="position:absolute; right:11px; color:#fff; pointer-events:none; font-size:13px;"></i>
+                            </div>
+                        </div>
+                        <div class="date-bar-meta">
+                            <span id="mobileProgressText" class="lg:hidden"><i class="fas fa-chart-pie mr-1"></i> Today: ...</span>
+                            <span style="opacity:0.8;">Asia/Manila</span>
+                        </div>
+                        <input type="hidden" id="collected_date" name="collected_date" value="<?php echo date('Y-m-d\TH:i:s'); ?>">
                     </div>
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="tenantcode">Tenant Code</label>
-                    <input required class="pos-input w-full" id="tenantcode" type="text" name="tenantcode" placeholder="Enter Tenant Code">
-                </div>
-            </div>
 
-            <div class="pos-field mb-2">
-                <label class="pos-label" for="tenantname">Tenant Name</label>
-                <input required class="pos-input w-full font-bold text-gray-800" id="tenantname" type="text" name="tenantname" placeholder="Enter Tenant Name">
-            </div>
+                    <!-- CARD 1: TENANT LOOKUP & ACCOUNT LEDGER -->
+                    <section class="pos-panel">
+                        <div class="pos-panel-header">
+                            <div class="pos-panel-title">
+                                <span class="pos-panel-icon icon-indigo"><i class="fas fa-user-tag"></i></span>
+                                <span>Tenant Lookup &amp; Account Ledger</span>
+                            </div>
+                            <button type="button" onclick="resetFullPosForm()" class="quick-fill-chip" style="background:#f8fafc;color:#64748b;border-color:#e2e8f0;">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                        </div>
 
-            <!-- Rent Details Section -->
-            <div class="section-divider">
-                <div class="section-divider-label"><i class="fas fa-coins mr-2"></i>Rent Details</div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="rent">Daily Rent</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="rent" type="text" name="rent" placeholder="Enter Daily Rent" oninput="calculateNewBalance()">
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="rentbal">Rent Bal</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="rentbal" type="text" name="rentbal" placeholder="Enter Rent Bal" oninput="calculateNewBalance()">
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="runningbal">Arrear Bal</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="runningbal" type="text" name="runningbal" placeholder="Enter Arrear Bal" oninput="calculateNewBalance()">
-                </div>
-            </div>
-
-            <!-- Electricity Details Section -->
-            <div class="section-divider">
-                <div class="section-divider-label"><i class="fas fa-bolt text-yellow-500 mr-2"></i>Electricity Details</div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="elecarrear">Arrears</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="elecarrear" type="text" name="elecarrear" placeholder="0.00" readonly>
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="elecbal">Elec Bal</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="elecbal" type="text" name="elecbal" placeholder="0.00" readonly>
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label pos-label-yellow" for="electotal">Total Bal</label>
-                    <input class="pos-input w-full font-semibold text-xs sm:text-sm px-2 py-2 bg-yellow-50 text-yellow-800 border-yellow-200" id="electotal" type="text" name="electotal" placeholder="0.00" readonly>
-                </div>
-            </div>
-
-            <!-- Water Details Section -->
-            <div class="section-divider">
-                <div class="section-divider-label"><i class="fas fa-tint text-blue-500 mr-2"></i>Water Details</div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="waterarrear">Arrears</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="waterarrear" type="text" name="waterarrear" placeholder="0.00" readonly>
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="waterbal">Water Bal</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="waterbal" type="text" name="waterbal" placeholder="0.00" readonly>
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label pos-label-blue" for="watertotal">Total Bal</label>
-                    <input class="pos-input w-full font-semibold text-xs sm:text-sm px-2 py-2 bg-blue-50 text-blue-800 border-blue-200" id="watertotal" type="text" name="watertotal" placeholder="0.00" readonly>
-                </div>
-            </div>
-
-            <!-- Payment Section -->
-            <div class="section-divider">
-                <div class="section-divider-label"><i class="fas fa-hand-holding-usd mr-2"></i>Payment</div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="paidrent">Rent</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-green-700" id="paidrent" type="text" name="paidrent" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="paidbal">Rent Arrear</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-purple-700" id="paidbal" type="text" name="paidbal" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="paidelec">Electricity</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-yellow-800" id="paidelec" type="text" name="paidelec" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="paidelecarrear">Electricity Arrear</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-yellow-900" id="paidelecarrear" type="text" name="paidelecarrear" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="paidwater">Water</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-blue-800" id="paidwater" type="text" name="paidwater" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="paidwaterarrear">Water Arrear</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)"
-                        class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-bold text-blue-900" id="paidwaterarrear" type="text" name="paidwaterarrear" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-            </div>
-
-            <div class="pos-field mb-2">
-                <label class="pos-label" for="payment_method">Payment Method</label>
-                <select class="pos-input w-full text-xs sm:text-sm px-2 py-2 font-semibold" id="payment_method" name="payment_method" onchange="toggleChequeInput()" required>
-                    <option value="Cash" selected>Cash</option>
-                    <option value="Cheque">Cheque</option>
-                </select>
-            </div>
-            <div id="cheque_container" class="hidden grid grid-cols-2 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="cheque_number">Cheque Number</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="cheque_number" type="text" name="cheque_number" placeholder="Enter Cheque Number">
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="cheque_payee">Payee Name</label>
-                    <input class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="cheque_payee" type="text" name="cheque_payee" placeholder="Enter Payee Name">
-                </div>
-            </div>
-
-            <!-- Charges Section -->
-            <div class="section-divider">
-                <div class="section-divider-label"><i class="fas fa-file-invoice mr-2"></i>Additional Charges</div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div class="pos-field">
-                    <label class="pos-label" for="chargecusa">Cusa</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="chargecusa" type="text" name="chargecusa" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-                <div class="pos-field">
-                    <label class="pos-label" for="chargeac">Aircon</label>
-                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="chargeac" type="text" name="chargeac" placeholder="Enter Amount" inputmode="decimal">
-                </div>
-            </div>
-
-            <div class="mb-3 flex flex-col gap-2">
-                <div class="grid grid-cols-2 gap-2 items-end">
-                    <div class="pos-field">
-                        <label class="pos-label" for="chargeothers">Others</label>
-                        <div class="relative custom-select" id="initialChargeSelect">
-                            <input type="text" class="pos-input w-full cursor-pointer bg-white text-xs sm:text-sm px-2 py-2" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
-                            <input type="hidden" id="chargeothers" name="chargeothers[]">
-                            <div class="dropdown-menu hidden">
-                                <div class="search-box-wrap">
-                                    <input type="text" class="search-input" placeholder="Search charges...">
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                            <div class="pos-field col-span-1">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="spacecode-input">Space Code *</label>
                                 </div>
-                                <div class="dropdown-options"></div>
+                                <div class="relative">
+                                    <div class="input-shell">
+                                        <i class="fas fa-search input-prefix-icon"></i>
+                                        <input required autocomplete="off"
+                                            class="pos-input has-icon"
+                                            id="spacecode-input" type="text" name="spacecode" placeholder="Search space..."
+                                            oninput="suggestSpaceCode(this.value)">
+                                    </div>
+                                    <div id="spacecode-suggestions" class="hidden"></div>
+                                </div>
+                            </div>
+
+                            <div class="pos-field col-span-1">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="tenantcode">Tenant Code *</label>
+                                </div>
+                                <input required class="pos-input" id="tenantcode" type="text" name="tenantcode" placeholder="Tenant code">
+                            </div>
+
+                            <div class="pos-field col-span-2">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="tenantname">Tenant Name *</label>
+                                </div>
+                                <input required class="pos-input font-bold" id="tenantname" type="text" name="tenantname" placeholder="Full name will appear here">
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <span id="spacecode-error" class="text-xs font-semibold" style="color:#e11d48;"></span>
+                            <div id="payment-status-container" class="hidden status-bubble">
+                                <i id="payment-status-icon" class="fas"></i>
+                                <span id="payment-status-text"></span>
+                            </div>
+                        </div>
+
+                        <!-- Balances Grid -->
+                        <div class="ledger-group mb-3">
+                            <div class="ledger-group-title">
+                                <i class="fas fa-coins" style="color:#4f46e5;"></i> Rent Balances
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="field-label mb-1" for="rent" style="font-size:10px;">Daily Rent</label>
+                                    <input class="pos-input" id="rent" type="text" name="rent" placeholder="0.00" oninput="calculateNewBalance()">
+                                </div>
+                                <div>
+                                    <label class="field-label mb-1" for="rentbal" style="font-size:10px;">Rent Bal</label>
+                                    <input class="pos-input" id="rentbal" type="text" name="rentbal" placeholder="0.00" oninput="calculateNewBalance()">
+                                </div>
+                                <div>
+                                    <label class="field-label mb-1" for="runningbal" style="font-size:10px;">Arrear Bal</label>
+                                    <input class="pos-input" id="runningbal" type="text" name="runningbal" placeholder="0.00" oninput="calculateNewBalance()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="ledger-group ledger-group-amber">
+                                <div class="ledger-group-title">
+                                    <i class="fas fa-bolt" style="color:#d97706;"></i> Electricity Balances
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="field-label mb-1" for="elecarrear" style="font-size:10px;">Arrears</label>
+                                        <input class="pos-input" id="elecarrear" type="text" name="elecarrear" placeholder="0.00" readonly oninput="calculateNewBalance()">
+                                    </div>
+                                    <div>
+                                        <label class="field-label mb-1" for="elecbal" style="font-size:10px;">Current</label>
+                                        <input class="pos-input" id="elecbal" type="text" name="elecbal" placeholder="0.00" readonly oninput="calculateNewBalance()">
+                                    </div>
+                                    <div>
+                                        <label class="field-label mb-1" for="electotal" style="font-size:10px;color:#92400e;">Total</label>
+                                        <input class="pos-input font-bold" id="electotal" type="text" name="electotal" placeholder="0.00" readonly style="background:#fef3c7 !important;color:#78350f;border-color:#fcd34d !important;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ledger-group ledger-group-sky">
+                                <div class="ledger-group-title">
+                                    <i class="fas fa-tint" style="color:#0284c7;"></i> Water Balances
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="field-label mb-1" for="waterarrear" style="font-size:10px;">Arrears</label>
+                                        <input class="pos-input" id="waterarrear" type="text" name="waterarrear" placeholder="0.00" readonly oninput="calculateNewBalance()">
+                                    </div>
+                                    <div>
+                                        <label class="field-label mb-1" for="waterbal" style="font-size:10px;">Current</label>
+                                        <input class="pos-input" id="waterbal" type="text" name="waterbal" placeholder="0.00" readonly oninput="calculateNewBalance()">
+                                    </div>
+                                    <div>
+                                        <label class="field-label mb-1" for="watertotal" style="font-size:10px;color:#075985;">Total</label>
+                                        <input class="pos-input font-bold" id="watertotal" type="text" name="watertotal" placeholder="0.00" readonly style="background:#e0f2fe !important;color:#0c4a6e;border-color:#7dd3fc !important;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- CARD 2: PAYMENT ENTRY -->
+                    <section class="pos-panel">
+                        <div class="pos-panel-header">
+                            <div class="pos-panel-title">
+                                <span class="pos-panel-icon icon-emerald"><i class="fas fa-hand-holding-usd"></i></span>
+                                <span>Payment Collection</span>
+                            </div>
+                            <button type="button" id="fillAllDuesBtn" onclick="fillAllPendingDues()" class="btn-fill-all hidden">
+                                <i class="fas fa-magic"></i> Fill Dues
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="paidrent" style="color:#047857;">Rent</label>
+                                    <button type="button" id="qf-paidrent" class="quick-fill-chip hidden"></button>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                                        class="pos-input has-currency font-bold" style="color:#047857;"
+                                        id="paidrent" type="text" name="paidrent" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="paidbal" style="color:#6d28d9;">Rent Arrear</label>
+                                    <button type="button" id="qf-paidbal" class="quick-fill-chip hidden"></button>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                                        class="pos-input has-currency font-bold" style="color:#6d28d9;"
+                                        id="paidbal" type="text" name="paidbal" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="paidelec" style="color:#b45309;">Electricity</label>
+                                    <button type="button" id="qf-paidelec" class="quick-fill-chip hidden"></button>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                                        class="pos-input has-currency font-bold" style="color:#b45309;"
+                                        id="paidelec" type="text" name="paidelec" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="paidelecarrear" style="color:#92400e;">Elec Arrear</label>
+                                    <button type="button" id="qf-paidelecarrear" class="quick-fill-chip hidden"></button>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                                        class="pos-input has-currency font-bold" style="color:#92400e;"
+                                        id="paidelecarrear" type="text" name="paidelecarrear" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="paidwater" style="color:#0369a1;">Water</label>
+                                    <button type="button" id="qf-paidwater" class="quick-fill-chip hidden"></button>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                                        class="pos-input has-currency font-bold" style="color:#0369a1;"
+                                        id="paidwater" type="text" name="paidwater" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="paidwaterarrear" style="color:#075985;">Water Arrear</label>
+                                    <button type="button" id="qf-paidwaterarrear" class="quick-fill-chip hidden"></button>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)"
+                                        class="pos-input has-currency font-bold" style="color:#075985;"
+                                        id="paidwaterarrear" type="text" name="paidwaterarrear" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method Segmented Switch -->
+                        <div class="pos-field pt-1">
+                            <div class="field-top-row">
+                                <label class="field-label" for="payment_method">Payment Method</label>
+                            </div>
+                            <div class="method-segment" role="group" aria-label="Payment Method">
+                                <button type="button" class="method-btn active" id="methodBtnCash" onclick="setPaymentMethod('Cash')">
+                                    <i class="fas fa-money-bill-wave" style="color:#059669;"></i> Cash
+                                </button>
+                                <button type="button" class="method-btn" id="methodBtnCheque" onclick="setPaymentMethod('Cheque')">
+                                    <i class="fas fa-money-check" style="color:#d97706;"></i> Cheque
+                                </button>
+                            </div>
+                            <select class="sr-only-select" id="payment_method" name="payment_method" onchange="toggleChequeInput()" required tabindex="-1">
+                                <option value="Cash" selected>Cash</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
+
+                        <div id="cheque_container" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3" style="border-top: 1px dashed #e2e8f0;">
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="cheque_number">Cheque Number *</label>
+                                </div>
+                                <input class="pos-input" id="cheque_number" type="text" name="cheque_number" placeholder="Enter cheque #">
+                            </div>
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="cheque_payee">Payee Name *</label>
+                                </div>
+                                <input class="pos-input" id="cheque_payee" type="text" name="cheque_payee" placeholder="Enter payee name">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- CARD 3: ADDITIONAL CHARGES -->
+                    <section class="pos-panel">
+                        <div class="pos-panel-header">
+                            <div class="pos-panel-title">
+                                <span class="pos-panel-icon icon-sky"><i class="fas fa-file-invoice"></i></span>
+                                <span>Additional Charges</span>
+                            </div>
+                            <button type="button" id="addChargeButton" class="btn-add-charge">
+                                <i class="fas fa-plus"></i> Add Row
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="chargecusa">CUSA</label>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input has-currency" id="chargecusa" type="text" name="chargecusa" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+                            <div class="pos-field">
+                                <div class="field-top-row">
+                                    <label class="field-label" for="chargeac">Aircon</label>
+                                </div>
+                                <div class="input-shell">
+                                    <span class="input-currency-prefix">&#x20B1;</span>
+                                    <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input has-currency" id="chargeac" type="text" name="chargeac" placeholder="0.00" inputmode="decimal">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                            <div class="grid grid-cols-2 gap-3 items-end">
+                                <div class="pos-field">
+                                    <div class="field-top-row">
+                                        <label class="field-label" for="chargeothers">Other Charge</label>
+                                    </div>
+                                    <div class="relative custom-select" id="initialChargeSelect">
+                                        <input type="text" class="pos-input is-select-trigger cursor-pointer" placeholder="Select charge type" readonly onclick="openCustomSelect(this)" style="padding-right:32px;">
+                                        <i class="fas fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;color:#94a3b8;pointer-events:none;"></i>
+                                        <input type="hidden" id="chargeothers" name="chargeothers[]">
+                                        <div class="dropdown-menu hidden">
+                                            <div class="search-box-wrap">
+                                                <input type="text" class="search-input" placeholder="Search charges...">
+                                            </div>
+                                            <div class="dropdown-options"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="pos-field">
+                                    <div class="field-top-row">
+                                        <label class="field-label" for="otheramount">Amount</label>
+                                    </div>
+                                    <div class="input-shell">
+                                        <span class="input-currency-prefix">&#x20B1;</span>
+                                        <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input has-currency" id="otheramount" type="text" name="otheramount[]" placeholder="0.00" inputmode="decimal">
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="additionalChargesContainer" class="flex flex-col gap-3"></div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- RIGHT STICKY POS RECEIPT / CHECKOUT SUMMARY COLUMN -->
+                <aside class="pos-summary-col">
+                    <div class="receipt-card">
+                        <div class="receipt-head">
+                            <div class="receipt-head-title">
+                                <i class="fas fa-receipt" style="color:#60a5fa;"></i>
+                                <span>Live POS Summary</span>
+                            </div>
+                            <span class="receipt-badge">#<?php echo $nextReceiptDisplay; ?></span>
+                        </div>
+
+                        <div class="receipt-body">
+                            <!-- Active Tenant Strip -->
+                            <div class="receipt-tenant-box">
+                                <div style="min-width:0;">
+                                    <div class="receipt-tenant-name" id="liveTenantName">No tenant selected</div>
+                                    <div class="receipt-tenant-sub" id="liveTenantMeta">Search a space code to begin</div>
+                                </div>
+                                <span id="liveMethodChip" class="cm-badge cm-badge-cash">Cash</span>
+                            </div>
+
+                            <!-- Live Line Items -->
+                            <div>
+                                <div class="field-label mb-2" style="font-size:10px;">Itemized Collection</div>
+                                <div class="receipt-lines" id="liveSummaryItems">
+                                    <div style="font-size:12px;color:#94a3b8;font-style:italic;text-align:center;padding:10px 0;">
+                                        Enter payment amounts to preview receipt
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Projected Post-Payment Balances -->
+                            <div>
+                                <div class="field-label mb-2" style="font-size:10px;">Projected Balances After Payment</div>
+                                <div class="projected-grid">
+                                    <div class="projected-tile">
+                                        <div class="projected-tile-lbl">New Rent Bal</div>
+                                        <div class="projected-tile-val" id="liveNewRent" style="color:#334155;">&#x20B1;0.00</div>
+                                    </div>
+                                    <div class="projected-tile">
+                                        <div class="projected-tile-lbl">New Arrear Bal</div>
+                                        <div class="projected-tile-val" id="liveNewArrear" style="color:#334155;">&#x20B1;0.00</div>
+                                    </div>
+                                    <div class="projected-tile" style="background:#fffbeb;border-color:#fde68a;">
+                                        <div class="projected-tile-lbl" style="color:#92400e;">Elec Remaining</div>
+                                        <div class="projected-tile-val" id="liveNewElec" style="color:#78350f;">&#x20B1;0.00</div>
+                                    </div>
+                                    <div class="projected-tile" style="background:#f0f9ff;border-color:#bae6fd;">
+                                        <div class="projected-tile-lbl" style="color:#075985;">Water Remaining</div>
+                                        <div class="projected-tile-val" id="liveNewWater" style="color:#0c4a6e;">&#x20B1;0.00</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Grand Total Hero -->
+                            <div class="total-hero-box">
+                                <div>
+                                    <div class="total-hero-lbl">Total Collection</div>
+                                    <div class="total-hero-amt" id="liveGrandTotal">&#x20B1;0.00</div>
+                                </div>
+                                <div style="text-align:right;font-size:11px;font-weight:700;opacity:0.88;">
+                                    <div id="liveSummaryDate"><?php echo date('M d, Y'); ?></div>
+                                    <div id="liveSummaryCollector"><?php echo htmlspecialchars($username); ?></div>
+                                </div>
+                            </div>
+
+                            <!-- Submit & Reset CTA -->
+                            <div class="flex flex-col gap-2">
+                                <button class="submit-btn" type="submit" id="submitButton">
+                                    <i class="fas fa-check-circle"></i> Review &amp; Submit Payment
+                                </button>
+                                <button type="button" onclick="resetFullPosForm()" class="lg:hidden btn-ghost-reset" style="width:100%;justify-content:center;">
+                                    <i class="fas fa-rotate-left"></i> Clear Entry
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <div class="pos-field">
-                        <label class="pos-label" for="otheramount">Amount</label>
-                        <input oninput="formatNumberAndCalculateNewBalance(this)" class="pos-input w-full text-xs sm:text-sm px-2 py-2" id="otheramount" type="text" name="otheramount[]" placeholder="Enter Amount" inputmode="decimal">
-                    </div>
-                </div>
-                <div id="additionalChargesContainer" class="flex flex-col gap-2"></div>
-                <div class="flex justify-center">
-                    <button type="button" id="addChargeButton" class="pos-button bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-4 text-xs font-semibold border-none shadow transition-all rounded-lg">
-                        <i class="fas fa-plus mr-1.5"></i>Add Charges
-                    </button>
-                </div>
+                </aside>
             </div>
 
             <!-- Hidden Calculated Inputs for Form Submission -->
@@ -1030,93 +1761,68 @@ if (isset($conn) && $conn) {
             <input readonly hidden id="newelecarrear" type="text" name="newelecarrear" value="0">
             <input readonly hidden id="newwaterbal" type="text" name="newwaterbal" value="0">
             <input readonly hidden id="newwaterarrear" type="text" name="newwaterarrear" value="0">
-
-            <button class="submit-btn mt-2 mb-2" type="submit" id="submitButton">
-                <i class="fas fa-paper-plane"></i> Submit Payment
-            </button>
         </form>
     </div>
 
-
     <!-- Welcome Modal -->
-
     <div id="welcomeModal" class="fixed z-50 inset-0 overflow-y-auto hidden">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity">
-                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
-            <div class="mobile-modal inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 sm:mx-0 sm:h-14 sm:w-14">
-                            <!-- Welcome icon -->
-                            <i class="fas fa-handshake text-blue-600 text-2xl"></i>
-                        </div>
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900">Welcome, <?php echo htmlspecialchars($username); ?>!</h3>
-                            <div class="mt-2">
-                                <p class="text-sm text-gray-500">
-                                    Ready to process collections for <?php echo htmlspecialchars($branch); ?>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+            <div class="mobile-modal bg-white rounded-2xl p-6 max-w-sm w-full relative z-10 shadow-2xl text-center">
+                <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-2xl mb-4" style="background:#eff6ff;color:#2563eb;">
+                    <i class="fas fa-handshake text-2xl"></i>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button" onclick="document.getElementById('welcomeModal').classList.add('hidden')" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                        Close
-                    </button>
-                </div>
+                <h3 class="text-lg font-bold text-gray-900">Welcome, <?php echo htmlspecialchars($username); ?>!</h3>
+                <p class="text-sm text-gray-500 mt-1 mb-5">
+                    Ready to process collections for <?php echo htmlspecialchars($branch); ?>.
+                </p>
+                <button type="button" onclick="document.getElementById('welcomeModal').classList.add('hidden')" class="w-full py-2.5 px-4 rounded-xl text-white font-bold text-sm" style="background:var(--gradient);">
+                    Start Collecting
+                </button>
             </div>
         </div>
     </div>
 
-
-
     <!-- Confirmation Modal -->
-    <div id="confirmationModal" style="z-index: 99999;" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl p-4 sm:p-5 max-w-sm w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-gray-100 animate-fadeIn">
-            <!-- Modal Header -->
-            <div class="text-center pb-2 border-b border-gray-100 flex-shrink-0">
-                <h2 class="text-base sm:text-lg font-black text-gray-900 flex items-center justify-center gap-2">
-                    <i class="fas fa-receipt text-blue-600"></i> Payment Summary
+    <div id="confirmationModal" class="fixed inset-0 flex items-center justify-center hidden p-4" style="z-index: 99999; background: rgba(15, 23, 42, 0.68); backdrop-filter: blur(4px);">
+        <div class="bg-white rounded-2xl p-5 max-w-md w-full flex flex-col shadow-2xl overflow-hidden border border-gray-100 animate-fadeIn" style="max-height: 88vh;">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 flex-shrink-0">
+                <h2 class="text-base font-extrabold text-gray-900 flex items-center gap-2 m-0">
+                    <span style="width:30px;height:30px;border-radius:9px;background:#eff6ff;color:#2563eb;display:inline-flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-receipt"></i>
+                    </span>
+                    Confirm Payment Summary
                 </h2>
+                <span style="font-size:11px;font-weight:800;color:#64748b;">#<?php echo $nextReceiptDisplay; ?></span>
             </div>
-            
-            <!-- Scrollable Content -->
-            <div id="confirmationSummary" class="my-2.5 overflow-y-auto pr-1 flex-1 space-y-2 text-xs">
-                <!-- Dynamic content will be inserted here -->
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="flex justify-between gap-2.5 pt-2 border-t border-gray-100 flex-shrink-0">
-                <button type="button" id="cancelButton" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 px-3 rounded-xl flex-1 flex items-center justify-center text-xs transition active:scale-95">
-                    <i class="fas fa-arrow-left mr-1"></i> Edit
+
+            <div id="confirmationSummary" class="my-3 overflow-y-auto pr-1 flex-1 space-y-2.5 text-xs"></div>
+
+            <div class="flex justify-between gap-3 pt-3 border-t border-gray-100 flex-shrink-0">
+                <button type="button" id="cancelButton" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded-xl flex items-center justify-center text-xs transition">
+                    <i class="fas fa-arrow-left mr-1.5"></i> Edit
                 </button>
-                <button type="button" id="confirmButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl flex-1 flex items-center justify-center text-xs shadow-md shadow-blue-500/20 transition active:scale-95">
-                    <i class="fas fa-check mr-1"></i> Confirm & Submit
+                <button type="button" id="confirmButton" class="flex-1 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center text-xs shadow-lg transition" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <i class="fas fa-check mr-1.5"></i> Confirm &amp; Submit
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Logout Modern Modal -->
-    <div id="logoutConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] animate-fadeIn">
-        <div class="mobile-modal bg-white rounded-3xl p-8 max-w-[340px] w-full mx-4 shadow-2xl relative overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-50 rounded-full opacity-50"></div>
+    <div id="logoutConfirmModal" class="fixed inset-0 flex items-center justify-center hidden animate-fadeIn" style="z-index: 99999; background: rgba(15, 23, 42, 0.55);">
+        <div class="mobile-modal bg-white rounded-3xl p-8 max-w-xs w-full mx-4 shadow-2xl relative overflow-hidden">
             <div class="text-center relative z-10">
-                <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-2xl bg-red-500 mb-6 shadow-xl shadow-red-100">
-                    <i class="fas fa-sign-out-alt text-white text-3xl"></i>
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-red-500 mb-5 shadow-lg">
+                    <i class="fas fa-sign-out-alt text-white text-2xl"></i>
                 </div>
-                <h3 class="text-2xl font-black text-gray-900 mb-2">Going so soon?</h3>
-                <p class="text-gray-500 mb-8 px-2 font-medium">Are you sure you want to exit and end your collection session?</p>
-                
+                <h3 class="text-xl font-extrabold text-gray-900 mb-2">Going so soon?</h3>
+                <p class="text-gray-500 text-sm mb-6 font-medium">Are you sure you want to exit and end your collection session?</p>
                 <div class="flex flex-col gap-3">
-                    <a href="index.php" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fas fa-door-open mr-1"></i> YES, EXIT
+                    <a href="logout.php" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-2 text-sm">
+                        <i class="fas fa-door-open"></i> YES, EXIT
                     </a>
-                    <button onclick="hideLogoutModal()" class="w-full bg-gray-50 hover:bg-gray-100 text-gray-500 font-bold py-4 px-6 rounded-2xl transition-all active:scale-95">
+                    <button type="button" onclick="hideLogoutModal()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-3.5 px-6 rounded-2xl text-sm">
                         KEEP WORKING
                     </button>
                 </div>
@@ -1124,115 +1830,19 @@ if (isset($conn) && $conn) {
         </div>
     </div>
 
-    <script src="function.js"> </script>
-
+    <script src="function.js"></script>
     <script src="nav_badge.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
-    <!-- DataTables Responsive JS -->
-    <script src="https://cdn.datatables.net/responsive/2.2.6/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.2.6/js/responsive.bootstrap4.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
-        // Function to open transactions modal
-        function openModal() {
-            const vtModal = document.getElementById('viewTransactionsModal');
-            if (vtModal) {
-                vtModal.classList.remove('hidden');
-                fetchAndLoadTransactions();
-            }
-        }
-        
-        // Function to close modals
-        function closeModal() {
-            const vtModal = document.getElementById('viewTransactionsModal');
-            if (vtModal) vtModal.classList.add('hidden');
-            
-            const dtModal = document.getElementById('duplicatedTransactionsModal');
-            if (dtModal) dtModal.classList.add('hidden');
-        }
-
-        // Duplicate card builder
-        function fmtDate(d) {
-            const dt = new Date(d);
-            if (isNaN(dt)) return d;
-            return dt.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})
-                + ' ' + dt.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
-        }
-        function nFmt(v) {
-            return parseFloat(v||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
-        }
-        function getChargesTotal(chStr) {
-            if (!chStr || chStr === 'null') return 0;
-            let total = 0;
-            const parts = chStr.split(',');
-            for (let p of parts) {
-                const match = p.match(/:\s*([\d,.]+)/);
-                if (match) total += parseFloat(match[1].replace(/,/g, '')) || 0;
-            }
-            return total;
-        }
-        function buildDupCardUser(t) {
-            const cTotal = getChargesTotal(t.charges);
-            const total = parseFloat(t.paidrent||0) + parseFloat(t.paidbal||0) + cTotal;
-            const charges = t.charges && t.charges !== 'null' ? t.charges : '';
-            return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);border:1px solid #fee2e2;border-left:4px solid #dc2626;margin-bottom:0;overflow:hidden">
-                <div style="background:linear-gradient(135deg,#fff5f5,#fee2e2);padding:10px 14px 8px;border-bottom:1px solid #fecaca;display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                        <div style="font-size:15px;font-weight:700;color:#dc2626">#${t.transaction_number}</div>
-                        <div style="font-size:11px;color:#64748b">${fmtDate(t.collected_date)}</div>
-                    </div>
-                    <div style="font-size:14px;font-weight:800;color:#16a34a">&#x20B1;${nFmt(total)}</div>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:10px 14px 12px">
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Space</div><div style="font-size:13px;font-weight:600;color:#374151">${t.spacecode||'—'}</div></div>
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Code</div><div style="font-size:13px;font-weight:600;color:#374151">${t.tenantcode||'—'}</div></div>
-                    <div style="padding:4px"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Paid Rent</div><div style="font-size:13px;font-weight:700;color:#16a34a">&#x20B1;${nFmt(t.paidrent)}</div></div>
-                    ${charges ? `<div style="padding:4px;grid-column:1/-1"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Charges</div><div style="font-size:12px;color:#64748b">${charges}</div></div>` : ''}
-                    <div style="padding:4px;grid-column:1/-1"><div style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;margin-bottom:2px">Tenant</div><div style="font-size:14px;font-weight:600;color:#1e293b">${t.tenantname||'—'}</div></div>
-                </div>
-            </div>`;
-        }
-
-        // Wire the Dups nav button
-        document.addEventListener('DOMContentLoaded', function() {
-            const dupBtn = document.getElementById('notificationButton');
-            if (dupBtn) {
-                dupBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const modal = document.getElementById('duplicatedTransactionsModal');
-                    const cont  = document.getElementById('dupCardsContainerUser');
-                    modal.classList.remove('hidden');
-                    cont.innerHTML = '<div style="text-align:center;padding:24px;color:#94a3b8"><i class="fas fa-spinner fa-spin" style="font-size:24px"></i></div>';
-                    fetch('fetch_duplicated_transactions.php')
-                        .then(r => r.json())
-                        .then(data => {
-                            cont.innerHTML = data.length
-                                ? data.map(buildDupCardUser).join('')
-                                : '<div style="text-align:center;padding:32px;color:#22c55e"><i class="fas fa-check-circle" style="font-size:32px;display:block;margin-bottom:8px"></i>No duplicates found!</div>';
-                        })
-                        .catch(() => { cont.innerHTML = '<div style="text-align:center;padding:24px;color:#ef4444">Error loading data</div>'; });
-                });
-            }
-        });
-
-        // Logout Modal Functions
         function showLogoutModal() {
             document.getElementById('logoutConfirmModal').classList.remove('hidden');
         }
         function hideLogoutModal() {
             document.getElementById('logoutConfirmModal').classList.add('hidden');
         }
-        
-        // (Legacy transaction table loader removed - table replaced with modern card modal)
 
         window.isManualTimeSet = false;
 
-        // Function to update the combined datetime field
         function updateDateTime(isDateChange = false) {
             const dateInput = document.getElementById('collected_date_part');
             const timeInput = document.getElementById('collected_time_part');
@@ -1241,7 +1851,7 @@ if (isset($conn) && $conn) {
 
             const datePart = dateInput.value;
             let timePart = timeInput.value;
-            
+
             if (datePart) {
                 if (timePart) {
                     const parts = timePart.split(':');
@@ -1252,71 +1862,79 @@ if (isset($conn) && $conn) {
                     const now = new Date();
                     timePart = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
                 }
-                const combinedValue = `${datePart}T${timePart}`;
-                hiddenDate.value = combinedValue;
-                
-                // Only re-fetch tenant details if the date actually changed manually
+                hiddenDate.value = `${datePart}T${timePart}`;
+
+                const liveDateEl = document.getElementById('liveSummaryDate');
+                if (liveDateEl) liveDateEl.textContent = datePart;
+
                 if (isDateChange) {
                     var spacecode = document.getElementById("spacecode-input").value;
                     if (spacecode && spacecode !== "") {
                         fetchTenantDetails(spacecode);
                     }
+                    loadPosBranchProgress();
                 }
             }
         }
-        
-        // Function to update time with seconds in real-time
+
         function updateTimeWithSeconds() {
-            if (window.isManualTimeSet) return; // Do not overwrite user manually selected time
+            if (window.isManualTimeSet) return;
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
-            
+
             const timeInput = document.getElementById('collected_time_part');
             if (timeInput) {
-                // If native mobile time input (HH:mm)
                 if (timeInput.type === 'time') {
                     timeInput.value = `${hours}:${minutes}`;
                 } else {
                     timeInput.value = `${hours}:${minutes}:${seconds}`;
                 }
             }
-            
-            // Update the combined field
             updateDateTime(false);
         }
-        
-        // Set interval to update time every second
+
         let timeUpdateInterval;
-        
-        // Function to format numbers with commas
+
         function numberWithCommas(x) {
             return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
-        
-        // Function to calculate new running balance and new rent balance
+
+        function formatCurrencyText(value) {
+            const num = parseFloat(value || 0);
+            return (num < 0 ? '-₱' + numberWithCommas(Math.abs(num).toFixed(2)) : '₱' + numberWithCommas(num.toFixed(2)));
+        }
+
+        function formatCurrency(value) {
+            const num = parseFloat(value || 0);
+            return (num < 0 ? '-&#x20B1;' + numberWithCommas(Math.abs(num).toFixed(2)) : '&#x20B1;' + numberWithCommas(num.toFixed(2)));
+        }
+
+        function parseNum(id) {
+            const el = document.getElementById(id);
+            if (!el) return 0;
+            return parseFloat(String(el.value || '').replace(/,/g, '')) || 0;
+        }
+
         function calculateNewBalance() {
-            // Get the values from input fields and default to 0 if empty
-            var dailyRent = parseFloat(document.getElementById("rent").value.replace(/,/g, '')) || 0;
-            var paidRent = parseFloat(document.getElementById("paidrent").value.replace(/,/g, '')) || 0;
-            var paidBalance = parseFloat(document.getElementById("paidbal").value.replace(/,/g, '')) || 0;
-            var rentBalance = parseFloat(document.getElementById("rentbal").value.replace(/,/g, '')) || 0;
-            var runningBalance = parseFloat(document.getElementById("runningbal").value.replace(/,/g, '')) || 0;
+            var dailyRent = parseNum("rent");
+            var paidRent = parseNum("paidrent");
+            var paidBalance = parseNum("paidbal");
+            var rentBalance = parseNum("rentbal");
+            var runningBalance = parseNum("runningbal");
 
-            // Electricity fields
-            var elecarrear = parseFloat(document.getElementById("elecarrear").value.replace(/,/g, '')) || 0;
-            var elecbal = parseFloat(document.getElementById("elecbal").value.replace(/,/g, '')) || 0;
-            var paidElec = parseFloat(document.getElementById("paidelec").value.replace(/,/g, '')) || 0;
-            var paidElecArrear = (document.getElementById("paidelecarrear") ? parseFloat(document.getElementById("paidelecarrear").value.replace(/,/g, '')) : 0) || 0;
+            var elecarrear = parseNum("elecarrear");
+            var elecbal = parseNum("elecbal");
+            var paidElec = parseNum("paidelec");
+            var paidElecArrear = parseNum("paidelecarrear");
 
-            // Water fields
-            var waterarrear = parseFloat(document.getElementById("waterarrear").value.replace(/,/g, '')) || 0;
-            var waterbal = parseFloat(document.getElementById("waterbal").value.replace(/,/g, '')) || 0;
-            var paidWater = parseFloat(document.getElementById("paidwater").value.replace(/,/g, '')) || 0;
-            var paidWaterArrear = (document.getElementById("paidwaterarrear") ? parseFloat(document.getElementById("paidwaterarrear").value.replace(/,/g, '')) : 0) || 0;
+            var waterarrear = parseNum("waterarrear");
+            var waterbal = parseNum("waterbal");
+            var paidWater = parseNum("paidwater");
+            var paidWaterArrear = parseNum("paidwaterarrear");
 
-            // Bypass / Normalization: Treat positive initial balances from database as negative debt
+            // Normalization: Positive initial balances from DB represent owed debt (treated negatively)
             var baseRentBal = (rentBalance > 0) ? -rentBalance : rentBalance;
             var baseRunningBal = (runningBalance > 0) ? -runningBalance : runningBalance;
             var baseElecArrear = (elecarrear > 0) ? -elecarrear : elecarrear;
@@ -1330,373 +1948,469 @@ if (isset($conn) && $conn) {
             var rawWaterTotal = (waterarrear < 0 || waterbal < 0) ? (baseWaterArrear + baseWaterBal) : (waterarrear + waterbal);
             document.getElementById("watertotal").value = parseFloat(rawWaterTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-            // Get the charges values from predefined inputs (Cusa & Aircon)
-            var chargecusa = parseFloat(document.getElementById("chargecusa").value.replace(/,/g, '')) || 0;
-            var chargeac = parseFloat(document.getElementById("chargeac").value.replace(/,/g, '')) || 0;
+            var chargecusa = parseNum("chargecusa");
+            var chargeac = parseNum("chargeac");
             var totalCharges = chargecusa + chargeac;
 
-            // Get the value from the predefined 'Others' inputs
-            var otherAmount = parseFloat(document.getElementById("otheramount").value.replace(/,/g, '')) || 0;
+            var otherAmount = parseNum("otheramount");
             var otherType = document.getElementById("chargeothers").value;
             if (otherType && otherAmount > 0) {
                 totalCharges += otherAmount;
             }
 
-            // Get dynamically added charges
             var additionalCharges = document.querySelectorAll('#additionalChargesContainer input[name="otheramount[]"]');
             additionalCharges.forEach(function (input) {
                 var amount = parseFloat(input.value.replace(/,/g, '')) || 0;
                 totalCharges += amount;
             });
 
-            // Calculate total amount paid (Rent + Arrear + Elec + Elec Arrear + Water + Water Arrear)
             var totalAmountPaid = paidRent + paidBalance + paidElec + paidElecArrear + paidWater + paidWaterArrear;
 
-            // Calculate new rent balance:
-            // Negative balance represents debt; positive (or zero) represents advance payment.
-            // Paid rent credits the balance (+paidRent) and daily rent charges deduct from balance (-dailyRent).
             var newRentBalance = baseRentBal + paidRent - dailyRent;
-
-            // Calculate new arrear balance:
-            // Paying paidBalance reduces arrear debt (+paidBalance towards balance).
             var newRunningBalance = baseRunningBal + paidBalance;
-
-            // Calculate new Elec balances:
-            // Negative = debt, Positive/0 = advance/overpay (+paidElec credits balance towards positive)
             var newElecBal = baseElecBal + paidElec;
             var newElecArrear = baseElecArrear + paidElecArrear;
-            var newElecTotal = newElecArrear + newElecBal;
-
-            // Calculate new Water balances:
-            // Negative = debt, Positive/0 = advance/overpay (+paidWater credits balance towards positive)
             var newWaterBal = baseWaterBal + paidWater;
             var newWaterArrear = baseWaterArrear + paidWaterArrear;
-            var newWaterTotal = newWaterArrear + newWaterBal;
-
-            // Calculate total payment (amounts paid + charges)
             var total = totalAmountPaid + totalCharges;
 
-            // Format the values with commas for display
-            var formattedNewRentBalance = parseFloat(newRentBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            var formattedNewRunningBalance = parseFloat(newRunningBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            var formattedNewElecTotal = parseFloat(newElecTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            var formattedNewWaterTotal = parseFloat(newWaterTotal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            var formattedTotal = parseFloat(total.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-            // Update hidden input fields
-            document.getElementById("newrentbalance").value = formattedNewRentBalance;
-            document.getElementById("newbalance").value = formattedNewRunningBalance;
+            document.getElementById("newrentbalance").value = parseFloat(newRentBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById("newbalance").value = parseFloat(newRunningBalance.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             document.getElementById("newelecbal").value = parseFloat(newElecBal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             document.getElementById("newelecarrear").value = parseFloat(newElecArrear.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             document.getElementById("newwaterbal").value = parseFloat(newWaterBal.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             document.getElementById("newwaterarrear").value = parseFloat(newWaterArrear.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            document.getElementById("total").value = formattedTotal;
+            document.getElementById("total").value = parseFloat(total.toFixed(2)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+            updateLiveSummaryPanel({
+                paidRent, paidBalance, paidElec, paidElecArrear, paidWater, paidWaterArrear,
+                chargecusa, chargeac,
+                newRentBalance, newRunningBalance,
+                newElecTotal: newElecBal + newElecArrear,
+                newWaterTotal: newWaterBal + newWaterArrear,
+                total
+            });
         }
 
-        // Function to format numbers with commas and trigger calculation
+        function updateLiveSummaryPanel(calc) {
+            const tenantName = (document.getElementById('tenantname').value || '').trim();
+            const spaceCode = (document.getElementById('spacecode-input').value || '').trim();
+            const tenantCode = (document.getElementById('tenantcode').value || '').trim();
+            const method = (document.getElementById('payment_method').value || 'Cash');
+
+            const nameEl = document.getElementById('liveTenantName');
+            const metaEl = document.getElementById('liveTenantMeta');
+            if (nameEl) nameEl.textContent = tenantName || 'No tenant selected';
+            if (metaEl) {
+                metaEl.textContent = spaceCode
+                    ? `Space ${spaceCode}${tenantCode ? ' • Code ' + tenantCode : ''}`
+                    : 'Search a space code to begin';
+            }
+
+            const methodChip = document.getElementById('liveMethodChip');
+            if (methodChip) {
+                methodChip.textContent = method;
+                methodChip.className = 'cm-badge ' + (method === 'Cheque' ? 'cm-badge-cheque' : 'cm-badge-cash');
+            }
+
+            // Build itemized breakdown
+            const lines = [];
+            if (calc.paidRent > 0) lines.push({ label: 'Daily Rent', val: calc.paidRent, color: '#047857' });
+            if (calc.paidBalance > 0) lines.push({ label: 'Rent Arrear', val: calc.paidBalance, color: '#6d28d9' });
+            if (calc.paidElec > 0) lines.push({ label: 'Electricity', val: calc.paidElec, color: '#b45309' });
+            if (calc.paidElecArrear > 0) lines.push({ label: 'Elec Arrear', val: calc.paidElecArrear, color: '#92400e' });
+            if (calc.paidWater > 0) lines.push({ label: 'Water', val: calc.paidWater, color: '#0369a1' });
+            if (calc.paidWaterArrear > 0) lines.push({ label: 'Water Arrear', val: calc.paidWaterArrear, color: '#075985' });
+            if (calc.chargecusa > 0) lines.push({ label: 'CUSA', val: calc.chargecusa, color: '#334155' });
+            if (calc.chargeac > 0) lines.push({ label: 'Aircon', val: calc.chargeac, color: '#334155' });
+
+            const otherSelects = document.querySelectorAll('input[name="chargeothers[]"]');
+            const otherAmounts = document.querySelectorAll('input[name="otheramount[]"]');
+            for (let i = 0; i < otherSelects.length; i++) {
+                const cName = (otherSelects[i].value || '').trim();
+                const cAmt = parseFloat((otherAmounts[i]?.value || '').replace(/,/g, '')) || 0;
+                if (cName && cAmt > 0) {
+                    lines.push({ label: cName, val: cAmt, color: '#334155' });
+                }
+            }
+
+            const itemsContainer = document.getElementById('liveSummaryItems');
+            if (itemsContainer) {
+                if (lines.length === 0) {
+                    itemsContainer.innerHTML = '<div style="font-size:12px;color:#94a3b8;font-style:italic;text-align:center;padding:10px 0;">Enter payment amounts to preview receipt</div>';
+                } else {
+                    itemsContainer.innerHTML = lines.map(item => `
+                        <div class="receipt-line">
+                            <span class="receipt-line-label">${item.label}</span>
+                            <span class="receipt-line-val" style="color:${item.color};">${formatCurrencyText(item.val)}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Projected balances
+            const setProj = (id, val, defaultColor) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = formatCurrencyText(val);
+                el.style.color = val < 0 ? '#dc2626' : defaultColor;
+            };
+            setProj('liveNewRent', calc.newRentBalance, '#059669');
+            setProj('liveNewArrear', calc.newRunningBalance, '#6d28d9');
+            setProj('liveNewElec', calc.newElecTotal, '#92400e');
+            setProj('liveNewWater', calc.newWaterTotal, '#075985');
+
+            const totalStr = formatCurrencyText(calc.total);
+            const heroTotal = document.getElementById('liveGrandTotal');
+            const mobTotal = document.getElementById('mobileHeaderTotal');
+            if (heroTotal) heroTotal.textContent = totalStr;
+            if (mobTotal) mobTotal.textContent = totalStr;
+        }
+
         function formatNumberAndCalculateNewBalance(input) {
-            // Remove non-numeric characters and commas (allow negative/decimal)
             let cleanValue = input.value.replace(/[^\d.-]/g, '');
-
-            // Format the number with commas
             let formattedValue = cleanValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-            // Set the formatted value back to the input
             input.value = formattedValue;
-
-            // Recalculate
             calculateNewBalance();
         }
 
-        // For add button other charges
+        function quickFillField(fieldId, rawAmount) {
+            const input = document.getElementById(fieldId);
+            if (!input) return;
+            const num = Math.abs(parseFloat(rawAmount) || 0);
+            input.value = num > 0 ? parseFloat(num.toFixed(2)).toString() : '';
+            formatNumberAndCalculateNewBalance(input);
+        }
+
+        function updateQuickFillButtons() {
+            const dailyRent = parseNum('rent');
+            const runningBal = parseNum('runningbal');
+            const elecBal = parseNum('elecbal');
+            const elecArrear = parseNum('elecarrear');
+            const waterBal = parseNum('waterbal');
+            const waterArrear = parseNum('waterarrear');
+
+            const debtVal = (v) => v < 0 ? Math.abs(v) : (v > 0 ? v : 0);
+
+            const configs = [
+                { btnId: 'qf-paidrent', fieldId: 'paidrent', label: 'Daily', amt: dailyRent > 0 ? dailyRent : 0 },
+                { btnId: 'qf-paidbal', fieldId: 'paidbal', label: 'Due', amt: debtVal(runningBal) },
+                { btnId: 'qf-paidelec', fieldId: 'paidelec', label: 'Due', amt: debtVal(elecBal) },
+                { btnId: 'qf-paidelecarrear', fieldId: 'paidelecarrear', label: 'Due', amt: debtVal(elecArrear) },
+                { btnId: 'qf-paidwater', fieldId: 'paidwater', label: 'Due', amt: debtVal(waterBal) },
+                { btnId: 'qf-paidwaterarrear', fieldId: 'paidwaterarrear', label: 'Due', amt: debtVal(waterArrear) }
+            ];
+
+            let anyDue = false;
+            configs.forEach(cfg => {
+                const btn = document.getElementById(cfg.btnId);
+                if (!btn) return;
+                const targetId = cfg.fieldId;
+                if (cfg.amt > 0) {
+                    anyDue = true;
+                    btn.textContent = `${cfg.label} ₱${numberWithCommas(cfg.amt.toFixed(2))}`;
+                    btn.classList.remove('hidden');
+                    btn.onclick = () => quickFillField(targetId, cfg.amt);
+                } else {
+                    btn.classList.add('hidden');
+                    btn.onclick = null;
+                }
+            });
+
+            const fillAllBtn = document.getElementById('fillAllDuesBtn');
+            if (fillAllBtn) {
+                fillAllBtn.classList.toggle('hidden', !anyDue);
+            }
+        }
+
+        function fillAllPendingDues() {
+            const dailyRent = parseNum('rent');
+            const debtVal = (id) => {
+                const v = parseNum(id);
+                return v < 0 ? Math.abs(v) : (v > 0 ? v : 0);
+            };
+            if (dailyRent > 0) document.getElementById('paidrent').value = parseFloat(dailyRent.toFixed(2));
+            const rb = debtVal('runningbal'); if (rb > 0) document.getElementById('paidbal').value = parseFloat(rb.toFixed(2));
+            const eb = debtVal('elecbal'); if (eb > 0) document.getElementById('paidelec').value = parseFloat(eb.toFixed(2));
+            const ea = debtVal('elecarrear'); if (ea > 0) document.getElementById('paidelecarrear').value = parseFloat(ea.toFixed(2));
+            const wb = debtVal('waterbal'); if (wb > 0) document.getElementById('paidwater').value = parseFloat(wb.toFixed(2));
+            const wa = debtVal('waterarrear'); if (wa > 0) document.getElementById('paidwaterarrear').value = parseFloat(wa.toFixed(2));
+
+            ['paidrent', 'paidbal', 'paidelec', 'paidelecarrear', 'paidwater', 'paidwaterarrear'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    el.value = el.value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                }
+            });
+            calculateNewBalance();
+        }
+
+        function setPaymentMethod(method) {
+            const sel = document.getElementById('payment_method');
+            if (sel) sel.value = method;
+
+            const cashBtn = document.getElementById('methodBtnCash');
+            const chequeBtn = document.getElementById('methodBtnCheque');
+            if (cashBtn) cashBtn.classList.toggle('active', method === 'Cash');
+            if (chequeBtn) chequeBtn.classList.toggle('active', method === 'Cheque');
+
+            toggleChequeInput();
+            calculateNewBalance();
+        }
+
+        function resetFullPosForm() {
+            document.getElementById('spacecode-input').value = '';
+            document.getElementById('spacecode-error').textContent = '';
+            document.getElementById('chargecusa').value = '';
+            document.getElementById('chargeac').value = '';
+            document.getElementById('otheramount').value = '';
+            document.getElementById('chargeothers').value = '';
+            const initText = document.querySelector('#initialChargeSelect input[type="text"]');
+            if (initText) initText.value = '';
+            document.getElementById('additionalChargesContainer').innerHTML = '';
+            setPaymentMethod('Cash');
+            clearTenantDetails();
+            calculateNewBalance();
+            document.getElementById('spacecode-input').focus();
+        }
+
         document.getElementById('addChargeButton').addEventListener('click', function () {
             var container = document.getElementById('additionalChargesContainer');
-
-            // Create a new entry with dropdown and amount input
             var newEntry = document.createElement('div');
-            newEntry.classList.add('grid', 'grid-cols-2', 'gap-2', 'items-end', 'mb-2');
+            newEntry.classList.add('grid', 'grid-cols-2', 'gap-3', 'items-end');
             newEntry.innerHTML = `
-                <div class="pos-field relative custom-select">
-                    <label class="pos-label">Others</label>
-                    <input type="text" class="pos-input w-full cursor-pointer bg-white text-xs sm:text-sm px-2 py-2" placeholder="Select a type" readonly onclick="openCustomSelect(this)">
-                    <input type="hidden" name="chargeothers[]">
-                    <div class="dropdown-menu hidden">
-                        <div class="search-box-wrap">
-                            <input type="text" class="search-input" placeholder="Search charges...">
+                <div class="pos-field custom-select">
+                    <div class="field-top-row"><label class="field-label">Other Charge</label></div>
+                    <div class="relative">
+                        <input type="text" class="pos-input is-select-trigger cursor-pointer" placeholder="Select charge type" readonly onclick="openCustomSelect(this)" style="padding-right:32px;">
+                        <i class="fas fa-chevron-down" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;color:#94a3b8;pointer-events:none;"></i>
+                        <input type="hidden" name="chargeothers[]">
+                        <div class="dropdown-menu hidden">
+                            <div class="search-box-wrap">
+                                <input type="text" class="search-input" placeholder="Search charges...">
+                            </div>
+                            <div class="dropdown-options"></div>
                         </div>
-                        <div class="dropdown-options"></div>
                     </div>
                 </div>
-                <div class="flex items-center gap-1">
-                    <div class="pos-field relative flex-1">
-                        <label class="pos-label">Amount</label>
-                        <input oninput="formatNumberAndCalculateNewBalance(this)" 
-                            class="pos-input w-full text-xs sm:text-sm px-2 py-2"
-                            type="text" name="otheramount[]" placeholder="Enter Amount" inputmode="decimal">
+                <div class="flex items-end gap-2">
+                    <div class="pos-field flex-1">
+                        <div class="field-top-row"><label class="field-label">Amount</label></div>
+                        <div class="input-shell">
+                            <span class="input-currency-prefix">&#x20B1;</span>
+                            <input oninput="formatNumberAndCalculateNewBalance(this)"
+                                class="pos-input has-currency"
+                                type="text" name="otheramount[]" placeholder="0.00" inputmode="decimal">
+                        </div>
                     </div>
-                    <button type="button" class="remove-charge bg-red-50 hover:bg-red-100 text-red-500 rounded-lg p-2 transition-colors mt-2">
+                    <button type="button" class="remove-charge flex items-center justify-center rounded-xl transition" style="height:46px;width:44px;background:#fff1f2;color:#e11d48;border:1px solid #fecdd3;cursor:pointer;" title="Remove charge">
                         <i class="fas fa-trash-alt text-xs"></i>
                     </button>
                 </div>
             `;
 
-            // Add event listener for remove button
-            newEntry.querySelector('.remove-charge').addEventListener('click', function() {
+            newEntry.querySelector('.remove-charge').addEventListener('click', function () {
                 container.removeChild(newEntry);
-                calculateNewBalance(); // Recalculate after removing
+                calculateNewBalance();
             });
 
             container.appendChild(newEntry);
         });
 
-        // Function to format the numbers as currency
-        function formatCurrency(value) {
-            const num = parseFloat(value || 0);
-            return (num < 0 ? '-&#x20B1;' + numberWithCommas(Math.abs(num).toFixed(2)) : '&#x20B1;' + numberWithCommas(num.toFixed(2)));
-        }
-
-        // Function to gather all values and show comprehensive detailed modal
         function showConfirmationModal(event) {
-            event.preventDefault(); // Prevent the form from submitting immediately
-            updateDateTime(); // Ensure date and time are fully synchronized
+            event.preventDefault();
+            updateDateTime();
 
-            // Collection Date
             const collectionDateVal = document.getElementById('collected_date_part') ? document.getElementById('collected_date_part').value : '';
-
-            // Tenant & General Info
             const tenantName = document.getElementById('tenantname').value.trim() || 'N/A';
             const spaceCode = document.getElementById('spacecode-input').value.trim() || 'N/A';
             const tenantCode = document.getElementById('tenantcode').value.trim() || 'N/A';
             const paymentMethod = document.getElementById('payment_method').value || 'Cash';
             const chequeNum = (document.getElementById('cheque_number') ? document.getElementById('cheque_number').value.trim() : '');
 
-            // Payments entered
-            const paidrent = parseFloat(document.getElementById('paidrent').value.replace(/,/g, '')) || 0;
-            const paidbal = parseFloat(document.getElementById('paidbal').value.replace(/,/g, '')) || 0;
-            const paidelec = parseFloat(document.getElementById('paidelec').value.replace(/,/g, '')) || 0;
-            const paidelecarrear = (document.getElementById('paidelecarrear') ? parseFloat(document.getElementById('paidelecarrear').value.replace(/,/g, '')) : 0) || 0;
-            const paidwater = parseFloat(document.getElementById('paidwater').value.replace(/,/g, '')) || 0;
-            const paidwaterarrear = (document.getElementById('paidwaterarrear') ? parseFloat(document.getElementById('paidwaterarrear').value.replace(/,/g, '')) : 0) || 0;
+            const paidrent = parseNum('paidrent');
+            const paidbal = parseNum('paidbal');
+            const paidelec = parseNum('paidelec');
+            const paidelecarrear = parseNum('paidelecarrear');
+            const paidwater = parseNum('paidwater');
+            const paidwaterarrear = parseNum('paidwaterarrear');
             const totalPaidPayments = paidrent + paidbal + paidelec + paidelecarrear + paidwater + paidwaterarrear;
 
-            // Charges
             const charges = [];
-            const chargecusa = parseFloat(document.getElementById('chargecusa').value.replace(/,/g, '')) || 0;
+            const chargecusa = parseNum('chargecusa');
             if (chargecusa > 0) charges.push({ name: 'Cusa', amount: chargecusa });
-            const chargeac = parseFloat(document.getElementById('chargeac').value.replace(/,/g, '')) || 0;
+            const chargeac = parseNum('chargeac');
             if (chargeac > 0) charges.push({ name: 'Aircon', amount: chargeac });
 
             const otherSelects = document.querySelectorAll('input[name="chargeothers[]"]');
             const otherAmounts = document.querySelectorAll('input[name="otheramount[]"]');
             for (let i = 0; i < otherSelects.length; i++) {
                 const selectedChargeType = otherSelects[i].value;
-                const otherAmount = parseFloat(otherAmounts[i].value.replace(/,/g, '')) || 0;
+                const otherAmount = parseFloat((otherAmounts[i].value || '').replace(/,/g, '')) || 0;
                 if (selectedChargeType && otherAmount > 0) {
                     charges.push({ name: selectedChargeType, amount: otherAmount });
                 }
             }
             const totalCharges = charges.reduce((sum, c) => sum + c.amount, 0);
-
-            // Grand Total
             const total = totalPaidPayments + totalCharges;
 
-            // New / Updated Balances
-            const newRentBalance = parseFloat(document.getElementById('newrentbalance').value.replace(/,/g, '')) || 0;
-            const newArrearBalance = parseFloat(document.getElementById('newbalance').value.replace(/,/g, '')) || 0;
-            const newElecBal = parseFloat(document.getElementById('newelecbal').value.replace(/,/g, '')) || 0;
-            const newElecArrear = parseFloat(document.getElementById('newelecarrear').value.replace(/,/g, '')) || 0;
-            const newElecTotal = newElecBal + newElecArrear;
-            const newWaterBal = parseFloat(document.getElementById('newwaterbal').value.replace(/,/g, '')) || 0;
-            const newWaterArrear = parseFloat(document.getElementById('newwaterarrear').value.replace(/,/g, '')) || 0;
-            const newWaterTotal = newWaterBal + newWaterArrear;
+            const newRentBalance = parseNum('newrentbalance');
+            const newArrearBalance = parseNum('newbalance');
+            const newElecTotal = parseNum('newelecbal') + parseNum('newelecarrear');
+            const newWaterTotal = parseNum('newwaterbal') + parseNum('newwaterarrear');
 
-            // Generate Payments HTML
             let paymentsHtml = '';
-            if (paidrent > 0) {
-                paymentsHtml += `
-                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
-                        <span class="text-gray-600">Daily Rent:</span>
-                        <span class="font-bold text-green-700">${formatCurrency(paidrent)}</span>
-                    </div>`;
-            }
-            if (paidbal > 0) {
-                paymentsHtml += `
-                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
-                        <span class="text-gray-600">Rent Arrear:</span>
-                        <span class="font-bold text-purple-700">${formatCurrency(paidbal)}</span>
-                    </div>`;
-            }
-            if (paidelec > 0) {
-                paymentsHtml += `
-                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
-                        <span class="text-gray-600">Electricity:</span>
-                        <span class="font-bold text-yellow-800">${formatCurrency(paidelec)}</span>
-                    </div>`;
-            }
-            if (paidelecarrear > 0) {
-                paymentsHtml += `
-                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
-                        <span class="text-gray-600">Electricity Arrear:</span>
-                        <span class="font-bold text-yellow-900">${formatCurrency(paidelecarrear)}</span>
-                    </div>`;
-            }
-            if (paidwater > 0) {
-                paymentsHtml += `
-                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
-                        <span class="text-gray-600">Water:</span>
-                        <span class="font-bold text-blue-800">${formatCurrency(paidwater)}</span>
-                    </div>`;
-            }
-            if (paidwaterarrear > 0) {
-                paymentsHtml += `
-                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
-                        <span class="text-gray-600">Water Arrear:</span>
-                        <span class="font-bold text-blue-900">${formatCurrency(paidwaterarrear)}</span>
-                    </div>`;
-            }
+            const addRow = (lbl, val, color) => {
+                if (val > 0) {
+                    paymentsHtml += `
+                        <div class="flex justify-between items-center py-1.5 border-b border-gray-100 text-xs">
+                            <span style="color:#475569;font-weight:600;">${lbl}</span>
+                            <span style="font-weight:800;color:${color};">${formatCurrency(val)}</span>
+                        </div>`;
+                }
+            };
+            addRow('Daily Rent', paidrent, '#047857');
+            addRow('Rent Arrear', paidbal, '#6d28d9');
+            addRow('Electricity', paidelec, '#b45309');
+            addRow('Electricity Arrear', paidelecarrear, '#92400e');
+            addRow('Water', paidwater, '#0369a1');
+            addRow('Water Arrear', paidwaterarrear, '#075985');
 
-            // Generate Charges HTML
-            let chargesHtml = '';
-            charges.forEach(charge => {
-                chargesHtml += `
-                    <div class="flex justify-between items-center py-1 border-b border-gray-100 text-xs">
-                        <span class="text-gray-600">${charge.name}:</span>
-                        <span class="font-semibold text-gray-800">${formatCurrency(charge.amount)}</span>
-                    </div>`;
-            });
+            let chargesHtml = charges.map(c => `
+                <div class="flex justify-between items-center py-1.5 border-b border-gray-100 text-xs">
+                    <span style="color:#475569;font-weight:600;">${c.name}</span>
+                    <span style="font-weight:700;color:#1e293b;">${formatCurrency(c.amount)}</span>
+                </div>`).join('');
 
-            // Build clean, compact Payment Summary HTML with only the essentials
             const summaryHtml = `
-                <!-- Tenant Card -->
-                <div class="bg-blue-50 border border-blue-100 rounded-xl p-2.5 flex justify-between items-center">
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:13px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
                     <div>
-                        <div class="text-xs sm:text-sm font-extrabold text-blue-950">${tenantName}</div>
-                        <div class="text-[10px] text-gray-500 font-medium">
-                            <span class="font-bold text-blue-700">Space:</span> ${spaceCode} &bull; <span class="font-bold text-blue-700">Code:</span> ${tenantCode}
+                        <div style="font-size:14px;font-weight:800;color:#1e3a8a;">${tenantName}</div>
+                        <div style="font-size:11px;color:#475569;font-weight:600;margin-top:2px;">
+                            <span style="color:#1d4ed8;font-weight:700;">Space:</span> ${spaceCode} &bull; <span style="color:#1d4ed8;font-weight:700;">Code:</span> ${tenantCode}
                         </div>
-                        <div class="text-[10px] text-blue-800 font-bold mt-1 flex items-center gap-1">
-                            <i class="far fa-calendar-alt text-blue-600"></i> Collection Date: <span class="font-black text-blue-950">${collectionDateVal}</span>
+                        <div style="font-size:11px;color:#1e40af;font-weight:700;margin-top:4px;">
+                            <i class="far fa-calendar-alt mr-1"></i> ${collectionDateVal}
                         </div>
                     </div>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${paymentMethod === 'Cheque' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                    <span class="cm-badge ${paymentMethod === 'Cheque' ? 'cm-badge-cheque' : 'cm-badge-cash'}">
                         ${paymentMethod}${paymentMethod === 'Cheque' && chequeNum ? ` #${chequeNum}` : ''}
                     </span>
                 </div>
 
-                <!-- Payment Itemization -->
-                <div class="bg-white border border-gray-200 rounded-xl p-2.5">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <i class="fas fa-receipt text-emerald-500"></i> Payment Breakdown
+                <div style="background:#fff;border:1px solid #e2e8f0;border-radius:13px;padding:12px;">
+                    <div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">
+                        Payment Breakdown
                     </div>
-                    ${paymentsHtml || '<div class="text-[11px] text-gray-400 py-0.5 italic">No regular payments entered</div>'}
+                    ${paymentsHtml || '<div style="font-size:11px;color:#94a3b8;font-style:italic;padding:4px 0;">No regular payments entered</div>'}
                     ${chargesHtml}
                 </div>
 
-                <!-- Total Collection Card -->
-                <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white rounded-xl p-2.5 shadow-sm flex justify-between items-center">
+                <div style="background:linear-gradient(135deg,#1d4ed8,#4f46e5);color:#fff;border-radius:13px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <div class="text-[9px] font-bold text-blue-100 uppercase tracking-wider opacity-90">Total Collection</div>
-                        <div class="text-xl font-black tracking-tight">${formatCurrency(total)}</div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.85;">Total Collection</div>
+                        <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;">${formatCurrency(total)}</div>
                     </div>
-                    <div class="text-right text-[10px] text-blue-100 font-semibold uppercase">
-                        ${paymentMethod}
-                    </div>
+                    <div style="font-size:11px;font-weight:700;opacity:0.9;text-transform:uppercase;">${paymentMethod}</div>
                 </div>
 
-                <!-- Total Outstanding Balances -->
-                <div class="bg-gray-50 border border-gray-200 rounded-xl p-2.5">
-                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                        <i class="fas fa-balance-scale text-indigo-500"></i> Total Outstanding Balances
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:13px;padding:12px;">
+                    <div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+                        Remaining Balances After Payment
                     </div>
-                    <div class="grid grid-cols-2 gap-1.5 text-xs">
-                        <div class="p-1.5 bg-white rounded-lg border border-gray-100 flex justify-between items-center">
-                            <span class="text-[10px] text-gray-500 font-semibold">Rent:</span>
-                            <span class="font-bold ${newRentBalance < 0 ? 'text-red-600' : 'text-green-700'}">${formatCurrency(newRentBalance)}</span>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div style="padding:7px 9px;background:#fff;border-radius:9px;border:1px solid #e2e8f0;display:flex;justify-content:space-between;">
+                            <span style="color:#64748b;font-weight:600;">Rent:</span>
+                            <span style="font-weight:800;color:${newRentBalance < 0 ? '#dc2626' : '#047857'};">${formatCurrency(newRentBalance)}</span>
                         </div>
-                        <div class="p-1.5 bg-white rounded-lg border border-gray-100 flex justify-between items-center">
-                            <span class="text-[10px] text-gray-500 font-semibold">Arrear:</span>
-                            <span class="font-bold ${newArrearBalance < 0 ? 'text-red-600' : 'text-purple-700'}">${formatCurrency(newArrearBalance)}</span>
+                        <div style="padding:7px 9px;background:#fff;border-radius:9px;border:1px solid #e2e8f0;display:flex;justify-content:space-between;">
+                            <span style="color:#64748b;font-weight:600;">Arrear:</span>
+                            <span style="font-weight:800;color:${newArrearBalance < 0 ? '#dc2626' : '#6d28d9'};">${formatCurrency(newArrearBalance)}</span>
                         </div>
-                        <div class="p-1.5 bg-white rounded-lg border border-yellow-100 bg-yellow-50/20 flex justify-between items-center">
-                            <span class="text-[10px] text-yellow-700 font-semibold">Combined Elec:</span>
-                            <span class="font-bold ${newElecTotal < 0 ? 'text-red-600' : 'text-yellow-800'}">${formatCurrency(newElecTotal)}</span>
+                        <div style="padding:7px 9px;background:#fffbeb;border-radius:9px;border:1px solid #fde68a;display:flex;justify-content:space-between;">
+                            <span style="color:#92400e;font-weight:600;">Elec:</span>
+                            <span style="font-weight:800;color:${newElecTotal < 0 ? '#dc2626' : '#78350f'};">${formatCurrency(newElecTotal)}</span>
                         </div>
-                        <div class="p-1.5 bg-white rounded-lg border border-blue-100 bg-blue-50/20 flex justify-between items-center">
-                            <span class="text-[10px] text-blue-700 font-semibold">Combined Water:</span>
-                            <span class="font-bold ${newWaterTotal < 0 ? 'text-red-600' : 'text-blue-800'}">${formatCurrency(newWaterTotal)}</span>
+                        <div style="padding:7px 9px;background:#f0f9ff;border-radius:9px;border:1px solid #bae6fd;display:flex;justify-content:space-between;">
+                            <span style="color:#075985;font-weight:600;">Water:</span>
+                            <span style="font-weight:800;color:${newWaterTotal < 0 ? '#dc2626' : '#0c4a6e'};">${formatCurrency(newWaterTotal)}</span>
                         </div>
                     </div>
                 </div>
             `;
 
             document.getElementById('confirmationSummary').innerHTML = summaryHtml;
-
-            // Show the confirmation modal
             document.getElementById('confirmationModal').classList.remove('hidden');
         }
 
-        // Event listener for the confirm button
         const confBtn = document.getElementById('confirmButton');
         if (confBtn) {
-            confBtn.addEventListener('click', function() {
-                // Disable button to prevent double-clicks
+            confBtn.addEventListener('click', function () {
                 this.disabled = true;
                 this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
-                
-                // Final synchronization before submit
                 updateDateTime();
-
-                // Submit the form programmatically
                 document.getElementById('collectionForm').submit();
             });
         }
 
-        // Event listener for the cancel button - hide modal instead of page reload
         const canBtn = document.getElementById('cancelButton');
         if (canBtn) {
-            canBtn.addEventListener('click', function() {
+            canBtn.addEventListener('click', function () {
                 document.getElementById('confirmationModal').classList.add('hidden');
             });
         }
 
-        // Event listener for the form submit button
         const colForm = document.getElementById('collectionForm');
         if (colForm) {
             colForm.addEventListener('submit', showConfirmationModal);
         }
 
-        // Show welcome modal on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if the welcome modal should be displayed
+        function loadPosBranchProgress() {
+            const branch = (document.getElementById('branch')?.value || '').trim();
+            const datePart = (document.getElementById('collected_date_part')?.value || '').trim();
+            if (!branch) return;
+
+            fetch(`fetch_monitoring_stats.php?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(datePart)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data || !data.success) return;
+                    const collected = Number(data.collected || 0);
+                    const total = Number(data.total || 0);
+                    const pending = Number(data.pending || 0);
+                    const pct = total > 0 ? Math.min(100, Math.round((collected / total) * 100)) : 0;
+
+                    const dpText = document.getElementById('desktopProgressText');
+                    const dpFill = document.getElementById('desktopProgressFill');
+                    const mpText = document.getElementById('mobileProgressText');
+
+                    if (dpText) dpText.textContent = `${collected}/${total} Paid (${pending} left)`;
+                    if (dpFill) dpFill.style.width = `${pct}%`;
+                    if (mpText) mpText.innerHTML = `<i class="fas fa-chart-pie mr-1"></i> Today: ${collected}/${total} (${pending} left)`;
+                })
+                .catch(() => {});
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
             var welcomeModalClosed = localStorage.getItem("welcomeModalClosed");
             if (!welcomeModalClosed) {
                 document.getElementById("welcomeModal").classList.remove("hidden");
-                setTimeout(function() {
+                setTimeout(function () {
                     document.getElementById("welcomeModal").classList.add("hidden");
                     localStorage.setItem("welcomeModalClosed", "true");
                 }, 2000);
             }
-            
-            // Initialize date/time inputs
+
             const datePart = document.getElementById('collected_date_part');
-            const timePart = document.getElementById('collected_time_part');
-            
-            // Initialize with default values if not already set
-            if (!datePart.value) {
+            if (datePart && !datePart.value) {
                 datePart.value = new Date().toISOString().split('T')[0];
             }
-            
-            // Start the real-time clock update
-            updateTimeWithSeconds(); // Update immediately
-            timeUpdateInterval = setInterval(updateTimeWithSeconds, 1000); // Update every second
-            
-            // Set the hidden combined field
+
+            updateTimeWithSeconds();
+            timeUpdateInterval = setInterval(updateTimeWithSeconds, 1000);
             updateDateTime();
-            
-            // Initial manual calc
             calculateNewBalance();
-            
-            // Handle pre-fill from monitoring page
+            loadPosBranchProgress();
+
             const prefill = localStorage.getItem('prefill_spacecode');
             if (prefill) {
                 document.getElementById('spacecode-input').value = prefill;
@@ -1705,17 +2419,16 @@ if (isset($conn) && $conn) {
             }
         });
 
-        // â”€â”€ RIGHT-SIDE DRAWER â”€â”€
-        document.getElementById('burger-menu-btn').addEventListener('click', function() {
+        // Mobile Drawer
+        document.getElementById('burger-menu-btn').addEventListener('click', function () {
             const sideNav = document.getElementById('side-nav');
             sideNav.classList.remove('hidden');
-            setTimeout(function() {
+            setTimeout(function () {
                 const sideMenu = sideNav.querySelector('.side-menu');
                 sideMenu.classList.add('translate-x-0');
                 sideMenu.classList.remove('translate-x-full');
             }, 20);
         });
-
         document.getElementById('close-btn').addEventListener('click', closeMenu);
         document.getElementById('side-nav-backdrop').addEventListener('click', closeMenu);
 
@@ -1724,160 +2437,7 @@ if (isset($conn) && $conn) {
             const sideMenu = sideNav.querySelector('.side-menu');
             sideMenu.classList.add('translate-x-full');
             sideMenu.classList.remove('translate-x-0');
-            setTimeout(function() { sideNav.classList.add('hidden'); }, 300);
-        }
-
-        // â”€â”€ BADGE FOR DUPLICATES â”€â”€
-        function checkDuplicateBadge() {
-            fetch('fetch_duplicated_transactions.php')
-                .then(r => r.json())
-                .then(data => {
-                    const badge = document.getElementById('notificationBadge');
-                    if (data.length > 0) {
-                        badge.textContent = data.length;
-                        badge.style.display = 'flex';
-                    } else {
-                        badge.style.display = 'none';
-                    }
-                }).catch(() => {});
-        }
-        // Monitoring stats updates take care of the badge now
-        // checkDuplicateBadge();
-
-        // Inside the event listener for the notification button
-        const notifBtn = document.getElementById('notificationButton');
-        if (notifBtn) {
-            notifBtn.addEventListener('click', function (event) {
-                event.preventDefault(); // Prevent the default form submission
-            
-            // Show loading indicator
-            document.getElementById('duplicatedTransactionsTableBody').innerHTML = 
-                '<tr><td colspan="10" class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading data...</td></tr>';
-            
-            // Show the modal first
-            document.getElementById('duplicatedTransactionsModal').classList.remove('hidden');
-            
-            fetch('fetch_duplicated_transactions.php')
-                .then(response => response.json())
-                .then(data => {
-                    const tableBody = document.getElementById('duplicatedTransactionsTableBody');
-                    tableBody.innerHTML = ''; // Clear existing rows
-
-                    if (data.length > 0) {
-                        data.forEach(transaction => {
-                            const charges = parseCharges(transaction.charges); // Parse charges from string
-
-                            // Create a row with hover effect
-                            const row = document.createElement('tr');
-                            row.className = 'hover:bg-red-50 transition-colors';
-                            
-                            // Format the date
-                            const date = new Date(transaction.collected_date);
-                            const formattedDate = date.toLocaleString('en-US', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            });
-
-                            // Create the table cells
-                            row.innerHTML = `
-                                <td class="px-4 py-3 whitespace-nowrap">${formattedDate}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">${transaction.transaction_number}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">${transaction.spacecode}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">${transaction.tenantcode}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">&#x20B1;${numberWithCommas(parseFloat(transaction.paidrent).toFixed(2))}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">&#x20B1;${numberWithCommas(parseFloat(transaction.paidbal).toFixed(2))}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">&#x20B1;${numberWithCommas(parseFloat(charges.aircon || 0).toFixed(2))}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">&#x20B1;${numberWithCommas(parseFloat(charges.cusa || 0).toFixed(2))}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">&#x20B1;${numberWithCommas(parseFloat(charges.electricity || 0).toFixed(2))}</td>
-                                <td class="px-4 py-3 whitespace-nowrap">&#x20B1;${numberWithCommas(parseFloat(charges.water || 0).toFixed(2))}</td>
-                            `;
-                            
-                            tableBody.appendChild(row);
-                        });
-
-                        // Initialize DataTable with better styling
-                        try {
-                            if ($.fn.DataTable.isDataTable('#duplicatedTransactionsTable')) {
-                                $('#duplicatedTransactionsTable').DataTable().destroy();
-                            }
-                            
-                            $('#duplicatedTransactionsTable').DataTable({
-                                responsive: true,
-                                paging: true,
-                                searching: true,
-                                dom: '<"flex justify-between items-center mb-4"lf>rt<"flex justify-between items-center mt-4"ip>',
-                                language: {
-                                    search: "<i class='fas fa-search mr-2'></i>",
-                                    lengthMenu: "<i class='fas fa-list mr-2'></i> _MENU_ rows"
-                                }
-                            });
-                        } catch (e) {
-                            console.error("Error initializing DataTable:", e);
-                        }
-                    } else {
-                        tableBody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-gray-500">No duplicated transactions found</td></tr>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching duplicated transactions:', error);
-                    document.getElementById('duplicatedTransactionsTableBody').innerHTML = 
-                        '<tr><td colspan="10" class="text-center py-4 text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i> Error loading duplicated transactions</td></tr>';
-                });
-            });
-        }
-
-        // Function to parse charges from the string
-        function parseCharges(chargesString) {
-            if (!chargesString) return {};
-            
-            const charges = {
-                aircon: 0,
-                cusa: 0,
-                electricity: 0,
-                water: 0,
-                table_tennis: 0,
-                pay_toilet: 0,
-                pay_parking: 0,
-                ice_water: 0,
-                ulam_vendor: 0,
-                gas: 0,
-                famylihan: 0,
-                garbage_haul: 0,
-                photocopy: 0,
-                tenant_id: 0,
-                function_room: 0,
-                tables_chairs: 0,
-                overnight_works: 0,
-                vendo_sale: 0,
-                zumba: 0,
-                secdep: 0,
-                meterdep: 0,
-                utilitydep: 0,
-                miscellaneous: 0
-            };
-
-            try {
-                const chargeArray = chargesString.split(', ');
-                chargeArray.forEach(charge => {
-                    const match = charge.match(/([^:]+):\s*(\d+\.?\d*)?/);
-                    if (match) {
-                        // Convert the charge type to a normalized key
-                        let key = match[1].trim().toLowerCase()
-                            .replace(/\s+/g, '_')       // Replace spaces with underscore
-                            .replace(/[&']/g, '')       // Remove special chars
-                            .replace(/ice_&_water/i, 'ice_water');  // Special case
-                        
-                        charges[key] = parseFloat(match[2]) || 0;
-                    }
-                });
-            } catch (e) {
-                console.error("Error parsing charges:", e);
-            }
-
-            return charges;
+            setTimeout(function () { sideNav.classList.add('hidden'); }, 300);
         }
 
         // Suggest Space Code and Auto Complete
@@ -1885,61 +2445,59 @@ if (isset($conn) && $conn) {
         let suggestXHR = null;
         function suggestSpaceCode(value) {
             clearTimeout(suggestTimeout);
-            suggestTimeout = setTimeout(function() {
+            suggestTimeout = setTimeout(function () {
                 var branch = document.getElementById("branch").value;
                 if (suggestXHR) suggestXHR.abort();
                 suggestXHR = new XMLHttpRequest();
                 var xhr = suggestXHR;
                 xhr.open("POST", "suggest_spacecode.php", true);
                 xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    var suggestions = JSON.parse(xhr.responseText);
-                    var suggestionsContainer = document.getElementById("spacecode-suggestions");
-                    var errorSpan = document.getElementById("spacecode-error");
-                    suggestionsContainer.innerHTML = "";
-                    
-                    if (suggestions.length > 0) {
-                        suggestions.forEach(function(suggestion) {
-                            var option = document.createElement("div");
-                            option.classList.add("cursor-pointer", "py-2", "px-4", "hover:bg-blue-50");
-                            option.textContent = suggestion;
-                            option.onclick = function() {
-                                document.getElementById("spacecode-input").value = this.textContent;
-                                suggestionsContainer.classList.add("hidden");
-                                fetchTenantDetails(this.textContent);
-                            };
-                            suggestionsContainer.appendChild(option);
-                        });
-                        
-                        suggestionsContainer.classList.remove("hidden");
-                        errorSpan.textContent = "";
-                    } else {
-                        suggestionsContainer.classList.add("hidden");
-                        errorSpan.textContent = "No suggestions found";
-                    }
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var suggestions = JSON.parse(xhr.responseText);
+                        var suggestionsContainer = document.getElementById("spacecode-suggestions");
+                        var errorSpan = document.getElementById("spacecode-error");
+                        suggestionsContainer.innerHTML = "";
 
-                    // Check if typed value matches any suggestion
-                    if (suggestions.includes(value)) {
-                        fetchTenantDetails(value);
-                    } else {
-                        clearTenantDetails();
+                        if (suggestions.length > 0) {
+                            suggestions.forEach(function (suggestion) {
+                                var option = document.createElement("div");
+                                option.className = "space-suggestion-item";
+                                option.innerHTML = `<span><i class="fas fa-store-alt mr-2" style="color:#3b82f6;font-size:12px;"></i>${suggestion}</span><i class="fas fa-arrow-right" style="font-size:11px;color:#94a3b8;"></i>`;
+                                option.onclick = function () {
+                                    document.getElementById("spacecode-input").value = suggestion;
+                                    suggestionsContainer.classList.add("hidden");
+                                    fetchTenantDetails(suggestion);
+                                };
+                                suggestionsContainer.appendChild(option);
+                            });
+
+                            suggestionsContainer.classList.remove("hidden");
+                            errorSpan.textContent = "";
+                        } else {
+                            suggestionsContainer.classList.add("hidden");
+                            errorSpan.textContent = "No matching space code found";
+                        }
+
+                        if (suggestions.includes(value)) {
+                            fetchTenantDetails(value);
+                        } else {
+                            clearTenantDetails();
+                        }
                     }
-                }
-            };
-            xhr.send("search=" + encodeURIComponent(value) + "&branch=" + encodeURIComponent(branch));
-            }, 300);
+                };
+                xhr.send("search=" + encodeURIComponent(value) + "&branch=" + encodeURIComponent(branch));
+            }, 260);
         }
 
-        // Close suggestions when clicking outside
-        document.addEventListener("click", function(event) {
+        document.addEventListener("click", function (event) {
             var suggestionsContainer = document.getElementById("spacecode-suggestions");
-            if (event.target !== suggestionsContainer && !suggestionsContainer.contains(event.target)) {
+            var scInput = document.getElementById("spacecode-input");
+            if (event.target !== suggestionsContainer && event.target !== scInput && !suggestionsContainer.contains(event.target)) {
                 suggestionsContainer.classList.add("hidden");
             }
         });
 
-        // Function to fetch tenant details
         let fetchTenantXHR = null;
         function fetchTenantDetails(spacecode) {
             var branch = document.getElementById("branch").value;
@@ -1965,7 +2523,6 @@ if (isset($conn) && $conn) {
                         document.getElementById("waterbal").value = response.waterbal || "0.00";
                         document.getElementById("watertotal").value = response.watertotal || "0.00";
 
-                        // Set readonly attribute based on editable flag
                         var isAmbulant = response.editable;
                         document.getElementById("tenantcode").readOnly = !isAmbulant;
                         document.getElementById("tenantname").readOnly = !isAmbulant;
@@ -1976,28 +2533,27 @@ if (isset($conn) && $conn) {
                         document.getElementById("elecbal").readOnly = !isAmbulant;
                         document.getElementById("waterarrear").readOnly = !isAmbulant;
                         document.getElementById("waterbal").readOnly = !isAmbulant;
-                        
-                        // Update payment status reminder
+
                         var statusContainer = document.getElementById("payment-status-container");
                         var statusText = document.getElementById("payment-status-text");
                         var statusIcon = document.getElementById("payment-status-icon");
-                        
+
                         var todayStr = new Date().toISOString().split('T')[0];
                         var dateLabel = selectedDate === todayStr ? "TODAY" : selectedDate;
-                        
+
                         statusContainer.classList.remove("hidden");
                         if (response.paidToday) {
                             statusContainer.className = "status-bubble status-paid";
                             statusText.textContent = "ALREADY PAID ON " + dateLabel;
-                            statusIcon.className = "fas fa-check-circle text-[10px]";
+                            statusIcon.className = "fas fa-check-circle";
                             document.getElementById("submitButton").disabled = false;
                         } else {
                             statusContainer.className = "status-bubble status-unpaid";
                             statusText.textContent = "NOT YET PAID ON " + dateLabel;
-                            statusIcon.className = "fas fa-exclamation-circle text-[10px]";
+                            statusIcon.className = "fas fa-exclamation-circle";
                         }
-                        
-                        // Calculate the balance immediately
+
+                        updateQuickFillButtons();
                         calculateNewBalance();
                     } else {
                         clearTenantDetails();
@@ -2007,7 +2563,6 @@ if (isset($conn) && $conn) {
             xhr.send("spacecode=" + encodeURIComponent(spacecode) + "&branch=" + encodeURIComponent(branch) + "&date=" + encodeURIComponent(selectedDate));
         }
 
-        // Function to clear tenant details
         function clearTenantDetails() {
             document.getElementById("tenantcode").value = "";
             document.getElementById("tenantname").value = "";
@@ -2026,7 +2581,7 @@ if (isset($conn) && $conn) {
             if (document.getElementById("paidelecarrear")) document.getElementById("paidelecarrear").value = "";
             document.getElementById("paidwater").value = "";
             if (document.getElementById("paidwaterarrear")) document.getElementById("paidwaterarrear").value = "";
-            
+
             document.getElementById("tenantcode").readOnly = false;
             document.getElementById("tenantname").readOnly = false;
             document.getElementById("rent").readOnly = false;
@@ -2036,29 +2591,30 @@ if (isset($conn) && $conn) {
             document.getElementById("elecbal").readOnly = false;
             document.getElementById("waterarrear").readOnly = false;
             document.getElementById("waterbal").readOnly = false;
-            // Reset the hidden input values
+
             if (document.getElementById("total")) document.getElementById("total").value = "0.00";
             if (document.getElementById("newbalance")) document.getElementById("newbalance").value = "0.00";
             if (document.getElementById("newrentbalance")) document.getElementById("newrentbalance").value = "0.00";
             if (document.getElementById("newelecbal")) document.getElementById("newelecbal").value = "0.00";
             if (document.getElementById("newwaterbal")) document.getElementById("newwaterbal").value = "0.00";
-            
-            // Hide and reset status container
+
             var statusContainer = document.getElementById("payment-status-container");
             if (statusContainer) statusContainer.classList.add("hidden");
+
+            updateQuickFillButtons();
+            calculateNewBalance();
         }
 
-        // Listen for input on space code field
-        document.getElementById("spacecode-input").addEventListener("input", function(event) {
+        document.getElementById("spacecode-input").addEventListener("input", function (event) {
             var value = event.target.value.trim();
             if (value === "") {
+                document.getElementById("spacecode-error").textContent = "";
                 clearTenantDetails();
             } else {
                 suggestSpaceCode(value);
             }
         });
 
-        // Custom Select Logic for Charges
         const CHARGE_OPTIONS = [
             "Table Tennis", "Pay Toilet", "Pay Parking", "Ice & Water", "Ulam Vendor",
             "Gas", "Famylihan", "Garbage Haul", "Photocopy", "Tenant ID",
@@ -2067,84 +2623,80 @@ if (isset($conn) && $conn) {
             "Scrap", "Hasang"
         ];
 
-        window.openCustomSelect = function(inputEl) {
-            // Close all others first
+        window.openCustomSelect = function (inputEl) {
             document.querySelectorAll('.custom-select .dropdown-menu').forEach(m => m.classList.add('hidden'));
-            
             const wrapper = inputEl.closest('.custom-select');
             const menu = wrapper.querySelector('.dropdown-menu');
             const search = wrapper.querySelector('.dropdown-menu .search-input');
-            
+
             menu.classList.remove('hidden');
             search.value = '';
             window.renderCustomSelectOptions(wrapper, '');
             search.focus();
 
-            // Ensure dropdown is scrolled into view smoothly
             setTimeout(() => {
                 menu.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 50);
         };
 
-        window.renderCustomSelectOptions = function(wrapper, filterText) {
+        window.renderCustomSelectOptions = function (wrapper, filterText) {
             const optionsContainer = wrapper.querySelector('.dropdown-options');
             const input = wrapper.querySelector('input[type="text"][readonly]');
             const hidden = wrapper.querySelector('input[type="hidden"]');
             const menu = wrapper.querySelector('.dropdown-menu');
             const currentVal = hidden.value;
-            
+
             optionsContainer.innerHTML = '';
-            
-            // Add Clear Option at the top
+
             const clearDiv = document.createElement('div');
             clearDiv.className = 'dropdown-clear';
-            clearDiv.innerHTML = '<span>Clear Selection</span>';
+            clearDiv.innerHTML = '<i class="fas fa-times-circle"></i><span>Clear Selection</span>';
             clearDiv.onclick = (e) => {
                 e.stopPropagation();
                 input.value = '';
                 hidden.value = '';
                 menu.classList.add('hidden');
-                
-                // Clear the adjacent amount input as well
-                const amountInput = wrapper.parentElement.nextElementSibling?.querySelector('input[name="otheramount[]"]');
+                const rowGrid = wrapper.closest('.grid');
+                const amountInput = rowGrid ? rowGrid.querySelector('input[name="otheramount[]"]') : null;
                 if (amountInput) amountInput.value = '';
-                
-                if(typeof calculateNewBalance === 'function') calculateNewBalance();
+                if (typeof calculateNewBalance === 'function') calculateNewBalance();
             };
             optionsContainer.appendChild(clearDiv);
-            
+
             const filtered = CHARGE_OPTIONS.filter(opt => opt.toLowerCase().includes(filterText.toLowerCase()));
-            
             filtered.forEach(opt => {
                 const div = document.createElement('div');
                 const isSelected = (opt === currentVal);
                 div.className = 'dropdown-option' + (isSelected ? ' selected' : '');
-                div.textContent = opt;
+                div.innerHTML = `<span>${opt}</span>${isSelected ? '<i class="fas fa-check text-xs"></i>' : ''}`;
                 div.onclick = (e) => {
                     e.stopPropagation();
                     input.value = opt;
                     hidden.value = opt;
                     menu.classList.add('hidden');
-                    if(typeof calculateNewBalance === 'function') calculateNewBalance();
+                    if (typeof calculateNewBalance === 'function') calculateNewBalance();
                 };
                 optionsContainer.appendChild(div);
             });
-            
+
             if (filtered.length === 0) {
                 optionsContainer.innerHTML = '<div class="px-3 py-3 text-xs text-gray-400 text-center font-medium">No matching charges found</div>';
             }
         };
 
-        // Attach event delegation for the search input
-        document.addEventListener('input', function(e) {
-            if (e.target.matches('.dropdown-menu input')) {
+        document.addEventListener('input', function (e) {
+            if (e.target.matches('.custom-select .dropdown-menu input')) {
                 const wrapper = e.target.closest('.custom-select');
                 window.renderCustomSelectOptions(wrapper, e.target.value);
             }
         });
 
-        // Allow backspace/delete to clear the custom select
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.custom-select .dropdown-menu').forEach(m => m.classList.add('hidden'));
+                const scSug = document.getElementById('spacecode-suggestions');
+                if (scSug) scSug.classList.add('hidden');
+            }
             if (e.target.matches('.custom-select input[readonly]')) {
                 if (e.key === 'Backspace' || e.key === 'Delete') {
                     e.preventDefault();
@@ -2156,18 +2708,10 @@ if (isset($conn) && $conn) {
             }
         });
 
-        // Prevent clicks inside menu from closing it
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.dropdown-menu')) {
-                // Clicking inside the menu (like on the search box) should not close it
-                return;
-            }
-            if (e.target.matches('.custom-select input[readonly]')) {
-                // Handled by openCustomSelect
-                return;
-            }
-            // Clicking anywhere else closes all menus
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.custom-select .dropdown-menu')) return;
+            if (e.target.matches('.custom-select input[readonly]')) return;
+            document.querySelectorAll('.custom-select .dropdown-menu').forEach(m => m.classList.add('hidden'));
         });
 
         function toggleChequeInput() {
@@ -2175,7 +2719,7 @@ if (isset($conn) && $conn) {
             const chequeContainer = document.getElementById('cheque_container');
             const chequeInput = document.getElementById('cheque_number');
             const payeeInput = document.getElementById('cheque_payee');
-            
+
             if (paymentMethod === 'Cheque') {
                 chequeContainer.classList.remove('hidden');
                 chequeInput.required = true;
@@ -2188,31 +2732,24 @@ if (isset($conn) && $conn) {
                 payeeInput.value = '';
             }
         }
-    </script>
-    
-    <!-- Flatpickr JS -->
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+
+        // Date/Time picker initialization (Native Mobile + Flatpickr Desktop)
+        document.addEventListener('DOMContentLoaded', function () {
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
                 || (window.matchMedia && window.matchMedia("(max-width: 768px)").matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
 
             const dateInput = document.getElementById('collected_date_part');
             const timeInput = document.getElementById('collected_time_part');
 
             if (isMobileDevice) {
-                // Mobile Browsers: Use native HTML5 date & time pickers
-                // Native pickers are touch-optimized, fully accessible, immune to click delegation bugs, and support OS date wheels/sheets
                 if (dateInput) {
                     dateInput.type = 'date';
                     dateInput.removeAttribute('readonly');
-                    dateInput.addEventListener('change', function() { updateDateTime(true); });
-                    dateInput.addEventListener('input', function() { updateDateTime(true); });
-
-                    // Allow tapping anywhere on the container or calendar icon to trigger native picker
+                    dateInput.addEventListener('change', function () { updateDateTime(true); });
+                    dateInput.addEventListener('input', function () { updateDateTime(true); });
                     const wrapper = dateInput.closest('.date-input-wrapper');
                     if (wrapper) {
-                        wrapper.addEventListener('click', function(e) {
+                        wrapper.addEventListener('click', function () {
                             if (dateInput.showPicker) {
                                 try { dateInput.showPicker(); } catch (err) { dateInput.focus(); }
                             } else {
@@ -2225,22 +2762,20 @@ if (isset($conn) && $conn) {
                 if (timeInput) {
                     timeInput.type = 'time';
                     timeInput.removeAttribute('readonly');
-                    // Format initial value as HH:mm for native time input
                     if (timeInput.value && timeInput.value.length > 5) {
                         timeInput.value = timeInput.value.substring(0, 5);
                     }
-                    timeInput.addEventListener('change', function() {
+                    timeInput.addEventListener('change', function () {
                         window.isManualTimeSet = true;
                         updateDateTime(false);
                     });
-                    timeInput.addEventListener('input', function() {
+                    timeInput.addEventListener('input', function () {
                         window.isManualTimeSet = true;
                         updateDateTime(false);
                     });
-
                     const wrapper = timeInput.closest('.date-input-wrapper');
                     if (wrapper) {
-                        wrapper.addEventListener('click', function(e) {
+                        wrapper.addEventListener('click', function () {
                             if (timeInput.showPicker) {
                                 try { timeInput.showPicker(); } catch (err) { timeInput.focus(); }
                             } else {
@@ -2250,7 +2785,6 @@ if (isset($conn) && $conn) {
                     }
                 }
             } else {
-                // Desktop: Use Flatpickr with full mouse support and styled material calendar
                 if (dateInput && typeof flatpickr !== 'undefined') {
                     dateInput.readOnly = true;
                     const fpDate = flatpickr(dateInput, {
@@ -2258,14 +2792,11 @@ if (isset($conn) && $conn) {
                         altInput: true,
                         altFormat: "m/d/Y",
                         allowInput: false,
-                        onChange: function(selectedDates, dateStr, instance) {
-                            updateDateTime(true);
-                        }
+                        onChange: function () { updateDateTime(true); }
                     });
-
                     const wrapper = dateInput.closest('.date-input-wrapper');
                     if (wrapper) {
-                        wrapper.addEventListener('click', function(e) {
+                        wrapper.addEventListener('click', function () {
                             if (fpDate && !fpDate.isOpen) fpDate.open();
                         });
                     }
@@ -2281,27 +2812,23 @@ if (isset($conn) && $conn) {
                         altFormat: "h:i:S K",
                         enableSeconds: true,
                         allowInput: false,
-                        onChange: function(selectedDates, dateStr, instance) {
+                        onChange: function () {
                             window.isManualTimeSet = true;
                             updateDateTime(false);
                         }
                     });
-
                     const wrapper = timeInput.closest('.date-input-wrapper');
                     if (wrapper) {
-                        wrapper.addEventListener('click', function(e) {
+                        wrapper.addEventListener('click', function () {
                             if (fpTime && !fpTime.isOpen) fpTime.open();
                         });
                     }
                 }
             }
 
-            // Initial datetime synchronization
             updateDateTime(false);
         });
     </script>
 </body>
 
 </html>
-
-

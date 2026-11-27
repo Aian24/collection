@@ -41,8 +41,8 @@ if ($collector_stmt) {
 }
 
 // Determine the correct table based on the user's branch
-$table = ($branch === 'Sanko Market') ? 'collected' : 
-         (($branch === 'Nova Market') ? 'collectednova' : 
+$table = ($branch === 'Sanko Market') ? 'collected' :
+         (($branch === 'Nova Market') ? 'collectednova' :
          (($branch === 'ACC' || $branch === 'Ambulant') ? 'collectedacc' : 'collectedapm'));
 
 // Fetch totals for the selected date and collector
@@ -75,27 +75,20 @@ if ($charges_stmt) {
     $charges_stmt->execute();
     $charges_result = $charges_stmt->get_result();
     while ($charge_row = $charges_result->fetch_assoc()) {
-        // Match charges with the format "Cusa: 123", etc.
         preg_match_all('/([^:,]+):\s*([\d,]+(\.\d{1,2})?)/', $charge_row['charges'], $matches);
 
-        // If matches are found
         if (count($matches[0]) > 0) {
             foreach ($matches[1] as $index => $charge_type) {
                 $charge_value = (float) str_replace(',', '', $matches[2][$index]);
                 $charge_type = trim($charge_type);
                 $lower_type = strtolower($charge_type);
-                
-                // If legacy transactions stored electricity or water inside the charges column,
-                // seamlessly merge them into Total Elec and Total Water instead of Total Charges
+
                 if (in_array($lower_type, ['electricity', 'elec', 'electric', 'paidelec', 'electricity bal', 'electricity arrear'])) {
                     $total_elec += $charge_value;
                 } elseif (in_array($lower_type, ['water', 'paidwater', 'water bal', 'water arrear']) && strpos($lower_type, 'ice') === false) {
                     $total_water += $charge_value;
                 } else {
-                    // Add to total charges
                     $total_charges += $charge_value;
-                    
-                    // Group by charge type
                     if (!isset($charge_totals[$charge_type])) {
                         $charge_totals[$charge_type] = 0;
                     }
@@ -113,38 +106,33 @@ $total_balance = round($total_balance, 2);
 $total_elec = round($total_elec, 2);
 $total_water = round($total_water, 2);
 $total_charges = round($total_charges, 2);
-
-// Use the database's true grand total column to match the exact POS transaction totals
 $total = round($db_grand_total, 2);
 
 if (isset($conn) && $conn) {
     $conn->close();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="../images/lc.png">
-    <title>Print Summary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" href="images/lc.png">
+    <title>Summary Report — Collection POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="modern-bottom-nav.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="modern-bottom-nav.css">
+    <link rel="stylesheet" href="pos-modern.css">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            -webkit-font-smoothing: antialiased;
-        }
-        
-        /* Print styles - match print.php UI */
+        /* Print styles - exact match to original Sunmi V2s 58mm thermal layout */
         @media print {
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                background-image: none !important;
+            }
             body, p, h1, div, span {
                 color: black !important;
                 background: white !important;
@@ -160,7 +148,7 @@ if (isset($conn) && $conn) {
                 height: auto;
                 margin-bottom: 4%;
             }
-            .modern-app, .modern-bottom-nav {
+            .modern-app, .modern-bottom-nav, .desktop-sidebar, .pos-mobile-shell, .pos-page-wrap {
                 display: none !important;
             }
             .print-only {
@@ -195,19 +183,30 @@ if (isset($conn) && $conn) {
                 size: 58mm auto;
             }
         }
-        
-        /* Hide print-only content on screen naturally */
-        .print-only {
-            display: none;
-        }
+        .print-only { display: none; }
 
-        /* Flatpickr Customization */
+        .summary-hero-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #4f46e5 100%);
+            border-radius: 20px;
+            padding: 22px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.25);
+        }
+        .summary-hero-amt {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin: 6px 0 14px;
+            font-variant-numeric: tabular-nums;
+        }
         .flatpickr-calendar {
             font-family: 'Inter', sans-serif !important;
-            border-radius: 16px !important;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
-            border: none !important;
-            padding: 10px !important;
+            border-radius: 14px !important;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14) !important;
+            border: 1px solid #e2e8f0 !important;
         }
         .flatpickr-day.selected {
             background: #2563eb !important;
@@ -307,150 +306,153 @@ if (isset($conn) && $conn) {
         </div>
     </div>
 
-    <!-- Modern App Layout -->
-    <div class="modern-app min-h-screen bg-[#f3f4f6] pb-32">
-        <!-- Bottom Nav Include -->
-        <?php include 'modern_bottom_nav.php'; ?>
+    <?php
+    $posTitle = 'Summary Report';
+    $posSubtitle = ($branch ?: 'Branch') . ' • ' . $selected_date;
+    $posIcon = 'fas fa-file-invoice-dollar';
+    include 'pos_shell_nav.php';
+    include 'modern_bottom_nav.php';
+    ?>
 
-        <!-- Topbar -->
-        <div class="bg-white px-6 pt-8 pb-4 shadow-sm sticky top-0 z-30">
-            <div class="flex justify-between items-center w-full lg:max-w-full max-w-lg mx-auto lg:px-8">
+    <div class="modern-app pos-page-wrap animate-fadeIn">
+        <header class="pos-desktop-header">
+            <div class="dh-left">
+                <div class="dh-icon">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Summary</h1>
-                    <p class="text-sm font-medium text-gray-500"><?php echo isset($branch) ? $branch : 'Branch'; ?></p>
-                </div>
-                <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
-                    <i class="fas fa-file-invoice"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="px-5 pt-6 pb-6 space-y-5 w-full lg:max-w-full max-w-lg mx-auto lg:px-12">
-            
-            <!-- Date Selector -->
-            <form id="dateForm" method="post">
-                <div class="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex items-center relative transition-all active:scale-[0.98]">
-                    <div class="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-blue-500 mr-3">
-                        <i class="fas fa-calendar-alt text-lg"></i>
-                    </div>
-                    <div class="flex-1 overflow-hidden">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Collection Date</p>
-                        <input type="text" name="selected_date" id="selected_date" value="<?php echo $selected_date; ?>" 
-                               class="bg-transparent text-gray-900 font-bold text-base outline-none cursor-pointer w-full" readonly>
-                    </div>
-                    <div class="px-4 text-gray-300">
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-            </form>
-
-            <!-- Grand Total Card -->
-            <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-6 shadow-xl shadow-blue-600/20 text-white relative overflow-hidden">
-                <!-- Decorative background shapes -->
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
-                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-white opacity-10 rounded-full blur-xl"></div>
-                
-                <div class="relative z-10">
-                    <p class="text-blue-100 font-medium text-sm mb-1">Grand Total Collected</p>
-                    <h2 class="text-4xl font-black tracking-tight mb-5">₱<?php echo number_format($total, 2); ?></h2>
-                    <div class="flex items-center gap-2 text-sm font-medium bg-white/10 w-max px-3 py-1.5 rounded-full border border-white/20">
-                        <i class="fas fa-user-circle text-blue-200"></i>
-                        <span><?php echo isset($lname) ? $lname : ''; ?></span>
+                    <h1 class="dh-title">Daily Summary Report</h1>
+                    <div class="dh-meta">
+                        <span class="dh-chip"><i class="fas fa-store"></i> <?php echo htmlspecialchars($branch); ?></span>
+                        <span class="dh-chip dh-chip-slate"><i class="fas fa-user"></i> <?php echo htmlspecialchars($lname ?: $username); ?></span>
+                        <span class="dh-chip dh-chip-slate"><i class="far fa-calendar"></i> <?php echo htmlspecialchars($selected_date); ?></span>
                     </div>
                 </div>
             </div>
-
-            <!-- Breakdown: Rent, Arrear, Elec, Water -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
-                        <i class="fas fa-home text-xs"></i>
-                    </div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Rent</p>
-                    <p class="text-lg font-bold text-gray-900">₱<?php echo number_format($total_rent, 2); ?></p>
-                </div>
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-2">
-                        <i class="fas fa-history text-xs"></i>
-                    </div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total Arrear</p>
-                    <p class="text-lg font-bold text-gray-900">₱<?php echo number_format($total_balance, 2); ?></p>
-                </div>
-                <?php if ($total_elec > 0): ?>
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-yellow-100 bg-yellow-50/20">
-                    <div class="w-8 h-8 rounded-xl bg-yellow-50 text-yellow-600 flex items-center justify-center mb-2">
-                        <i class="fas fa-bolt text-xs"></i>
-                    </div>
-                    <p class="text-[10px] font-bold text-yellow-700 uppercase tracking-wider mb-0.5">Total Elec</p>
-                    <p class="text-lg font-bold text-yellow-800">₱<?php echo number_format($total_elec, 2); ?></p>
-                </div>
-                <?php endif; ?>
-                <?php if ($total_water > 0): ?>
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-blue-100 bg-blue-50/20">
-                    <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
-                        <i class="fas fa-tint text-xs"></i>
-                    </div>
-                    <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-0.5">Total Water</p>
-                    <p class="text-lg font-bold text-blue-800">₱<?php echo number_format($total_water, 2); ?></p>
-                </div>
-                <?php endif; ?>
+            <div class="dh-right">
+                <button type="button" onclick="window.print()" class="btn-pos-action" style="background:var(--gradient);color:#fff;border:none;">
+                    <i class="fas fa-print"></i> Print Summary
+                </button>
             </div>
+        </header>
 
-            <!-- Total Charges -->
-            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-5 flex items-center justify-between border-b border-gray-50 bg-gray-50/50">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
-                            <i class="fas fa-bolt"></i>
-                        </div>
+        <div class="pos-two-col">
+            <!-- Left Column: Date Picker + Grand Total + Category Breakdown -->
+            <div class="flex flex-col gap-3">
+                <form id="dateForm" method="post" class="pos-panel" style="padding:14px 16px;">
+                    <label for="selected_date" class="field-label">
+                        <i class="fas fa-calendar-alt" style="color:var(--primary-blue);"></i> Report Collection Date
+                    </label>
+                    <div class="input-shell">
+                        <i class="far fa-calendar input-prefix-icon" style="color:var(--primary-blue);"></i>
+                        <input type="text" name="selected_date" id="selected_date" value="<?php echo htmlspecialchars($selected_date); ?>"
+                               class="pos-input has-icon cursor-pointer" readonly>
+                        <i class="fas fa-chevron-down" style="position:absolute;right:13px;color:#94a3b8;font-size:12px;pointer-events:none;"></i>
+                    </div>
+                </form>
+
+                <div class="summary-hero-card">
+                    <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.85;">
+                        Grand Total Collected
+                    </div>
+                    <div class="summary-hero-amt">₱<?php echo number_format($total, 2); ?></div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.22);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;">
+                            <i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($lname ?: $username); ?>
+                        </span>
+                        <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;">
+                            <i class="far fa-calendar"></i> <?php echo htmlspecialchars($selected_date); ?>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Category Cards -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="pos-kpi-card">
+                        <div class="pos-kpi-icon icon-emerald"><i class="fas fa-home"></i></div>
                         <div>
-                            <h3 class="font-bold text-gray-900">Total Charges</h3>
-                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Itemized Breakdown</p>
+                            <div class="pos-kpi-label">Total Rent</div>
+                            <div class="pos-kpi-val" style="color:#047857;">₱<?php echo number_format($total_rent, 2); ?></div>
                         </div>
                     </div>
-                    <p class="font-bold text-xl text-gray-900">₱<?php echo number_format($total_charges, 2); ?></p>
+                    <div class="pos-kpi-card">
+                        <div class="pos-kpi-icon icon-purple"><i class="fas fa-history"></i></div>
+                        <div>
+                            <div class="pos-kpi-label">Total Arrear</div>
+                            <div class="pos-kpi-val" style="color:#6d28d9;">₱<?php echo number_format($total_balance, 2); ?></div>
+                        </div>
+                    </div>
+                    <div class="pos-kpi-card" style="background:#fffbeb;border-color:#fde68a;">
+                        <div class="pos-kpi-icon icon-amber"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <div class="pos-kpi-label" style="color:#92400e;">Total Elec</div>
+                            <div class="pos-kpi-val" style="color:#78350f;">₱<?php echo number_format($total_elec, 2); ?></div>
+                        </div>
+                    </div>
+                    <div class="pos-kpi-card" style="background:#f0f9ff;border-color:#bae6fd;">
+                        <div class="pos-kpi-icon icon-sky"><i class="fas fa-tint"></i></div>
+                        <div>
+                            <div class="pos-kpi-label" style="color:#075985;">Total Water</div>
+                            <div class="pos-kpi-val" style="color:#0c4a6e;">₱<?php echo number_format($total_water, 2); ?></div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="p-3">
+            </div>
+
+            <!-- Right Column: Itemized Charges + Print Action -->
+            <div class="flex flex-col gap-3">
+                <section class="pos-panel">
+                    <div class="pos-panel-header">
+                        <div class="pos-panel-title">
+                            <span class="pos-panel-icon icon-amber"><i class="fas fa-receipt"></i></span>
+                            <div>
+                                <div>Itemized Charges</div>
+                                <div style="font-size:11px;font-weight:600;color:var(--text-muted);">Non-rent additional charges</div>
+                            </div>
+                        </div>
+                        <span style="font-size:17px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;">
+                            ₱<?php echo number_format($total_charges, 2); ?>
+                        </span>
+                    </div>
+
                     <?php if (!empty($charge_totals)): ?>
-                        <div class="space-y-1">
+                        <div class="flex flex-col gap-2">
                             <?php foreach ($charge_totals as $charge_type => $amount): ?>
-                                <div class="flex justify-between items-center p-3 rounded-2xl hover:bg-gray-50 transition">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-2 h-2 rounded-full bg-orange-400"></div>
-                                        <span class="text-sm font-semibold text-gray-700"><?php echo htmlspecialchars($charge_type); ?></span>
+                                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:12px;background:#f8fafc;border:1px solid #f1f5f9;">
+                                    <div class="flex items-center gap-2.5">
+                                        <span style="width:8px;height:8px;border-radius:999px;background:#f59e0b;"></span>
+                                        <span style="font-size:13.5px;font-weight:700;color:#334155;"><?php echo htmlspecialchars($charge_type); ?></span>
                                     </div>
-                                    <span class="text-sm font-bold text-gray-900">₱<?php echo number_format($amount, 2); ?></span>
+                                    <span style="font-size:14px;font-weight:800;color:#0f172a;font-variant-numeric:tabular-nums;">₱<?php echo number_format($amount, 2); ?></span>
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <div class="py-6 text-center">
-                            <p class="text-sm font-medium text-gray-400">No extra charges today</p>
+                        <div style="padding:28px 16px;text-align:center;color:#94a3b8;">
+                            <i class="fas fa-file-invoice text-2xl mb-2 block" style="opacity:0.45;"></i>
+                            <div style="font-size:13px;font-weight:600;">No extra charges recorded on <?php echo htmlspecialchars($selected_date); ?></div>
                         </div>
                     <?php endif; ?>
-                </div>
-            </div>
 
-            <!-- Print Button (Inline) -->
-            <button onclick="window.print()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-3 mt-4 active:scale-[0.98] transition-all">
-                <i class="fas fa-print"></i>
-                <span class="text-lg">Print Receipt</span>
-            </button>
+                    <div style="margin-top:16px;padding-top:14px;border-top:1px dashed #e2e8f0;">
+                        <button type="button" onclick="window.print()" class="submit-btn">
+                            <i class="fas fa-print"></i> Print 58mm Summary Receipt
+                        </button>
+                    </div>
+                </section>
+            </div>
         </div>
     </div>
-    
-    <!-- App Print Integration -->
-    <script src="app_print_integration.js"></script>
 
-    <!-- Flatpickr for Modern Date Picker -->
+    <script src="nav_badge.js"></script>
+    <script src="app_print_integration.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             flatpickr("#selected_date", {
                 dateFormat: "Y-m-d",
                 disableMobile: true,
-                onChange: function(selectedDates, dateStr, instance) {
+                onChange: function(selectedDates, dateStr) {
                     if (dateStr) {
                         document.getElementById("dateForm").submit();
                     }

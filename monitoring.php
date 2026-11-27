@@ -8,298 +8,160 @@ if (!isset($_SESSION["username"])) {
 }
 
 $username = $_SESSION["username"];
-$lname = $_SESSION["lname"];
-$branch = $_SESSION["branch"];
+$lname = $_SESSION["lname"] ?? '';
+$branch = $_SESSION["branch"] ?? '';
 
 date_default_timezone_set('Asia/Manila');
 $today = date('Y-m-d');
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Monitoring - Collection POS</title>
+    <title>Monitoring — Collection POS</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="modern-bottom-nav.css">
+    <link rel="stylesheet" href="pos-modern.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        :root {
-            --primary: #2563eb;
-            --surface2: #f1f5f9;
-            --nav-h: 56px;
-            --bot-h: 68px;
+        .unpaid-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 3px;
         }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--surface2);
-            padding-top: var(--nav-h);
-            padding-bottom: calc(var(--bot-h) + env(safe-area-inset-bottom, 0px));
-            min-height: 100vh;
+        @media (min-width: 1024px) {
+            .unpaid-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
         }
-        .top-bar {
-            position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h);
-            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 14px; z-index: 100;
+        .unpaid-item {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            padding: 11px 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.16s ease;
         }
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0; height: var(--bot-h);
-            background: #fff; border-top: 1px solid #e2e8f0;
-            display: flex; align-items: stretch; z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom, 0px);
+        .unpaid-item:hover {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
         }
-        .bot-btn {
-            flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; gap: 3px;
-            text-decoration: none; color: #64748b; font-size: 10px; font-weight: 600;
-            position: relative;
-        }
-        .bot-btn i { font-size: 19px; transition: transform .2s; }
-        .bot-btn:active i { transform: scale(0.9); }
-        .bot-btn { font-size: 9px; gap: 2px; padding:  0 1px; }
-        
-        /* Icon Colors */
-        .bot-btn.tx-btn i { color: #3b82f6; }
-        .bot-btn.sum-btn i { color: #8b5cf6; }
-        .bot-btn.dup-btn i { color: #f43f5e; }
-        .bot-btn.new-btn i { color: #10b981; }
-        .bot-btn.mon-btn i { color: #f59e0b; }
-        .bot-btn.void-btn i { color: #ef4444; }
-        .bot-btn.print-btn i { color: #0ea5e9; }
-        .bot-btn.stop-btn i { color: #64748b; }
-
-        .bot-btn.active { border-bottom: 3px solid var(--primary); }
-        .bot-btn.active.tx-btn { border-color: #3b82f6; }
-        .bot-btn.active.mon-btn { border-color: #f59e0b; }
-        .bot-btn.active.void-btn { border-color: #ef4444; }
-        .bot-btn.active.new-btn { border-color: #10b981; }
-        .bot-btn.active.print-btn { border-color: #0ea5e9; }
-
-        .badge {
-            position: absolute; top: 4px; left: 50%; margin-left: 8px;
-            background: #ef4444; color: #fff; font-size: 10px; font-weight: 800;
-            min-width: 17px; height: 17px; border-radius: 999px; padding: 0 4px;
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid #fff;
-            z-index: 10;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .monitor-card {
-            background: #fff; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 20px;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn { animation: fadeIn .4s ease-out; }
-
-        /* Suppress DataTables responsive arrow bleed */
-        .list-item::before, .list-item td::before,
-        tr.odd td:first-child::before, tr.even td:first-child::before,
-        td.dtr-control::before { display: none !important; content: none !important; }
-        .list-item { list-style: none !important; }
+        .unpaid-item:active { transform: scale(0.98); }
     </style>
-<link rel="stylesheet" href="modern-bottom-nav.css">
 </head>
 <body>
+    <?php
+    $posTitle = 'Monitoring';
+    $posSubtitle = ($branch ?: 'Branch') . ' • ' . date('M d, Y');
+    $posIcon = 'fas fa-chart-pie';
+    include 'pos_shell_nav.php';
+    include 'modern_bottom_nav.php';
+    ?>
 
-    <nav class="top-bar">
-        <div class="flex items-center gap-2 text-white">
-            <i class="fas fa-chart-line text-xl"></i>
-            <span class="font-bold">Monitoring</span>
-        </div>
-        <div class="text-white text-xs opacity-80"><?php echo htmlspecialchars($branch); ?></div>
-    </nav>
-
-    <div class="p-3">
-        <!-- MONITOR PROGRESS CARD -->
-        <div class="monitor-card animate-fadeIn mb-3" style="padding: 14px;">
-            <div class="flex justify-between items-center mb-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-sm">
-                        <i class="fas fa-calendar-check"></i>
+    <div class="pos-page-wrap animate-fadeIn">
+        <header class="pos-desktop-header">
+            <div class="dh-left">
+                <div class="dh-icon dh-icon-amber">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div>
+                    <h1 class="dh-title">Daily Collection Monitoring</h1>
+                    <div class="dh-meta">
+                        <span class="dh-chip"><i class="fas fa-store"></i> <?php echo htmlspecialchars($branch); ?></span>
+                        <span class="dh-chip dh-chip-slate"><i class="far fa-calendar"></i> <?php echo date('M d, Y'); ?></span>
+                        <span class="dh-chip dh-chip-slate"><i class="fas fa-user"></i> <?php echo htmlspecialchars($username); ?></span>
                     </div>
-                    <span class="text-sm font-black text-gray-800">Collected Today</span>
-                </div>
-                <div class="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
-                    <?php echo date('M d, Y'); ?>
                 </div>
             </div>
-
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <div class="bg-blue-50 p-3 rounded-xl text-center border border-blue-100">
-                    <div class="text-[9px] uppercase font-black text-blue-400 mb-0.5">Paid</div>
-                    <div id="mon-collected" class="text-xl font-black text-blue-700 leading-tight">0</div>
-                    <div id="mon-total" class="text-[9px] text-blue-400">out of 0</div>
-                </div>
-                <div class="bg-red-50 p-3 rounded-xl text-center border border-red-100">
-                    <div class="text-[9px] uppercase font-black text-red-400 mb-0.5">Unpaid</div>
-                    <div id="mon-pending" class="text-xl font-black text-red-700 leading-tight">0</div>
-                    <div id="mon-percent" class="text-[9px] text-red-400">0% left</div>
-                </div>
+            <div class="dh-right">
+                <button type="button" onclick="loadMonitoringData()" class="btn-pos-action">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <a href="user.php" class="btn-pos-action" style="background:var(--gradient);color:#fff;border:none;">
+                    <i class="fas fa-plus"></i> New Collection
+                </a>
             </div>
+        </header>
 
-            <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
-                <div id="mon-bar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
-            </div>
-
-            <!-- STEPS / GUIDE -->
-            <div class="bg-blue-600 bg-opacity-5 rounded-xl p-2.5 flex items-start gap-2.5 border border-blue-100">
-                <div class="text-blue-600 mt-0.5"><i class="fas fa-info-circle text-xs"></i></div>
-                <div class="text-[10px] text-blue-800 leading-relaxed font-semibold">
-                    <span class="text-blue-600 font-black uppercase mr-1">Easy Step:</span> 
-                    Simply click on any <span class="text-red-600 font-bold">Unpaid Space</span> below to automatically pre-fill the New Collection form.
-                </div>
-            </div>
-        </div>
-
-        <div class="monitor-card animate-fadeIn" style="padding: 16px;">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-black text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-user-clock text-red-500 text-xs"></i> Unpaid List
-                </h3>
-            </div>
-            
-            <div class="relative mb-3">
-                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                <input type="text" id="mon-search" onkeyup="filterList()" placeholder="Search space code..." 
-                       class="w-full bg-gray-50 border border-gray-100 rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-2 focus:ring-blue-100 transition">
-            </div>
-
-            <div id="mon-list" class="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
-                <!-- List items -->
-            </div>
-        </div>
-    </div>
-
-    <?php include 'modern_bottom_nav.php'; ?>
-
-    <!-- Logout Modern Modal -->
-    <div id="logoutConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] animate-fadeIn">
-        <div class="mobile-modal bg-white rounded-3xl p-8 max-w-[340px] w-full mx-4 shadow-2xl relative overflow-hidden text-left">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-50 rounded-full opacity-50"></div>
-            <div class="text-center relative z-10">
-                <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-2xl bg-red-500 mb-6 shadow-xl shadow-red-100">
-                    <i class="fas fa-sign-out-alt text-white text-3xl"></i>
-                </div>
-                <h3 class="text-2xl font-black text-gray-900 mb-2 font-sans">Going so soon?</h3>
-                <p class="text-gray-500 mb-8 px-2 font-medium font-sans">Are you sure you want to exit and end your collection session?</p>
-                
-                <div class="flex flex-col gap-3">
-                    <a href="index.php" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center justify-center gap-2 font-sans">
-                        <i class="fas fa-door-open mr-1"></i> YES, EXIT
-                    </a>
-                    <button onclick="hideLogoutModal()" class="w-full bg-gray-50 hover:bg-gray-100 text-gray-500 font-bold py-4 px-6 rounded-2xl transition-all active:scale-95 font-sans">
-                        KEEP WORKING
-                    </button>
-</head>
-<body>
-
-    <nav class="top-bar">
-        <div class="flex items-center gap-2 text-white">
-            <i class="fas fa-chart-line text-xl"></i>
-            <span class="font-bold">Monitoring</span>
-        </div>
-        <div class="text-white text-xs opacity-80"><?php echo htmlspecialchars($branch); ?></div>
-    </nav>
-
-    <div class="p-3">
-        <!-- MONITOR PROGRESS CARD -->
-        <div class="monitor-card animate-fadeIn mb-3" style="padding: 14px;">
-            <div class="flex justify-between items-center mb-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-sm">
-                        <i class="fas fa-calendar-check"></i>
+        <div class="pos-two-col">
+            <!-- Left: Progress & KPI Summary -->
+            <section class="pos-panel">
+                <div class="pos-panel-header">
+                    <div class="pos-panel-title">
+                        <span class="pos-panel-icon icon-indigo"><i class="fas fa-calendar-check"></i></span>
+                        <span>Collected Today</span>
                     </div>
-                    <span class="text-sm font-black text-gray-800">Collected Today</span>
+                    <span class="dh-chip dh-chip-slate"><?php echo date('M d, Y'); ?></span>
                 </div>
-                <div class="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
-                    <?php echo date('M d, Y'); ?>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:14px;text-align:center;">
+                        <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#2563eb;">Paid Spaces</div>
+                        <div id="mon-collected" style="font-size:28px;font-weight:800;color:#1e3a8a;line-height:1.15;margin:4px 0;">0</div>
+                        <div id="mon-total" style="font-size:11px;font-weight:600;color:#3b82f6;">out of 0</div>
+                    </div>
+                    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:14px;text-align:center;">
+                        <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#dc2626;">Pending Spaces</div>
+                        <div id="mon-pending" style="font-size:28px;font-weight:800;color:#991b1b;line-height:1.15;margin:4px 0;">0</div>
+                        <div id="mon-percent" style="font-size:11px;font-weight:600;color:#ef4444;">0% left</div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <div class="bg-blue-50 p-3 rounded-xl text-center border border-blue-100">
-                    <div class="text-[9px] uppercase font-black text-blue-400 mb-0.5">Paid</div>
-                    <div id="mon-collected" class="text-xl font-black text-blue-700 leading-tight">0</div>
-                    <div id="mon-total" class="text-[9px] text-blue-400">out of 0</div>
+                <div style="margin-bottom:14px;">
+                    <div class="flex justify-between text-xs font-bold mb-1.5" style="color:#475569;">
+                        <span>Completion Progress</span>
+                        <span id="mon-completion-pct">0%</span>
+                    </div>
+                    <div style="width:100%;height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden;">
+                        <div id="mon-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#10b981,#2563eb);border-radius:999px;transition:width 0.6s ease;"></div>
+                    </div>
                 </div>
-                <div class="bg-red-50 p-3 rounded-xl text-center border border-red-100">
-                    <div class="text-[9px] uppercase font-black text-red-400 mb-0.5">Unpaid</div>
-                    <div id="mon-pending" class="text-xl font-black text-red-700 leading-tight">0</div>
-                    <div id="mon-percent" class="text-[9px] text-red-400">0% left</div>
+
+                <div style="background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;">
+                    <i class="fas fa-bolt" style="color:#2563eb;margin-top:2px;font-size:13px;"></i>
+                    <div style="font-size:12px;color:#334155;line-height:1.45;font-weight:500;">
+                        <strong style="color:#1e40af;">Quick Collect:</strong> Tap any unpaid space card to launch <strong>New Collection</strong> pre-filled with that tenant's details.
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
-                <div id="mon-bar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
-            </div>
-
-            <!-- STEPS / GUIDE -->
-            <div class="bg-blue-600 bg-opacity-5 rounded-xl p-2.5 flex items-start gap-2.5 border border-blue-100">
-                <div class="text-blue-600 mt-0.5"><i class="fas fa-info-circle text-xs"></i></div>
-                <div class="text-[10px] text-blue-800 leading-relaxed font-semibold">
-                    <span class="text-blue-600 font-black uppercase mr-1">Easy Step:</span> 
-                    Simply click on any <span class="text-red-600 font-bold">Unpaid Space</span> below to automatically pre-fill the New Collection form.
+            <!-- Right: Unpaid Spaces List -->
+            <section class="pos-panel">
+                <div class="pos-panel-header">
+                    <div class="pos-panel-title">
+                        <span class="pos-panel-icon icon-danger"><i class="fas fa-user-clock"></i></span>
+                        <span>Unpaid Spaces</span>
+                    </div>
+                    <span id="mon-list-count" class="dh-chip dh-chip-danger">0 pending</span>
                 </div>
-            </div>
-        </div>
 
-        <div class="monitor-card animate-fadeIn" style="padding: 16px;">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-black text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-user-clock text-red-500 text-xs"></i> Unpaid List
-                </h3>
-            </div>
-            
-            <div class="relative mb-3">
-                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
-                <input type="text" id="mon-search" onkeyup="filterList()" placeholder="Search space code..." 
-                       class="w-full bg-gray-50 border border-gray-100 rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-2 focus:ring-blue-100 transition">
-            </div>
-
-            <div id="mon-list" class="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
-                <!-- List items -->
-            </div>
-        </div>
-    </div>
-
-    <?php include 'modern_bottom_nav.php'; ?>
-
-    <!-- Logout Modern Modal -->
-    <div id="logoutConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[60] animate-fadeIn">
-        <div class="mobile-modal bg-white rounded-3xl p-8 max-w-[340px] w-full mx-4 shadow-2xl relative overflow-hidden text-left">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-50 rounded-full opacity-50"></div>
-            <div class="text-center relative z-10">
-                <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-2xl bg-red-500 mb-6 shadow-xl shadow-red-100">
-                    <i class="fas fa-sign-out-alt text-white text-3xl"></i>
+                <div class="input-shell mb-3">
+                    <i class="fas fa-search input-prefix-icon"></i>
+                    <input type="text" id="mon-search" onkeyup="filterList()" placeholder="Search space code or tenant name..." class="pos-input has-icon" style="height:42px;font-size:13.5px;">
                 </div>
-                <h3 class="text-2xl font-black text-gray-900 mb-2 font-sans">Going so soon?</h3>
-                <p class="text-gray-500 mb-8 px-2 font-medium font-sans">Are you sure you want to exit and end your collection session?</p>
-                
-                <div class="flex flex-col gap-3">
-                    <a href="index.php" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center justify-center gap-2 font-sans">
-                        <i class="fas fa-door-open mr-1"></i> YES, EXIT
-                    </a>
-                    <button onclick="hideLogoutModal()" class="w-full bg-gray-50 hover:bg-gray-100 text-gray-500 font-bold py-4 px-6 rounded-2xl transition-all active:scale-95 font-sans">
-                        KEEP WORKING
-                    </button>
-                </div>
-            </div>
+
+                <div id="mon-list" class="unpaid-grid"></div>
+            </section>
         </div>
     </div>
-
-    <input type="hidden" id="branch" value="<?php echo $branch; ?>">
 
     <script src="nav_badge.js"></script>
     <script>
         function loadMonitoringData() {
             const branch = document.getElementById('branch').value;
             const date = '<?php echo $today; ?>';
-            
-            // Fetch Stats
+
             fetch(`fetch_monitoring_stats.php?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(date)}`)
                 .then(r => r.json())
                 .then(data => {
@@ -311,78 +173,64 @@ $today = date('Y-m-d');
                         document.getElementById('mon-collected').textContent = collected;
                         document.getElementById('mon-total').textContent = `out of ${total}`;
                         document.getElementById('mon-pending').textContent = pending;
-                        
+
                         const percent = total > 0 ? Math.round((collected / total) * 100) : 0;
                         const remaining = 100 - percent;
                         document.getElementById('mon-percent').textContent = `${remaining}% left`;
+                        document.getElementById('mon-completion-pct').textContent = `${percent}%`;
                         document.getElementById('mon-bar').style.width = percent + '%';
-                        
-                        // Badge
-                        const badge = document.getElementById('notificationBadge');
-                        if (badge) {
-                            if (pending > 0) {
-                                badge.textContent = pending;
-                                badge.style.display = 'flex';
-                            } else {
-                                badge.style.display = 'none';
-                            }
-                        }
-                    }
-                });
 
-            // Fetch List
+                        const listCount = document.getElementById('mon-list-count');
+                        if (listCount) listCount.textContent = `${pending} pending`;
+                    }
+                }).catch(() => {});
+
             const listContainer = document.getElementById('mon-list');
-            listContainer.innerHTML = '<div class="text-center py-4 text-xs opacity-50">Loading list...</div>';
-            
+            listContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;font-size:13px;color:#94a3b8;"><i class="fas fa-spinner fa-spin mr-2"></i>Loading unpaid spaces...</div>';
+
             fetch(`fetch_pending_list.php?branch=${encodeURIComponent(branch)}&date=${encodeURIComponent(date)}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
                         if (data.pending.length === 0) {
-                            listContainer.innerHTML = '<div class="text-center py-8 text-green-500 font-bold bg-green-50 rounded-xl animate-fadeIn"><i class="fas fa-check-circle text-2xl mb-2 block"></i>All collections complete!</div>';
+                            listContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;background:#ecfdf5;color:#059669;border-radius:14px;font-weight:700;"><i class="fas fa-check-circle text-2xl mb-2 block"></i>All collections complete for today!</div>';
                         } else {
                             listContainer.innerHTML = data.pending.map(item => `
-                                <div class="bg-white p-3 rounded-xl flex justify-between items-center mb-2 border border-gray-100 shadow-sm list-item active:scale-95 transition-transform" onclick="collectNow('${item.spacecode}')">
+                                <div class="unpaid-item list-item" onclick="collectNow('${item.spacecode}')">
                                     <div class="flex items-center gap-3 min-w-0 flex-1">
-                                        <div class="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100">
-                                            <i class="fas fa-store-alt text-sm"></i>
+                                        <div style="width:36px;height:36px;border-radius:10px;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                            <i class="fas fa-store-alt text-xs"></i>
                                         </div>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="font-extrabold text-gray-800 text-xs leading-tight break-words mb-0.5">${item.spacecode}</div>
-                                            <div class="text-[9px] text-gray-500 uppercase font-black truncate">${item.tenantname}</div>
+                                        <div style="min-width:0;flex:1;">
+                                            <div style="font-weight:800;font-size:13px;color:#0f172a;line-height:1.2;">${item.spacecode}</div>
+                                            <div style="font-size:11px;font-weight:600;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.tenantname}</div>
                                         </div>
                                     </div>
+                                    <i class="fas fa-chevron-right" style="color:#94a3b8;font-size:11px;flex-shrink:0;"></i>
                                 </div>
                             `).join('');
                         }
                     }
+                })
+                .catch(() => {
+                    listContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:#dc2626;font-size:13px;">Error loading unpaid list.</div>';
                 });
         }
 
         function filterList() {
             const filter = document.getElementById('mon-search').value.toUpperCase();
-            const items = document.querySelectorAll('.list-item');
-            items.forEach(item => {
+            document.querySelectorAll('.list-item').forEach(item => {
                 const text = item.textContent || item.innerText;
                 item.style.display = text.toUpperCase().indexOf(filter) > -1 ? "" : "none";
             });
         }
 
         function collectNow(spacecode) {
-            // Store spacecode to pre-fill on user.php
             localStorage.setItem('prefill_spacecode', spacecode);
             window.location.href = 'user.php';
         }
 
-        window.onload = loadMonitoringData;
-
-        // Logout Modal Functions
-        function showLogoutModal() {
-            document.getElementById('logoutConfirmModal').classList.remove('hidden');
-        }
-        function hideLogoutModal() {
-            document.getElementById('logoutConfirmModal').classList.add('hidden');
-        }
+        document.addEventListener('DOMContentLoaded', loadMonitoringData);
     </script>
 </body>
 </html>
