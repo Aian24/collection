@@ -197,6 +197,17 @@ if (isset($_SESSION['error_message'])) {
 $sql = "SELECT id, user_type, username, fname, lname, email, branch FROM users"; // Do NOT select the password!
 $result = $conn->query($sql);
 
+$usersList = [];
+$uniqueBranches = [];
+$uniqueRoles = [];
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $usersList[] = $row;
+        if (!empty($row['branch'])) $uniqueBranches[$row['branch']] = true;
+        if (!empty($row['user_type'])) $uniqueRoles[$row['user_type']] = true;
+    }
+}
+
 // IMPORTANT: Close the database connection when done (assuming $conn is from config.php)
 // $conn->close(); // Uncomment if your config.php doesn't close it automatically or you prefer closing here
 
@@ -213,7 +224,7 @@ $result = $conn->query($sql);
     
     <!-- SB Admin 2 / Modern Dashboard Styles -->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <link href="css/modern-dashboard.css?v=<?= time() ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
@@ -221,104 +232,6 @@ $result = $conn->query($sql);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <style>
-        /* DataTables Custom Overrides */
-        .table-container {
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-card);
-            overflow: hidden;
-            background-color: var(--card-bg);
-            border: 1px solid #e5e7eb;
-            margin-top: 1.5rem;
-        }
-
-        .table thead th {
-            background-color: #1e293b !important;
-            color: #fff !important;
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-            border-bottom: none !important;
-            padding: 12px 30px 12px 15px !important;
-        }
-
-        #tenantTable tbody td {
-            font-size: 0.85rem;
-            vertical-align: middle;
-            color: var(--text-secondary);
-        }
-
-        .table tbody tr:hover {
-            background-color: rgba(99, 102, 241, 0.04);
-        }
-
-        /* Specific Button Colors for Tenants */
-        
-        
-        
-        
-        .dataTables_length select { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 28px 4px 12px !important; 
-            margin: 0 6px !important;
-            outline: none !important;
-            width: auto !important;
-            display: inline-block !important;
-        }
-        .dataTables_filter input { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 12px !important; 
-            margin-left: 8px !important;
-            outline: none !important;
-            display: inline-block !important;
-            width: auto !important;
-        }
-        
-        /* Modern Select overrides */
-        .form-control-modern {
-            border-radius: var(--radius-md);
-            border: 1px solid #e2e8f0;
-            padding: 0.6rem 1rem;
-            font-size: 0.95rem;
-            color: #1e293b;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-        }
-        .form-control-modern:focus {
-            border-color: var(--accent-indigo);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
-            outline: none;
-        }
-
-        .totals-section {
-            background-color: #f8fafc;
-            border-radius: var(--radius-lg);
-            padding: 1.25rem;
-            margin-top: 1.5rem;
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 1rem;
-            border: 1px solid #e2e8f0;
-            box-shadow: var(--shadow-sm);
-        }
-        .total-item {
-            text-align: center;
-        }
-        .total-label {
-            font-weight: 600;
-            color: #64748b;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .total-value {
-            font-size: 1.25rem;
-            color: var(--accent-indigo);
-            font-weight: 700;
-        }
-
         /* SweetAlert2 custom styling */
         .swal2-popup { font-size: 0.875rem; }
         .swal2-title { font-size: 1.25rem; }
@@ -439,12 +352,45 @@ $result = $conn->query($sql);
                 <!-- End of Topbar -->
 
                 <div class="container-fluid dashboard-container">
-        <div class="card shadow mb-4" style="border:none;">
-            <div class="card-header py-2 bg-white" style="border-bottom: 1px solid #e5e7eb;">
-                <h1 class="h6 font-weight-bold text-gray-800 mb-0" style="margin-top: 4px; margin-bottom: 4px !important;"><i class="fas fa-users mr-2"></i> User Management</h1>
+        <!-- Single-Line Hero + Inline Stats & Controls -->
+        <div class="page-hero anim-fade-up">
+            <div class="page-hero-left">
+                <div class="page-hero-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h1 class="page-hero-title">User Management</h1>
+                    <p class="page-hero-subtitle">
+                        <span class="badge-soft-indigo mr-1"><strong data-count-target="<?= count($usersList) ?>"><?= count($usersList) ?></strong> Users</span>
+                        <span class="badge-soft-emerald mr-1"><strong data-count-target="<?= count($uniqueBranches) ?>"><?= count($uniqueBranches) ?></strong> Branches</span>
+                        <span class="badge-soft-cyan"><strong data-count-target="<?= count($uniqueRoles) ?>"><?= count($uniqueRoles) ?></strong> Roles</span>
+                    </p>
+                </div>
             </div>
+            <div class="d-flex flex-nowrap align-items-center" style="gap: 6px;">
+                <select id="userRoleFilterSelect" class="form-control form-control-modern" style="min-width: 140px;">
+                    <option value="">All Roles</option>
+                    <?php foreach (array_keys($uniqueRoles) as $roleItem): ?>
+                        <option value="<?= htmlspecialchars($roleItem) ?>"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $roleItem))) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button class="btn btn-compact btn-modern-gradient" data-toggle="modal" data-target="#createModal">
+                    <i class="fas fa-user-plus"></i> Add User
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-compact btn-soft-indigo dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-cog"></i> Manage
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right shadow">
+                        <a class="dropdown-item" href="branches.php"><i class="fas fa-building text-success mr-2"></i>Manage Branches</a>
+                        <a class="dropdown-item" href="roles.php"><i class="fas fa-user-tag text-info mr-2"></i>Manage Roles</a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="card-body">
+        <div class="card shadow mb-4 interactive-card anim-fade-up" style="border:none; --delay: 60ms;">
+            <div class="card-body p-3">
 
 
         <?php if ($success_message): ?>
@@ -460,21 +406,9 @@ $result = $conn->query($sql);
             </div>
         <?php endif; ?>
 
-        <div class="d-flex flex-wrap mb-4" style="gap: 12px;">
-            <button class="btn btn-primary shadow-sm" style="background-color: var(--accent-indigo); border-color: var(--accent-indigo); font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm);" data-toggle="modal" data-target="#createModal">
-                <i class="fas fa-user-plus mr-2"></i> Add New User
-            </button>
-            <a href="branches.php" class="btn btn-success shadow-sm" style="background-color: #10b981; border-color: #10b981; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm);">
-                <i class="fas fa-building mr-2"></i> Manage Branches
-            </a>
-            <a href="roles.php" class="btn btn-info shadow-sm text-white" style="background-color: #0ea5e9; border-color: #0ea5e9; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm);">
-                <i class="fas fa-user-tag mr-2"></i> Manage Roles
-            </a>
-        </div>
-
         <div class="table-responsive">
              <table id="userTable" class="table table-striped table-bordered dt-responsive nowrap" style="width: 100%;">
-                 <thead class="bg-blue-600 text-white" style="background-color: #1e293b !important;">
+                 <thead>
                      <tr>
                          <th>Username</th>
                          <th>First Name</th>
@@ -487,16 +421,22 @@ $result = $conn->query($sql);
                  </thead>
                  <tbody>
                      <?php
-                     if ($result && $result->num_rows > 0) {
-                         while ($row = $result->fetch_assoc()):
+                     if (!empty($usersList)) {
+                         foreach ($usersList as $row):
+                             $initials = strtoupper(substr($row['fname'], 0, 1) . substr($row['lname'], 0, 1));
                      ?>
                            <tr>
-                                <td><?= htmlspecialchars($row['username']) ?></td>
+                                <td>
+                                    <div class="d-flex align-items-center" style="gap: 10px;">
+                                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle text-white font-weight-bold" style="width: 32px; height: 32px; font-size: 0.72rem; background: var(--accent-gradient); flex-shrink:0;"><?= htmlspecialchars($initials ?: 'U') ?></span>
+                                        <span class="font-weight-bold"><?= htmlspecialchars($row['username']) ?></span>
+                                    </div>
+                                </td>
                                 <td><?= htmlspecialchars($row['fname']) ?></td>
                                 <td><?= htmlspecialchars($row['lname']) ?></td>
                                 <td><?= htmlspecialchars($row['email']) ?></td>
-                                <td><?= htmlspecialchars($row['branch']) ?></td>
-                                <td><?= htmlspecialchars($row['user_type']) ?></td>
+                                <td><span class="badge-soft-indigo"><?= htmlspecialchars($row['branch']) ?></span></td>
+                                <td><span class="badge-soft-cyan"><?= htmlspecialchars($row['user_type']) ?></span></td>
                                 <td class="text-center action-buttons">
                                     <button class="btn btn-warning btn-sm edit-btn"
                                              data-id="<?= $row['id'] ?>"
@@ -521,23 +461,28 @@ $result = $conn->query($sql);
                                 </td>
                            </tr>
                      <?php
-                         endwhile;
+                         endforeach;
                      } else {
-                         // Display a message if no users found
                          echo '<tr><td colspan="7" class="text-center">No users found.</td></tr>';
                      }
                      ?>
                  </tbody>
              </table>
         </div>
-    </div>
+            </div>
+        </div>
+                </div> <!-- Closes #content -->
 
+    <!-- Create User Modal (Placed outside .card stacking context) -->
     <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <form method="POST">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form method="POST" class="w-100">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="createModalLabel"><i class="fas fa-user-plus mr-2"></i>Create New User</h5>
+                        <h5 class="modal-title" id="createModalLabel">
+                            <span class="kpi-icon-wrap kpi-icon-indigo" style="width:32px; height:32px; font-size:0.85rem;"><i class="fas fa-user-plus"></i></span>
+                            <span>Create New User</span>
+                        </h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
                     <div class="modal-body">
@@ -545,25 +490,25 @@ $result = $conn->query($sql);
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="create_username" class="form-label">Username <span class="text-danger">*</span></label>
-                                    <input type="text" name="username" id="create_username" class="form-control form-control-modern" required>
+                                    <input type="text" name="username" id="create_username" class="form-control form-control-modern" placeholder="e.g. jdoe" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="create_fname" class="form-label">First Name <span class="text-danger">*</span></label>
-                                    <input type="text" name="fname" id="create_fname" class="form-control form-control-modern" required>
+                                    <input type="text" name="fname" id="create_fname" class="form-control form-control-modern" placeholder="First name" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="create_lname" class="form-label">Last Name <span class="text-danger">*</span></label>
-                                    <input type="text" name="lname" id="create_lname" class="form-control form-control-modern" required>
+                                    <input type="text" name="lname" id="create_lname" class="form-control form-control-modern" placeholder="Last name" required>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-0">
                                     <label for="create_email" class="form-label">Email <span class="text-danger">*</span></label>
-                                    <input type="email" name="email" id="create_email" class="form-control form-control-modern" required>
+                                    <input type="email" name="email" id="create_email" class="form-control form-control-modern" placeholder="user@example.com" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="create_branch" class="form-label">Branch <span class="text-danger">*</span></label>
-                                    <select name="branch" id="create_branch" class="form-control form-control-modern" required>
+                                    <select name="branch" id="create_branch" class="form-control form-control-modern w-100" required>
                                         <option value="" disabled selected>Select Branch</option>
                                         <?php foreach ($branches as $branch): ?>
                                             <option value="<?= htmlspecialchars($branch['branch_code']) ?>"><?= htmlspecialchars($branch['branch_name']) ?></option>
@@ -572,19 +517,19 @@ $result = $conn->query($sql);
                                 </div>
                                 <div class="mb-3">
                                     <label for="create_user_type" class="form-label">User Type <span class="text-danger">*</span></label>
-                                    <select name="user_type" id="create_user_type" class="form-control form-control-modern" required>
+                                    <select name="user_type" id="create_user_type" class="form-control form-control-modern w-100" required>
                                         <option value="" disabled selected>Select User Type</option>
                                         <?php foreach ($roles as $role): ?>
                                             <option value="<?= htmlspecialchars($role['role_code']) ?>"><?= htmlspecialchars($role['role_name']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-0">
                                     <label for="create_password" class="form-label">Password <span class="text-danger">*</span></label>
                                     <div class="input-group">
-                                        <input type="password" name="password" id="create_password" class="form-control form-control-modern" required style="border-right: none;">
+                                        <input type="password" name="password" id="create_password" class="form-control form-control-modern" placeholder="Enter password" required style="border-right: none;">
                                         <div class="input-group-append">
-                                            <span class="input-group-text toggle-password" data-target="#create_password" style="background: white; border-left: none; cursor: pointer; border-color: #e5e7eb; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; height: 100%;">
+                                            <span class="input-group-text toggle-password" data-target="#create_password" style="background: var(--input-bg); border-left: none; cursor: pointer; border-color: var(--border-color); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
                                                 <i class="fas fa-eye text-secondary"></i>
                                             </span>
                                         </div>
@@ -594,23 +539,27 @@ $result = $conn->query($sql);
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i> Cancel</button>
-                        <button type="submit" name="create" class="btn btn-primary shadow-sm" style="background-color: var(--accent-indigo); border-color: var(--accent-indigo); font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm);"><i class="fas fa-save mr-1"></i> Create User</button>
+                        <button type="button" class="btn btn-compact btn-light text-secondary" data-dismiss="modal" style="border: 1px solid var(--border-color);"><i class="fas fa-times"></i> Cancel</button>
+                        <button type="submit" name="create" class="btn btn-compact btn-modern-gradient"><i class="fas fa-save"></i> Create User</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Edit User Modal -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <form method="POST">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form method="POST" class="w-100">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="editModalLabel"><i class="fas fa-edit mr-2"></i>Edit User</h5>
+                        <h5 class="modal-title" id="editModalLabel">
+                            <span class="kpi-icon-wrap kpi-icon-amber" style="width:32px; height:32px; font-size:0.85rem;"><i class="fas fa-user-edit"></i></span>
+                            <span>Edit User</span>
+                        </h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
-                                        <div class="modal-body">
+                    <div class="modal-body">
                         <input type="hidden" name="id" id="editUserId">
                         <div class="row">
                             <div class="col-md-6">
@@ -626,7 +575,7 @@ $result = $conn->query($sql);
                                     <label for="editLname" class="form-label">Last Name <span class="text-danger">*</span></label>
                                     <input type="text" name="lname" id="editLname" class="form-control form-control-modern" required>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-0">
                                     <label for="editEmail" class="form-label">Email <span class="text-danger">*</span></label>
                                     <input type="email" name="email" id="editEmail" class="form-control form-control-modern" required>
                                 </div>
@@ -634,7 +583,7 @@ $result = $conn->query($sql);
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editBranch" class="form-label">Branch <span class="text-danger">*</span></label>
-                                    <select name="branch" id="editBranch" class="form-control form-control-modern" required>
+                                    <select name="branch" id="editBranch" class="form-control form-control-modern w-100" required>
                                         <option value="" disabled>Select Branch</option>
                                         <?php foreach ($branches as $branch): ?>
                                             <option value="<?= htmlspecialchars($branch['branch_code']) ?>"><?= htmlspecialchars($branch['branch_name']) ?></option>
@@ -643,19 +592,19 @@ $result = $conn->query($sql);
                                 </div>
                                 <div class="mb-3">
                                     <label for="editUserType" class="form-label">User Type <span class="text-danger">*</span></label>
-                                    <select name="user_type" id="editUserType" class="form-control form-control-modern" required>
+                                    <select name="user_type" id="editUserType" class="form-control form-control-modern w-100" required>
                                         <option value="" disabled>Select User Type</option>
                                         <?php foreach ($roles as $role): ?>
                                             <option value="<?= htmlspecialchars($role['role_code']) ?>"><?= htmlspecialchars($role['role_name']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-0">
                                     <label for="editPassword" class="form-label">New Password</label>
                                     <div class="input-group">
-                                        <input type="password" name="password" id="editPassword" class="form-control form-control-modern" style="border-right: none;">
+                                        <input type="password" name="password" id="editPassword" class="form-control form-control-modern" placeholder="Optional" style="border-right: none;">
                                         <div class="input-group-append">
-                                            <span class="input-group-text toggle-password" data-target="#editPassword" style="background: white; border-left: none; cursor: pointer; border-color: #e5e7eb; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; height: 100%;">
+                                            <span class="input-group-text toggle-password" data-target="#editPassword" style="background: var(--input-bg); border-left: none; cursor: pointer; border-color: var(--border-color); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
                                                 <i class="fas fa-eye text-secondary"></i>
                                             </span>
                                         </div>
@@ -666,51 +615,45 @@ $result = $conn->query($sql);
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i> Cancel</button>
-                        <button type="submit" name="edit" class="btn btn-primary shadow-sm" style="background-color: var(--accent-indigo); border-color: var(--accent-indigo); font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm);"><i class="fas fa-save mr-1"></i> Update User</button>
+                        <button type="button" class="btn btn-compact btn-light text-secondary" data-dismiss="modal" style="border: 1px solid var(--border-color);"><i class="fas fa-times"></i> Cancel</button>
+                        <button type="submit" name="edit" class="btn btn-compact btn-modern-gradient"><i class="fas fa-save"></i> Update User</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Delete User Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <form method="POST" id="deleteUserForm">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="POST" id="deleteUserForm" class="w-100">
                 <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title" id="deleteModalLabel"><i class="fas fa-trash-alt mr-2"></i>Delete User</h5>
-                        <button type="button" class="btn-close btn-close-white" data-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">
+                            <span class="kpi-icon-wrap kpi-icon-rose" style="width:32px; height:32px; font-size:0.85rem;"><i class="fas fa-trash-alt"></i></span>
+                            <span>Delete User</span>
+                        </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" name="id" id="deleteUserId">
-                        <p>Are you sure you want to delete this user: <strong><span id="deleteUserName"></span></strong>?</p>
-                        <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone.</p>
+                        <p class="mb-2">Are you sure you want to delete user <strong><span id="deleteUserName" class="text-danger"></span></strong>?</p>
+                        <div class="p-2 rounded small" style="background:#fff1f2; color:#be123c; border:1px solid #fecdd3;">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> This action cannot be undone.
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                            <i class="fas fa-times mr-1"></i> Cancel
+                        <button type="button" class="btn btn-compact btn-light text-secondary" data-dismiss="modal" style="border: 1px solid var(--border-color);">
+                            <i class="fas fa-times"></i> Cancel
                         </button>
-                        <button type="submit" name="delete" class="btn btn-danger">
-                            <i class="fas fa-trash-alt mr-1"></i> Delete User
+                        <button type="submit" name="delete" class="btn btn-compact btn-danger">
+                            <i class="fas fa-trash-alt"></i> Delete User
                         </button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
-
-    
-    
-    
-    
-
-    
-
-
-            </div>
-        </div>
-                </div> <!-- Closes #content -->
 
             <!-- Footer -->
             <footer class="sticky-footer bg-white mt-4 shadow-sm border-top">
@@ -743,7 +686,7 @@ $result = $conn->query($sql);
 <script>
         $(document).ready(function() {
             // Initialize DataTable
-            $('#userTable').DataTable({
+            var userTable = $('#userTable').DataTable({
                 "pagingType": "full_numbers",
                 "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 "language": {
@@ -755,6 +698,12 @@ $result = $conn->query($sql);
                 },
             
                 "dom": '<"d-flex flex-wrap align-items-center justify-content-between mb-3"l f>rt<"d-flex flex-wrap align-items-center justify-content-between mt-3"i p>'
+            });
+
+            // Role Filter Dropdown
+            $('#userRoleFilterSelect').on('change', function() {
+                var role = $(this).val();
+                userTable.column(5).search(role ? '^' + $.fn.dataTable.util.escapeRegex(role) + '$' : '', true, false).draw();
             });
 
             // Hide page loader if any
@@ -828,6 +777,11 @@ $result = $conn->query($sql);
                 if ($('#editUserType').val() === null || $('#editUserType').val() === '') {
                     $('#editUserType').val(currentEditData.userType);
                 }
+
+                // Sync enhanced custom dropdown UI
+                $('#editBranch, #editUserType').each(function() {
+                    this.dispatchEvent(new CustomEvent('modern:sync'));
+                });
                 
                 // Verify the values were set
                 console.log('Form values set:', {
@@ -955,6 +909,8 @@ $result = $conn->query($sql);
 
         });
     </script>
+<?php include 'includes/admin_modals.php'; ?>
 <?php include 'notification_script.php'; ?>
+<script src="js/modern-ui.js?v=<?= time() ?>"></script>
 </body>
 </html>

@@ -237,7 +237,7 @@ $conn->close(); // Close the database connection
     
     <!-- SB Admin 2 / Modern Dashboard Styles -->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
     <link href="css/modern-dashboard.css?v=<?= time() ?>" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
@@ -245,80 +245,10 @@ $conn->close(); // Close the database connection
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <style>
-        /* DataTables Custom Overrides */
-        .table-container {
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-card);
-            overflow: hidden;
-            background-color: var(--card-bg);
-            border: 1px solid #e5e7eb;
-            margin-top: 1.5rem;
-        }
-
-        .table thead th {
-            background-color: #1e293b !important;
-            color: #fff !important;
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-            border-bottom: none !important;
-            padding: 12px 30px 12px 15px !important;
-        }
-
-        #tenantTable tbody td {
-            font-size: 0.85rem;
-            vertical-align: middle;
-            color: var(--text-secondary);
-        }
-
-        .table tbody tr:hover {
-            background-color: rgba(99, 102, 241, 0.04);
-        }
-
-        /* Specific Button Colors for Tenants */
-        .btn-success { background-color: #10b981; border-color: #10b981; }
-        .btn-primary { background-color: var(--accent-indigo); border-color: var(--accent-indigo); }
-        .btn-info { background-color: #0ea5e9; border-color: #0ea5e9; }
-        
-        .dataTables_length select { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 28px 4px 12px !important; 
-            margin: 0 6px !important;
-            outline: none !important;
-            width: auto !important;
-            display: inline-block !important;
-        }
-        .dataTables_filter input { 
-            border-radius: var(--radius-sm) !important; 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 4px 12px !important; 
-            margin-left: 8px !important;
-            outline: none !important;
-            display: inline-block !important;
-            width: auto !important;
-        }
-        
-        /* Modern Select overrides */
-        .form-control-modern {
-            border-radius: var(--radius-md);
-            border: 1px solid #e2e8f0;
-            padding: 0.6rem 1rem;
-            font-size: 0.95rem;
-            color: #1e293b;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-        }
-        .form-control-modern:focus {
-            border-color: var(--accent-indigo);
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
-            outline: none;
-        }
-
-        /* Summary Cards Grid */
+        /* Summary Cards Grid (Compact & Light) */
         .summary-dashboard {
-            margin-top: 1.75rem;
-            margin-bottom: 1rem;
+            margin-top: 1.1rem;
+            margin-bottom: 0.5rem;
         }
         .summary-card {
             background: #ffffff;
@@ -576,35 +506,46 @@ $conn->close(); // Close the database connection
 
                 <div class="container-fluid dashboard-container">
 
-        <div class="card shadow mb-4" style="border:none;">
-            <div class="card-header py-3 bg-white d-flex flex-column flex-md-row justify-content-between align-items-center" style="border-bottom: 1px solid #e5e7eb;">
-                <h1 class="h4 font-weight-bold text-gray-800 mb-3 mb-md-0" style="margin:0;">Tenants Information</h1>
-                 <div class="d-flex flex-column flex-md-row align-items-center mt-3 mt-md-0">
-                     <form method="post" class="mr-md-2 mb-2 mb-md-0" style="min-width: 220px;">
-                         <select name="branch" onchange="this.form.submit()" class="form-control form-control-modern w-100">
-                             <option value="" <?= $branch == '' ? 'selected' : '' ?> disabled>Please Select Branch</option>
-                             <?php
-                             // Display branch options
-                             foreach ($allowedTables as $table_name) {
-                                 $selected = ($branch == $table_name) ? 'selected' : '';
-                                 echo "<option value=\"$table_name\" $selected>" . strtoupper($table_name) . "</option>";
-                             }
-                             ?>
-                         </select>
-                     </form>
-                     <button class="btn btn-success w-100 w-md-auto mr-md-2 mb-2 mb-md-0" data-toggle="modal" data-target="#createBranchModal" style="white-space: nowrap;">
-                          <i class="fas fa-plus-circle mr-2"></i> Create Branch
-                     </button>
-                     <button class="btn btn-primary w-100 w-md-auto mr-md-2 mb-2 mb-md-0" data-toggle="modal" data-target="#createModal" <?= empty($branch) ? 'disabled' : '' ?> style="white-space: nowrap;">
-                          <i class="fas fa-plus-circle mr-2"></i> Add Tenant
-                     </button>
-                     <button class="btn btn-info w-100 w-md-auto" data-toggle="modal" data-target="#bulkUpdateModal" <?= empty($branch) ? 'disabled' : '' ?> style="white-space: nowrap;">
-                          <i class="fas fa-upload mr-2"></i> Update Data
-                     </button>
-                 </div>
+        <!-- Modern Hero Header -->
+        <div class="page-hero anim-fade-up">
+            <div class="page-hero-left">
+                <div class="page-hero-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <h1 class="page-hero-title">Tenants Management <?= !empty($branch) ? '<span class="badge-soft-indigo ml-1" style="font-size:0.74rem; vertical-align:middle;">' . strtoupper(htmlspecialchars($branch)) . '</span>' : '' ?> <?= !empty($data) ? '<span class="badge-soft-emerald ml-1" style="font-size:0.74rem; vertical-align:middle;">' . count($data) . ' Tenants</span>' : '' ?></h1>
+                    <p class="page-hero-subtitle">Branch stalls, daily rent rates &amp; utility balances.</p>
+                </div>
             </div>
+            <div class="d-flex flex-nowrap align-items-center" style="gap: 6px;">
+                <form method="post" class="mb-0" style="min-width: 150px;">
+                    <select name="branch" onchange="this.form.submit()" class="form-control form-control-modern w-100">
+                        <option value="" <?= $branch == '' ? 'selected' : '' ?> disabled>Select Branch...</option>
+                        <?php
+                        foreach ($allowedTables as $table_name) {
+                            $selected = ($branch == $table_name) ? 'selected' : '';
+                            echo "<option value=\"$table_name\" $selected>" . strtoupper($table_name) . "</option>";
+                        }
+                        ?>
+                    </select>
+                </form>
+                <button class="btn btn-compact btn-modern-gradient" data-toggle="modal" data-target="#createModal" <?= empty($branch) ? 'disabled' : '' ?>>
+                    <i class="fas fa-user-plus"></i> Add Tenant
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-compact btn-soft-indigo dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-h"></i> More
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right shadow">
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#createBranchModal"><i class="fas fa-plus-circle text-success mr-2"></i>Create Branch</a>
+                        <a class="dropdown-item <?= empty($branch) ? 'disabled' : '' ?>" href="#" <?= empty($branch) ? '' : 'data-toggle="modal" data-target="#bulkUpdateModal"' ?>><i class="fas fa-upload text-info mr-2"></i>Bulk Update Data</a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="card-body">
+        <div class="card shadow mb-4 interactive-card anim-fade-up" style="border:none; --delay: 60ms;">
+            <div class="card-body p-3">
                  <?php if (empty($branch)): ?>
                      <div class="alert alert-warning text-center" role="alert">
                          <i class="fas fa-info-circle me-2"></i> Please select a branch from the dropdown above to view tenant data and add new tenants.
@@ -701,10 +642,10 @@ $conn->close(); // Close the database connection
                       </div>
 
                       <div class="summary-dashboard">
-                          <div class="row">
+                          <div class="row stagger-children">
                               <!-- RENT SUMMARY -->
                               <div class="col-xl-3 col-md-6 mb-3">
-                                  <div class="summary-card card-rent">
+                                  <div class="summary-card card-rent interactive-card">
                                       <div class="summary-card-header">
                                           <span><i class="fas fa-home mr-1"></i> Rent Breakdown</span>
                                           <span class="badge badge-primary">Rent</span>
@@ -712,27 +653,27 @@ $conn->close(); // Close the database connection
                                       <div class="summary-card-body">
                                           <div class="summary-row">
                                               <span class="label">Daily Rent:</span>
-                                              <span class="value"><?= number_format($totalDaily, 2) ?></span>
+                                              <span class="value" data-count-target="<?= round($totalDaily, 2) ?>" data-count-decimals="2"><?= number_format($totalDaily, 2) ?></span>
                                           </div>
                                           <div class="summary-row">
                                               <span class="label">Rent Balance:</span>
-                                              <span class="value"><?= number_format($totalRentBal, 2) ?></span>
+                                              <span class="value" data-count-target="<?= round($totalRentBal, 2) ?>" data-count-decimals="2"><?= number_format($totalRentBal, 2) ?></span>
                                           </div>
                                           <div class="summary-row">
                                               <span class="label">Rent Arrear:</span>
-                                              <span class="value"><?= number_format($totalRunningBal, 2) ?></span>
+                                              <span class="value" data-count-target="<?= round($totalRunningBal, 2) ?>" data-count-decimals="2"><?= number_format($totalRunningBal, 2) ?></span>
                                           </div>
                                       </div>
                                       <div class="summary-card-footer">
                                           <span class="total-label text-primary">Rent Total Out:</span>
-                                          <span class="total-val"><?= number_format($totalRentOutstanding, 2) ?></span>
+                                          <span class="total-val" data-count-target="<?= round($totalRentOutstanding, 2) ?>" data-count-decimals="2"><?= number_format($totalRentOutstanding, 2) ?></span>
                                       </div>
                                   </div>
                               </div>
 
                               <!-- ELECTRICITY SUMMARY -->
                               <div class="col-xl-3 col-md-6 mb-3">
-                                  <div class="summary-card card-elec">
+                                  <div class="summary-card card-elec interactive-card">
                                       <div class="summary-card-header">
                                           <span><i class="fas fa-bolt mr-1"></i> Electricity Breakdown</span>
                                           <span class="badge badge-warning text-dark">Elec</span>
@@ -740,27 +681,27 @@ $conn->close(); // Close the database connection
                                       <div class="summary-card-body">
                                           <div class="summary-row">
                                               <span class="label">Elec Balance:</span>
-                                              <span class="value"><?= number_format($totalElecBal, 2) ?></span>
+                                              <span class="value" data-count-target="<?= round($totalElecBal, 2) ?>" data-count-decimals="2"><?= number_format($totalElecBal, 2) ?></span>
                                           </div>
                                           <div class="summary-row">
                                               <span class="label">Elec Arrear:</span>
-                                              <span class="value"><?= number_format($totalElecArrear, 2) ?></span>
+                                              <span class="value" data-count-target="<?= round($totalElecArrear, 2) ?>" data-count-decimals="2"><?= number_format($totalElecArrear, 2) ?></span>
                                           </div>
                                           <div class="summary-row text-muted" style="font-size: 0.8rem; font-style: italic;">
-                                              <span>Current & Arrears</span>
+                                              <span>Current &amp; Arrears</span>
                                               <span>Utility</span>
                                           </div>
                                       </div>
                                       <div class="summary-card-footer">
                                           <span class="total-label text-warning">Elec Total Out:</span>
-                                          <span class="total-val"><?= number_format($totalElecOutstanding, 2) ?></span>
+                                          <span class="total-val" data-count-target="<?= round($totalElecOutstanding, 2) ?>" data-count-decimals="2"><?= number_format($totalElecOutstanding, 2) ?></span>
                                       </div>
                                   </div>
                               </div>
 
                               <!-- WATER SUMMARY -->
                               <div class="col-xl-3 col-md-6 mb-3">
-                                  <div class="summary-card card-water">
+                                  <div class="summary-card card-water interactive-card">
                                       <div class="summary-card-header">
                                           <span><i class="fas fa-tint mr-1"></i> Water Breakdown</span>
                                           <span class="badge badge-info">Water</span>
@@ -768,27 +709,27 @@ $conn->close(); // Close the database connection
                                       <div class="summary-card-body">
                                           <div class="summary-row">
                                               <span class="label">Water Balance:</span>
-                                              <span class="value"><?= number_format($totalWaterBal, 2) ?></span>
+                                              <span class="value" data-count-target="<?= round($totalWaterBal, 2) ?>" data-count-decimals="2"><?= number_format($totalWaterBal, 2) ?></span>
                                           </div>
                                           <div class="summary-row">
                                               <span class="label">Water Arrear:</span>
-                                              <span class="value"><?= number_format($totalWaterArrear, 2) ?></span>
+                                              <span class="value" data-count-target="<?= round($totalWaterArrear, 2) ?>" data-count-decimals="2"><?= number_format($totalWaterArrear, 2) ?></span>
                                           </div>
                                           <div class="summary-row text-muted" style="font-size: 0.8rem; font-style: italic;">
-                                              <span>Current & Arrears</span>
+                                              <span>Current &amp; Arrears</span>
                                               <span>Utility</span>
                                           </div>
                                       </div>
                                       <div class="summary-card-footer">
                                           <span class="total-label text-info">Water Total Out:</span>
-                                          <span class="total-val"><?= number_format($totalWaterOutstanding, 2) ?></span>
+                                          <span class="total-val" data-count-target="<?= round($totalWaterOutstanding, 2) ?>" data-count-decimals="2"><?= number_format($totalWaterOutstanding, 2) ?></span>
                                       </div>
                                   </div>
                               </div>
 
                               <!-- OVERALL GRAND TOTALS -->
                               <div class="col-xl-3 col-md-6 mb-3">
-                                  <div class="summary-card card-grand">
+                                  <div class="summary-card card-grand interactive-card">
                                       <div class="summary-card-header">
                                           <span><i class="fas fa-calculator mr-1"></i> Overall Totals</span>
                                           <span class="badge badge-indigo text-white" style="background-color: #6366f1;">Combined</span>
@@ -796,7 +737,7 @@ $conn->close(); // Close the database connection
                                       <div class="summary-card-body">
                                           <div class="summary-row">
                                               <span class="label text-danger font-weight-bold">Combined Arrears:</span>
-                                              <span class="value text-danger font-weight-bold"><?= number_format($totalCombinedArrears, 2) ?></span>
+                                              <span class="value text-danger font-weight-bold" data-count-target="<?= round($totalCombinedArrears, 2) ?>" data-count-decimals="2"><?= number_format($totalCombinedArrears, 2) ?></span>
                                           </div>
                                           <div class="summary-row text-muted" style="font-size: 0.78rem;">
                                               <span>Rent + Elec + Water Arrears</span>
@@ -804,7 +745,7 @@ $conn->close(); // Close the database connection
                                       </div>
                                       <div class="summary-card-footer">
                                           <span class="total-label" style="color: #4338ca;">Grand Total Out:</span>
-                                          <span class="total-val"><?= number_format($grandTotalOutstanding, 2) ?></span>
+                                          <span class="total-val" data-count-target="<?= round($grandTotalOutstanding, 2) ?>" data-count-decimals="2"><?= number_format($grandTotalOutstanding, 2) ?></span>
                                       </div>
                                   </div>
                               </div>
@@ -2449,7 +2390,33 @@ $conn->close(); // Close the database connection
     <a class="scroll-to-top rounded" href="#page-top">
         <i class="fas fa-angle-up"></i>
     </a>
+<?php include 'includes/admin_modals.php'; ?>
 <?php include 'notification_script.php'; ?>
+<script src="js/modern-ui.js?v=<?= time() ?>"></script>
+<script>
+    // Drag-and-drop highlight support for dropzones
+    document.querySelectorAll('.custom-file-dropzone, .custom-file-dropzone-branch').forEach(function(zone) {
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            zone.style.transform = 'scale(1.015)';
+            zone.style.boxShadow = '0 0 0 4px rgba(99, 102, 241, 0.16)';
+        });
+        zone.addEventListener('dragleave', function() {
+            zone.style.transform = '';
+            zone.style.boxShadow = '';
+        });
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            zone.style.transform = '';
+            zone.style.boxShadow = '';
+            const input = zone.querySelector('input[type="file"]');
+            if (input && e.dataTransfer && e.dataTransfer.files.length) {
+                input.files = e.dataTransfer.files;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    });
+</script>
 </body>
 </html>
 <?php
